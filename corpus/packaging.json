@@ -140,7 +140,18 @@
           ]
         }
       ],
-      "known": [],
+      "known": [
+        {
+          "id": "unicode-lowercase",
+          "match": {
+            "probe": "P1",
+            "traits": "non-ascii"
+          },
+          "fixed_by": 1064,
+          "status": "verified",
+          "discovered_by": "breakwater"
+        }
+      ],
       "after_ultra_release": false
     },
     {

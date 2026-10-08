@@ -1,0 +1,311 @@
+{
+  "id": "#1259",
+  "pr": 1259,
+  "title": "perf(specifiers): push PEP 440 logic into the range engine",
+  "base": "155760e37acbe24bf82444f21e805006ef0b58c8",
+  "head": "664f049980f1873c458de72a449003b83173f445",
+  "merged": "2026-06-15",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet#contains",
+      "run_id": "bt-1259-8d2b3c",
+      "image": "bw-pair:ec9525174f993117",
+      "usd": 0.2083,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 11.3,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 124.0,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.8,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9737759649590926,
+        "report": {
+          "run_id": "bt-1259-8d2b3c",
+          "target": "packaging.specifiers:SpecifierSet#contains",
+          "image": "bw-pair:ec9525174f993117",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet.contains with many wildcard (==X.*) specs and a version without a local part",
+              "why": "The new implementation falls back to intersected‐bounds path on the first spec that returns None from _fast_match.  With many \"==X.*\" specs every spec returns None, so intersect_specifier_bounds builds a wildcard range for each spec and intersects them all before the membership test.  The old fast‑match loop would break on the first None and then fall back to filter(), which also built the intersected ranges but only once per call; the new code does the same work *and* allocates the intermediate per‑spec range lists, making the first call noticeably slower when the number of specs is large.",
+              "size_meaning": "n = number of \"==X.*\" specs in the set (the version string is constant).",
+              "make_source": "\ndef make(n):\n    # Build a specifier set like \"==1.*,==2.*,...,==n.*\"\n    specs = ','.join(f'=={i}.*' for i in range(1, n + 1))\n    # The version we test against has no local part, so _fast_match returns None for every spec.\n    version = \"1.0\"\n    # Return a list of argument tuples for SpecifierSet.contains(specifiers, version, prereleases)\n    return [[specs, version, None]]",
+              "example_args": [
+                [
+                  1.0
+                ],
+                [
+                  null
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.8963202738649148,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "SpecifierSet containing many simple comparators (>=, <=, ==, !=, <, >) with plain release versions and no local segment.",
+              "why": "The new fast‑path loops over every spec calling `_fast_match`. When all specs are simple the loop finishes without ever building the intersected range cache, giving an O(N) check that is cheaper than the old path which would fall back to the range engine after the first call.",
+              "size_meaning": "Number of specifiers in the set (N).",
+              "make_source": "\ndef make(n):\n    # build a SpecifierSet string with n simple specs\n    specs = []\n    for i in range(1, n+1):\n        specs.append(f\">=1.{i}.0\")\n    return [[\",\".join(specs), \"1.5.0\"]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.999472074247154,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet.contains with many simple specs (>=, <=, ==) and a version that carries a local version",
+              "why": "When the tested version has a local part (e.g. \"1.0+local\") every simple spec returns None from _fast_match, so the new code takes the intersected‑bounds path.  intersect_specifier_bounds must compute the range for each spec and intersect them, allocating a new list for each spec.  The old path broke on the first None and then called filter(), which also built the intersected ranges but reused the already‑computed per‑spec ranges; the new implementation rebuilds the per‑spec range lists on the first call, causing a measurable slowdown for large spec sets.",
+              "size_meaning": "n = number of simple specs in the set (each spec is a simple \">=1.0\", \"<=2.0\", \"==1.5\", …).",
+              "make_source": "\ndef make(n):\n    # Create n alternating simple specs.\n    ops = ['>=', '<=', '==']\n    specs = ','.join(f'{ops[i%3]}{i}.0' for i in range(1, n + 1))\n    # Version with a local part forces _fast_match → None for every spec.\n    version = \"1.0+local\"\n    return [[specs, version, None]]",
+              "example_args": [
+                [
+                  null
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.00939752696191,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet that contains at least one wildcard specifier (e.g. \"==1.2.*\") together with many simple specs.",
+              "why": "`_fast_match` returns ``None`` for a wildcard, so the new code breaks out of the fast‑path on the first wildcard it sees and immediately builds the intersected range cache (`_get_ranges`). The old implementation would only build the intersected ranges when the fallback filter was actually invoked; if the caller never asked for a version that triggered the wildcard path the old code avoided the work entirely. Repeated ``contains`` calls on versions that do *not* match the wildcard therefore pay the intersection cost on the very first call in the new version.",
+              "size_meaning": "Number of simple specs before the wildcard (N).",
+              "make_source": "\ndef make(n):\n    # n simple specs followed by one wildcard\n    specs = [f\">=1.{i}.0\" for i in range(1, n+1)]\n    specs.append(\"==1.0.*\")\n    return [[\",\".join(specs), \"1.5.0\"]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9994884259435145,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet.filter on a large iterable with many specs and prereleases=None",
+              "why": "filter() now calls filter_by_ranges, which builds the intersected bounds once (via _get_ranges → intersect_specifier_bounds) and then iterates the input, coercing each item with coerce_version.  The old filter() took the same path, but the new filter_by_ranges does the coercion inline (parsed = coerce_version(item if key is None else key(item))) for every element, adding a function‑call overhead per item.  When the iterable is large (e.g. thousands of version strings) and the specifier set contains many specs (so the intersected bounds list is long), the per‑item overhead becomes noticeable.",
+              "size_meaning": "n = number of version strings in the input iterable; the spec set contains a fixed 10 simple specs.",
+              "make_source": "def make(n):\n    # Fixed specifier set with 10 simple specs\n    specs = '>=1.0,<=2.0,==1.5,>=2.5,<=3.0,==2.8,>=3.5,<=4.0,==3.9,>=4.5'\n    # Generate n version strings without local parts.\n    versions = [f'{i}.0' for i in range(1, n + 1)]\n    # Arguments for SpecifierSet.filter: (specifiers, iterable, prereleases, key)\n    return [[specs, versions, None, None]]",
+              "example_args": [
+                [
+                  "1.0",
+                  "2.0",
+                  "3.0"
+                ],
+                [
+                  null
+                ],
+                [
+                  null
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9996129161866015,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet with only simple specs, but the version being tested contains a local segment (e.g. \"1.2.3+local\").",
+              "why": "The fast‑path guard `version.local is None` fails, so the new code jumps straight to the generic `filter` path which parses the version and runs the range engine. The old `Specifier.contains` fast‑matched the simple operators first and only fell back to the range engine when `_fast_match` returned ``None``; for a local version `_fast_match` also returns ``None`` but the old code would have taken the same filter path, however the new `SpecifierSet.contains` incurs the extra overhead of iterating `self._specs` and checking the fast‑path guard before giving up.",
+              "size_meaning": "Number of specs in the set (N).",
+              "make_source": "def make(n):\n    specs = [f\">=1.{i}.0\" for i in range(1, n+1)]\n    return [[\",\".join(specs), \"1.5.0+local\"]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0127689761426715,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "claimed_speedup",
+              "family": "many_simple_specs_variant_1",
+              "why": "The change removes the cache‑clearing that happened on every canonicalisation.  When a SpecifierSet contains many simple specifiers (e.g. many \">=1.0\", \"<=2.0\", \"==1.5\" …) the first call canonicalises the list, builds the intersected range cache and then re‑uses it on every subsequent `contains`/`filter` call.  The base version threw the cache away on every canonicalisation, forcing a full range‑intersection on every call; the head version keeps the cached ranges and is therefore faster.",
+              "size_meaning": "number of simple specifiers in the SpecifierSet (duplicates are allowed – they are deduped by canonicalisation)",
+              "make_source": "def make(n):\n    specs = [f\"<={i}.0\" for i in range(1, n + 1)]\n    return [[\", \".join(specs), \"2.5\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9997483205576974,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "claimed_speedup",
+              "family": "many_simple_specs",
+              "why": "The change removes the cache‑clearing that happened on every canonicalisation.  When a SpecifierSet contains many simple specifiers (e.g. many \">=1.0\", \"<=2.0\", \"==1.5\" …) the first call canonicalises the list, builds the intersected range cache and then re‑uses it on every subsequent `contains`/`filter` call.  The base version threw the cache away on every canonicalisation, forcing a full range‑intersection on every call; the head version keeps the cached ranges and is therefore faster.",
+              "size_meaning": "number of simple specifiers in the SpecifierSet (duplicates are allowed – they are deduped by canonicalisation)",
+              "make_source": "\ndef make(n):\n    # produce n simple specifiers like \">=1.0\", \">=2.0\", …\n    specs = [f\">={i}.0\" for i in range(1, n+1)]\n    # return a list with a single argument list for SpecifierSet.__contains__\n    return [[\",\".join(specs), \"1.5\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9998247160995112,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "claimed_speedup",
+              "family": "many_simple_specs_variant_2",
+              "why": "The change removes the cache‑clearing that happened on every canonicalisation.  When a SpecifierSet contains many simple specifiers (e.g. many \">=1.0\", \"<=2.0\", \"==1.5\" …) the first call canonicalises the list, builds the intersected range cache and then re‑uses it on every subsequent `contains`/`filter` call.  The base version threw the cache away on every canonicalisation, forcing a full range‑intersection on every call; the head version keeps the cached ranges and is therefore faster.",
+              "size_meaning": "number of simple specifiers in the SpecifierSet (duplicates are allowed – they are deduped by canonicalisation)",
+              "make_source": "def make(n):\n    specs = []\n    for i in range(1, n // 2 + 1):\n        specs.append(f\">={i}.0\")\n        specs.append(f\"<={(i * 2)}.0\")\n    if len(specs) < n:\n        specs.extend([f\">={len(specs)+j}.0\" for j in range(1, n - len(specs) + 1)])\n    return [[\",\" .join(specs[:n]), \"1.0\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9998252453799829,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "SpecifierSet containing many simple comparators (>=, <=, ==, !=, <, >) with plain release versions and no local segment.",
+              "why": "The new fast‑path loops over every spec calling `_fast_match`. When all specs are simple the loop finishes without ever building the intersected range cache, giving an O(N) check that is cheaper than the old path which would fall back to the range engine after the first call.",
+              "origin": "plan",
+              "screen_ratio": 0.999472074247154,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 92363.73,
+                  "head_ir": 92382.4,
+                  "input_chars": 28.0,
+                  "ratio": 1.0002021356218507
+                },
+                {
+                  "n": 4,
+                  "base_ir": 159423.615,
+                  "head_ir": 159288.58,
+                  "input_chars": 44.0,
+                  "ratio": 0.9991529799396407
+                },
+                {
+                  "n": 16,
+                  "base_ir": 379646.89552238805,
+                  "head_ir": 379446.4701492537,
+                  "input_chars": 147.0,
+                  "ratio": 0.999472074247154
+                },
+                {
+                  "n": 64,
+                  "base_ir": 1145927.8823529412,
+                  "head_ir": 1115877.0294117648,
+                  "input_chars": 579.0,
+                  "ratio": 0.9737759649590926
+                },
+                {
+                  "n": 256,
+                  "base_ir": 4161191.0,
+                  "head_ir": 4162161.5,
+                  "input_chars": 2464.0,
+                  "ratio": 1.0002332264969331
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 17111946.5,
+                  "head_ir": 17187582.5,
+                  "input_chars": 10169.0,
+                  "ratio": 1.0044200699201578
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 67991973.5,
+                  "head_ir": 68001832.5,
+                  "input_chars": 43961.0,
+                  "ratio": 1.000145002409733
+                }
+              ],
+              "slope_base": 0.8829307798638516,
+              "slope_head": 0.8833917009511645,
+              "top_inputs": [
+                {
+                  "args": [
+                    "l5K2",
+                    27,
+                    "1.5.0"
+                  ],
+                  "cpu_ratio": 2.521,
+                  "base_ir": 16801.16,
+                  "head_ir": 16829.14,
+                  "ir_ratio": 1.0016653612012503,
+                  "outcome": "exc:packaging.specifiers.InvalidSpecifier"
+                },
+                {
+                  "args": [
+                    "R",
+                    21,
+                    "1.5.0"
+                  ],
+                  "cpu_ratio": 1.992,
+                  "base_ir": 16192.74,
+                  "head_ir": 16191.72,
+                  "ir_ratio": 0.9999370088076508,
+                  "outcome": "exc:packaging.specifiers.InvalidSpecifier"
+                }
+              ],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0044200699201578,
+              "worst_search": {
+                "args": [
+                  "l5K2",
+                  27,
+                  "1.5.0"
+                ],
+                "cpu_ratio": 2.521,
+                "base_ir": 16801.16,
+                "head_ir": 16829.14,
+                "ir_ratio": 1.0016653612012503,
+                "outcome": "exc:packaging.specifiers.InvalidSpecifier"
+              }
+            }
+          ],
+          "seconds": {
+            "plan": 31.81,
+            "screen": 131.02,
+            "full": 83.98,
+            "total": 246.81
+          }
+        }
+      }
+    }
+  ]
+}

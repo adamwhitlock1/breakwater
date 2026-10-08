@@ -1,0 +1,224 @@
+{
+  "id": "#1029",
+  "pr": 1029,
+  "title": "perf: use fullmatch for markers too",
+  "base": "c39b6da9ab11f649f5497a11628f9dfc98380bb2",
+  "head": "8a805e3baac2d71958ec0d0beffbe4d51fd5795f",
+  "merged": "2026-01-04",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1029-8689c7",
+      "image": "bw-pair:d03dcb2e7566ace6",
+      "usd": 0.2324,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 10.9,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 85.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.7,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9993694403556155,
+        "report": {
+          "run_id": "bt-1029-8689c7",
+          "target": "packaging.markers:Marker",
+          "image": "bw-pair:d03dcb2e7566ace6",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "many short extra clauses combined with 'or'",
+              "why": "The change only touches the regex used for name validation and normalization. Typical short extra names (≤10 chars) exercise the fast path of the regex; the new pattern avoids the start/end anchors and uses fullmatch, which for short inputs is marginally faster. This family exercises the common case of evaluating a marker that contains many simple extra checks.",
+              "size_meaning": "n = number of extra clauses (each clause is a constant‑size string)",
+              "make_source": "def make(n):\n    # Build a marker like: extra == \"pkg0\" or extra == \"pkg1\" or ...\n    clauses = [f'extra == \"pkg{i}\"' for i in range(n)]\n    marker = ' or '.join(clauses)\n    return [[marker]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9993875966608451,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "single extra with a very long alphanumeric name",
+              "why": "The normalized‑name regex `_normalized_regex = re.compile(r\"[a-z0-9]|[a-z0-9]([a-z0-9-](?!--))*[a-z0-9]\")` is used via `fullmatch` on the canonicalized value. For a long string consisting only of alphanumerics the engine first tries the one‑character alternative, fails, then backtracks through the greedy `*` in the second alternative, yielding roughly O(L²) work where L is the name length. The old anchored regex with `match` exhibited the same worst case but the new pattern lacks the `^…$` anchors, so the engine cannot short‑circuit the first alternative and does more backtracking.",
+              "size_meaning": "n = length of the extra name (number of alphanumeric characters)",
+              "make_source": "def make(n):\n    # One extra clause with a name of length n (all 'a')\n    name = 'a' * n\n    marker = f'extra == \"{name}\"'\n    return [[marker]]",
+              "example_args": [
+                [
+                  [
+                    "extra == \"aaaaaaaaaa\""
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9993665783373354,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "single extra with a long name containing many permitted separators",
+              "why": "The canonicalisation step replaces runs of `[-_.]` with a single hyphen, but the normalized‑name regex still has to `fullmatch` the resulting string. A name like `a.-_a.-_a…` becomes a long hyphen‑separated sequence (`a-a-a-…`). The same quadratic backtracking as the pure‑alnum case occurs, and the extra substitution pass adds linear work, making this family slower than the base version.",
+              "size_meaning": "n = number of “a.-_” segments (final length ≈ 3 n)",
+              "make_source": "def make(n):\n    segment = 'a.-_'\n    name = segment * n + 'a'   # ensure it ends with an alnum\n    marker = f'extra == \"{name}\"'\n    return [[marker]]",
+              "example_args": [
+                [
+                  [
+                    "extra == \"a.-_a.-_a.-_a\""
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.998962874631169,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "many extra clauses each of moderate length",
+              "why": "When a marker contains many `extra == \"…\"` clauses combined with `or`, `_evaluate_markers` evaluates each clause sequentially until one succeeds. Each clause triggers `canonicalize_name` (which runs the normalized‑name `fullmatch`). With *k* clauses of length *m* the total work is *k·m²* in the worst case. The new regex makes the per‑clause cost higher, so the overall marker evaluation slows down proportionally to the number of clauses.",
+              "size_meaning": "n = number of clauses (each clause length ≈ 20)",
+              "make_source": "def make(n):\n    base = 'extra == \"pkg' + 'x'*15 + '\"'\n    clauses = [base.replace('pkg', f'pkg{i}') for i in range(n)]\n    marker = ' or '.join(clauses)\n    return [[marker]]",
+              "example_args": [
+                [
+                  [
+                    "extra == \"pkg0xxxxxxxxxxxxxxx\" or extra == \"pkg1xxxxxxxxxxxxxxx\""
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0005435753428675,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "extra name containing characters that are not allowed (invalid input)",
+              "why": "An invalid name still passes through `canonicalize_name`: the substitution step runs, then `fullmatch` on the normalized regex fails after scanning the whole string. Because the new pattern lacks the start/end anchors, the engine cannot reject early and must explore both alternatives fully, making the failure path slower. Only one invalid family is included as requested.",
+              "size_meaning": "n = length of the invalid name (all ‘!’ characters)",
+              "make_source": "def make(n):\n    name = '!' * n\n    marker = f'extra == \"{name}\"'\n    return [[marker]]",
+              "example_args": [
+                [
+                  [
+                    "extra == \"!!!!!!!!!!\""
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9993663375120074,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "many short extra clauses combined with 'or'",
+              "why": "The change only touches the regex used for name validation and normalization. Typical short extra names (≤10 chars) exercise the fast path of the regex; the new pattern avoids the start/end anchors and uses fullmatch, which for short inputs is marginally faster. This family exercises the common case of evaluating a marker that contains many simple extra checks.",
+              "origin": "plan",
+              "screen_ratio": 0.9993875966608451,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 237883.92,
+                  "head_ir": 237733.92,
+                  "input_chars": 42.0,
+                  "ratio": 0.9993694403556155
+                },
+                {
+                  "n": 4,
+                  "base_ir": 466258.845,
+                  "head_ir": 465968.845,
+                  "input_chars": 84.0,
+                  "ratio": 0.9993780278849187
+                },
+                {
+                  "n": 16,
+                  "base_ir": 1845189.1551724137,
+                  "head_ir": 1844059.1551724137,
+                  "input_chars": 342.0,
+                  "ratio": 0.9993875966608451
+                },
+                {
+                  "n": 64,
+                  "base_ir": 7494691.071428572,
+                  "head_ir": 7529507.071428572,
+                  "input_chars": 1398.0,
+                  "ratio": 1.0046454216282144
+                },
+                {
+                  "n": 256,
+                  "base_ir": 30030132.333333332,
+                  "head_ir": 30030132.333333332,
+                  "input_chars": 5778.0,
+                  "ratio": 1.0
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 120551295.0,
+                  "head_ir": 121118134.5,
+                  "input_chars": 23466.0,
+                  "ratio": 1.0047020606456363
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 487335634.0,
+                  "head_ir": 487335280.0,
+                  "input_chars": 97194.0,
+                  "ratio": 0.9999992736012405
+                }
+              ],
+              "slope_base": 0.9851634174387901,
+              "slope_head": 0.9855079466610813,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0047020606456363,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 62.64,
+            "screen": 176.5,
+            "full": 164.64,
+            "total": 403.78
+          }
+        }
+      }
+    }
+  ]
+}

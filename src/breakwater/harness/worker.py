@@ -34,7 +34,10 @@ _ADDR = re.compile(r" at 0x[0-9a-fA-F]+")
 
 
 def _norm_repr(v) -> str:
-    return _ADDR.sub(" at 0x?", repr(v))
+    # Some reprs embed id(self) in decimal (packaging's Tag: "<py3-none-any @ 2814…>"); strip the
+    # object's own id in both forms, plus any hex address.
+    r = repr(v).replace(str(id(v)), "<id>").replace(hex(id(v)), "<id>")
+    return _ADDR.sub(" at 0x?", r)
 
 
 class _Timeout(Exception):
@@ -95,8 +98,10 @@ def _observe(obj, observe, timeout_s):
             fn = lambda name=name: getattr(obj, name)  # noqa: E731
         else:
             raise ValueError(f"unknown observation {spec!r}")
-        kind, val = _guard(fn, timeout_s)
-        out[spec] = _jsonable(val) if kind == "ok" else f"<{kind}{':' + val if val else ''}>"
+        # Rendering runs the library's own __repr__/__hash__ too (e.g. a nested SpecifierSet), so it
+        # must be guarded like the call itself: a raising repr is an observation, not a worker crash.
+        kind, val = _guard(lambda fn=fn: _jsonable(fn()), timeout_s)
+        out[spec] = val if kind == "ok" else f"<{kind}{':' + val if val else ''}>"
     return out
 
 

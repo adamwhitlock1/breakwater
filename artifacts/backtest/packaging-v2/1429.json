@@ -1,0 +1,184 @@
+{
+  "id": "#1429",
+  "pr": 1429,
+  "title": "perf(parser): avoid literal_eval for plain marker strings",
+  "base": "f7c930eb18b556930564c1131fde78e576352ddc",
+  "head": "d17cfaf0b77a5690f03087359e7c8d665a3c728d",
+  "merged": "2026-10-05",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1429-0619ec",
+      "image": "bw-pair:11c432119443010a",
+      "usd": 0.0512,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.9,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.3,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.TypeError"
+          ],
+          "known": [],
+          "seconds": 48.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.TypeError"
+          ],
+          "known": [],
+          "seconds": 3.9,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.TypeError",
+          "probe": "P4",
+          "detail": "base->head load",
+          "args": [
+            [
+              "python_version == '3.\\n11'"
+            ]
+          ],
+          "base": "loads",
+          "head": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "found_by": [
+            "seed",
+            "mutation:huge-number",
+            "mutation:equivalents"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-1429-0619ec",
+          "target": "packaging.markers:Marker",
+          "image": "bw-pair:11c432119443010a",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "fast_path_string_parsing",
+              "why": "The patch adds a fast‑path in `process_python_str` that returns a `Value` by stripping the surrounding quotes when the string contains no backslashes and consists only of printable characters, avoiding the overhead of `ast.literal_eval`. This avoids the overhead of the AST parser for the common case of simple quoted strings used in environment markers.",
+              "size_meaning": "Micro‑optimisation for a hot parsing path; avoids the heavyweight AST parser for the common case of simple quoted strings in environment markers.",
+              "make_source": "def make(n):\n    return [[\"'cpython'\"] for _ in range(min(n, 8))]",
+              "example_args": [
+                [
+                  "'cpython'"
+                ],
+                [
+                  "'cpython'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6644936713780933,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "marker_evaluation_fast_path",
+              "why": "Added a fast‑path in `process_python_str` that avoids `ast.literal_eval` for simple printable string literals without backslashes. Simple environment markers (e.g. `extra == 'linux'`) are common, so skipping the full Python literal parser saves the relatively heavy C‑level parsing overhead for the common case.",
+              "size_meaning": "speedup",
+              "make_source": "def make(n):\n    return [\n        [str(i), str(i % 2 == 0)]\n        for i in range(1, min(n, 8) + 1)\n    ]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "parser_optimization",
+              "why": "Added fast‑path in process_python_str that returns the literal string slice when the string contains no backslashes and is printable, avoiding the slower ast.literal_eval call.",
+              "size_meaning": "bytes of code change",
+              "make_source": "\ndef make(n):\n    base = \"Marker(\"\n    changes = [\n        (\"optimize\", \"\"),\n        (\"opt1\", \"\"),\n        (\"opt2\", \"\"),\n        (\"opt3\", \"\"),\n    ]\n    result = []\n    for mask in range(1, 9):\n        args = []\n        for i, (name, _) in enumerate(changes):\n            if mask & (1 << i):\n                args.append(name)\n        result.append(args)\n    return result",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9943055591574943,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "extra_isprintable_check_overhead",
+              "why": "The fast‑path adds an `isprintable()` call and a backslash check for every marker string. For very short marker strings this extra Python‑level check may outweigh the saved `ast.literal_eval` cost, especially on very short strings where the AST parser is already fast.",
+              "size_meaning": "Micro‑overhead per call; measurable only in tight loops parsing many markers.",
+              "make_source": "def make(n):\n    # deterministic short marker strings based on n\n    s = string.digits[:n % 6 + 1]  # '0'..'5' -> 1..6 chars\n    args = [['' + s]]\n    if n > 3:\n        args.append(['' + s + s])\n    if n > 5:\n        args.append(['' + s + s + s])\n    return args",
+              "example_args": [
+                [
+                  "'cp'"
+                ],
+                [
+                  "'py3'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9933299701811983,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "marker_evaluation_fallback_overhead",
+              "why": "For string literals that contain a backslash (e.g. escaped quotes or escape sequences) the fast‑path test `\"\\\\\" not in python_str` scans the whole token, then `str.isprintable()` scans it again before falling back to `ast.literal_eval`. This double scan adds overhead for the relatively rare escaped strings.",
+              "size_meaning": "slowdown",
+              "make_source": "def make(n):\n    rnd = random.Random(n)\n    parts = [\"\".join(rnd.choice(string.ascii_letters + string.digits) for _ in range(rnd.randint(10, 60))) for _ in range(n)]\n    backs = [\"\\\\\" + c for c in string.ascii_letters[:8]]\n    args = []\n    if n >= 1:\n        args.append([parts[0], rnd.choice(backs)])\n    if n >= 2:\n        args.append([parts[1], parts[0], rnd.choice(backs)])\n    if n >= 3:\n        args.append([parts[2], parts[1], parts[0], rnd.choice(backs)])\n    if n >= 4:\n        args.append([parts[3], parts[2], parts[1], parts[0], rnd.choice(backs)])\n    if n >= 5:\n        args.append([parts[4], parts[3], parts[2], parts[1], parts[0], rnd.choice(backs)])\n    if n >= 6:\n        args.append([parts[5], parts[4], parts[3], parts[2], parts[1], parts[0], rnd.choice(backs)])\n    if n >= 7:\n        args.append([parts[6], parts[5], parts[4], parts[3], parts[2], parts[1], parts[0], rnd.choice(backs)])\n    if n >= 8:\n        args.append([parts[7], parts[6], parts[5], parts[4], parts[3], parts[2], parts[1], parts[0], rnd.choice(backs)])\n    return args",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0016731734523145,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "edge_case_regression",
+              "why": "The fast‑path skips ast.literal_eval for any string without a backslash, but strings containing escaped non‑printable characters (e.g., '\\x00') are printable yet not literal strings; the fast‑path would return the literal escaped text instead of the evaluated character, causing incorrect marker evaluation.",
+              "size_meaning": "bytes of code change",
+              "make_source": "def make(n):\n    r = []\n    if n >= 1:\n        r.append([None])\n    if n >= 2:\n        s = \"\\\\x00\"\n        r.append([s])\n    if n >= 3:\n        s = \"\\\\\\\\\"\n        r.append([s])\n    if n >= 4:\n        s = \"\\\\n\"\n        r.append([s])\n    if n >= 5:\n        r.append([\"test\"])\n    if n >= 6:\n        r.append([\"repr\\\\test\"])\n    if n >= 7:\n        r.append([\"\\\\x00\"])\n    if n >= 8:\n        r.append([\"\\\\10\"])\n    return r",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9939663600404437,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [],
+          "seconds": {
+            "plan": 13.43,
+            "screen": 76.45,
+            "full": 0.0,
+            "total": 89.88
+          }
+        }
+      }
+    }
+  ]
+}

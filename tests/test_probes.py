@@ -122,3 +122,45 @@ def test_traits_split_distinct_root_causes():
     exc = {"status": "exc", "exc": "x.InvalidVersion"}
     ok = {"status": "ok", "obs": {}}
     assert signature("P2", "outcome", exc, ok, ["١.٠"]) != signature("P2", "outcome", exc, ok, ["1. 0"])
+
+
+def test_worker_survives_a_raising_repr():
+    import sys
+    import types
+
+    mod = types.ModuleType("bw_bad_repr")
+
+    class Bad:
+        def __init__(self, s):
+            self.s = s
+
+        def __repr__(self):
+            raise RuntimeError("boom")
+
+    mod.Bad = Bad
+    sys.modules["bw_bad_repr"] = mod
+    res = worker.run({"target": "bw_bad_repr:Bad", "observe": ["repr"], "ops": [{"op": "construct", "inputs": [["x"]]}]})
+    assert res["results"][0]["outcomes"][0]["obs"]["repr"] == "<exc:builtins.RuntimeError>"
+
+
+def test_eq_hash_contract_violation_present_on_both_sides_is_not_a_divergence(tmp_path, monkeypatch):
+    import sys
+    import types
+
+    mod = types.ModuleType("bw_hash_bug")
+
+    class Both:  # violates eq/hash on base and head alike
+        def __init__(self, s):
+            self.s = s
+
+        def __eq__(self, other):
+            return self.s.lstrip("0") == other.s.lstrip("0")
+
+        def __hash__(self):
+            return hash(self.s)
+
+    mod.Both = Both
+    monkeypatch.setitem(sys.modules, "bw_hash_bug", mod)
+    backend = InProcessBackend("bw_hash_bug:Both", "bw_hash_bug:Both")
+    runner = Runner(backend, PairImage("fake", "base", "head"), Target("ignored", ("str",)))
+    assert run_probes(runner, [["2"], ["02"]], ("P3",)).divergences == []

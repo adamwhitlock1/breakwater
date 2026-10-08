@@ -1,0 +1,262 @@
+{
+  "id": "#1147",
+  "pr": 1147,
+  "title": "perf: add __slots__ to Marker",
+  "base": "04a7600a21febca084022d88c6684f1aedf81c8a",
+  "head": "76cc6298254887e17d6b39df0425a4b6c2f1714a",
+  "merged": "2026-04-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "marker-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1147-8b7b5a",
+      "image": "bw-pair:50aa962c18a1f597",
+      "usd": 0.0376,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [
+            "marker-pickle"
+          ],
+          "seconds": 1.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [
+            "marker-pickle"
+          ],
+          "seconds": 30.9,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [
+            "marker-pickle"
+          ],
+          "seconds": 1.6,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "probe": "P4",
+          "detail": "base->head load",
+          "args": [
+            [
+              "\"b\" > \"a\""
+            ]
+          ],
+          "base": "loads",
+          "head": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "found_by": [
+            "seed",
+            "tests",
+            "mutation:unicode-digits",
+            "mutation:whitespace-outer",
+            "mutation:huge-number",
+            "mutation:equivalents",
+            "mutation:underscores",
+            "mutation:separators",
+            "mutation:whitespace-inner",
+            "mutation:case"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9818854740154223,
+        "report": {
+          "run_id": "bt-1147-8b7b5a",
+          "target": "packaging.markers:Marker",
+          "image": "bw-pair:50aa962c18a1f597",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "simple marker",
+              "why": "The added __slots__ removes the per‑instance __dict__, so attribute writes (self._markers = ...) and reads in __init__ are faster. Repeated construction of many tiny marker objects exercises the fast path that __slots__ optimises.",
+              "size_meaning": "number of Marker objects created",
+              "make_source": "\ndef make(n):\n    # a trivial, always‑valid marker expression\n    base = \"python_version >= '3.8'\"\n    # repeat the same construction n times (cost grows linearly with n)\n    return [[base] for _ in range(min(n, 8))]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9955887083084731,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "creation and evaluation of many Marker objects",
+              "why": "Adding __slots__ removes the per‑instance __dict__, so attribute access (self._markers) and object creation are slightly faster. The benefit grows with the number of Marker instances.",
+              "size_meaning": "Number of Marker objects created and evaluated (n).",
+              "make_source": "def make(n):\n    markers = []\n    for i in range(n):\n        # a simple but valid marker expression\n        markers.append([f'python_version >= \"3.{i%10}\"'])\n    return markers",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.997861366519618,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Simple marker strings (single comparison, no nesting)",
+              "why": "The added __slots__ eliminates the per‑instance __dict__, making attribute access (self._markers) and object creation a little faster. This is the typical workload the change targets.",
+              "size_meaning": "n = number of marker expressions concatenated with spaces (still a single top‑level marker)",
+              "make_source": "\ndef make(n):\n    # Produce n different simple markers like \"python_version >= '3.8'\"\n    bases = [\"python_version >= '3.8'\", \"os_name == 'posix'\", \"extra == 'test'\"]\n    # Cycle through the three bases to get n distinct markers\n    return [[bases[i % len(bases)]] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9981582925614582,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "nested marker with many sub‑expressions",
+              "why": "A deeply nested marker creates a larger _markers list, so the __init__ body runs more Python bytecode. Faster attribute access from __slots__ becomes measurable when the list is built and then stored.",
+              "size_meaning": "nesting depth (number of 'or' clauses)",
+              "make_source": "def make(n):\n    # Build a marker like: a or (a or (a ... )) with depth n\n    clause = \"python_version == '3.8'\"\n    expr = clause\n    for _ in range(n):\n        expr = f\"({expr} or {clause})\"\n    # cap at 8 items\n    return [[expr] for _ in range(min(n, 8))]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9917744647906729,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "invalid marker strings that raise InvalidMarker",
+              "why": "When parsing fails the constructor raises InvalidMarker. The new __slots__ descriptor is still consulted during attribute assignment before the exception propagates, adding a tiny overhead on the error path.",
+              "size_meaning": "Number of invalid marker strings attempted (n).",
+              "make_source": "def make(n):\n    return [[f'invalid{{i}}'] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9928937985410515,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "claimed_speedup",
+              "family": "Nested marker expressions (and/or groups)",
+              "why": "Even with nested lists the parser builds the same internal MarkerList structure; the only difference is the instance layout, which slots improve.",
+              "size_meaning": "n = depth of nesting (each level adds an 'and' group)",
+              "make_source": "def make(n):\n    # Build a marker like: python_version >= '3.7' and (python_version >= '3.8' and (...))\n    inner = \"python_version >= '3.7'\"\n    for i in range(n):\n        inner = f\"python_version >= '3.{7+i}' and ({inner})\"\n    return [[inner]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9818854740154223,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F6",
+              "kind": "claimed_speedup",
+              "family": "Nested marker expressions (and/or groups)",
+              "why": "Even with nested lists the parser builds the same internal MarkerList structure; the only difference is the instance layout, which slots improve.",
+              "origin": "plan",
+              "screen_ratio": 0.9818854740154223,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 439095.395,
+                  "head_ir": 437372.455,
+                  "input_chars": 87.0,
+                  "ratio": 0.9960761601701608
+                },
+                {
+                  "n": 4,
+                  "base_ir": 757729.6616541353,
+                  "head_ir": 754800.5789473684,
+                  "input_chars": 148.0,
+                  "ratio": 0.9961343961375715
+                },
+                {
+                  "n": 16,
+                  "base_ir": 2731378.763157895,
+                  "head_ir": 2681901.1315789474,
+                  "input_chars": 520.0,
+                  "ratio": 0.9818854740154223
+                },
+                {
+                  "n": 64,
+                  "base_ir": 10588055.111111112,
+                  "head_ir": 10524852.555555556,
+                  "input_chars": 2008.0,
+                  "ratio": 0.9940307681729734
+                },
+                {
+                  "n": 256,
+                  "base_ir": 42019898.0,
+                  "head_ir": 42045322.0,
+                  "input_chars": 8123.0,
+                  "ratio": 1.0006050466852632
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 75220486.5,
+                  "head_ir": 75024419.0,
+                  "input_chars": 32730.0,
+                  "ratio": 0.9973934295147108
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 75034587.0,
+                  "head_ir": 75043897.5,
+                  "input_chars": 134106.0,
+                  "ratio": 1.000124082777986
+                }
+              ],
+              "slope_base": 0.7597308989786677,
+              "slope_head": 0.7607715222536235,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0006050466852632,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 9.6,
+            "screen": 70.8,
+            "full": 57.28,
+            "total": 137.68
+          }
+        }
+      }
+    }
+  ]
+}

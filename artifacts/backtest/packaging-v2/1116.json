@@ -1,0 +1,354 @@
+{
+  "id": "#1116",
+  "pr": 1116,
+  "title": "perf: Overhaul `_cmpkey` to remove use of custom objects",
+  "base": "baa9ea8c7fa773fc4039d090bc7ec6452b860ec6",
+  "head": "f2bbd4f578644865bc5cb2534768e46563ee7f66",
+  "merged": "2026-03-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "old-pickles-fail-to-load",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1163,
+      "status": "verified"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1116-754b0a",
+      "image": "bw-pair:127ca274fc70935b",
+      "usd": 0.1098,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.7,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.ModuleNotFoundError"
+          ],
+          "known": [
+            "old-pickles-fail-to-load"
+          ],
+          "seconds": 2.0,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.ModuleNotFoundError"
+          ],
+          "known": [
+            "old-pickles-fail-to-load"
+          ],
+          "seconds": 685.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.ModuleNotFoundError"
+          ],
+          "known": [
+            "old-pickles-fail-to-load"
+          ],
+          "seconds": 6.5,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.ModuleNotFoundError",
+          "probe": "P4",
+          "detail": "base->head load",
+          "args": [
+            [
+              "0"
+            ]
+          ],
+          "base": "loads",
+          "head": {
+            "status": "exc",
+            "exc": "builtins.ModuleNotFoundError"
+          },
+          "found_by": [
+            "seed",
+            "tests",
+            "mutation:whitespace-outer",
+            "mutation:huge-number",
+            "mutation:case",
+            "mutation:equivalents",
+            "mutation:edges",
+            "mutation:separators",
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9928424865375168,
+        "report": {
+          "run_id": "bt-1116-754b0a",
+          "target": "packaging.version:Version",
+          "image": "bw-pair:127ca274fc70935b",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "pure numeric versions (only digits and dots, no epoch, pre‑release, post‑release, dev or local parts). The new fast‑path in ``Version.__init__`` detects the ``_SIMPLE_VERSION_INDICATORS`` set and parses the release tuple with a cheap ``split('.')`` + ``map(int, …)`` plus a pre‑computed ``_STABLE_SUFFIX`` key, avoiding the regex and the full ``_cmpkey`` tuple construction.",
+              "why": "The old code always fell through to the regex and built a full ``_cmpkey`` tuple (including three singleton ``Infinity``/``NegativeInfinity`` objects) even for a plain ``1.2.3``. The new fast‑path returns a pre‑computed constant suffix and skips the regex entirely, so cost grows only with the number of dot‑separated segments (splitting and ``int`` conversion).",
+              "size_meaning": "n = number of dot‑separated numeric segments (e.g. \"1.2.3\" → n=3). Cost grows roughly linearly with n because of ``split('.')`` and ``int`` conversion.",
+              "make_source": "def make(n):\n    # n >= 1\n    seg = '.'.join(['1'] * n)\n    return [[seg]]",
+              "example_args": [
+                [
+                  [
+                    "1"
+                  ]
+                ],
+                [
+                  [
+                    "1.2"
+                  ]
+                ],
+                [
+                  [
+                    "1.2.3.4.5"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9976638095744293,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Simple numeric versions consisting only of digits and dots (e.g. \"1.2.3.4.5\")",
+              "why": "The new code adds a fast‑path at the top of Version.__init__ that detects a version string containing only characters in the set '.0123456789'. Such strings bypass the regular‑expression entirely and are parsed with a cheap `split('.')` + `map(int, …)`. The old version always ran the full verbose regex, so pure‑numeric versions are now parsed and keyed in O(N) time with no regex overhead.",
+              "size_meaning": "Number of dot‑separated numeric components (n). Cost grows linearly with n because of the split and integer conversion.",
+              "make_source": "\ndef make(n):\n    # produce n versions with 1,2,…,n dot‑separated components\n    return [[\".\".join(str(i) for i in range(1, k+1))] for k in range(1, n+1)]",
+              "example_args": [
+                [
+                  1
+                ],
+                [
+                  1.2
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9999857642282433,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Simple numeric versions (only digits and dots, e.g. \"1.2.3.4.5\")",
+              "why": "The new code adds a fast‑path in `__init__` (``_SIMPLE_VERSION_INDICATORS.issuperset(version)``) and a fast‑path in ``_cmpkey`` that returns a pre‑computed ``_STABLE_SUFFIX`` tuple when a version has no epoch, pre‑release, post‑release, dev‑release or local part. Both paths avoid the regex and avoid building the full comparison key, giving a measurable speed‑up for pure numeric versions.",
+              "size_meaning": "Number of dot‑separated numeric segments in the version string (n segments → string length ≈ 2·n).",
+              "make_source": "def make(n):\n    # produce n versions with 1,2,...,n dot‑separated segments\n    return [[\".\".join(str(i) for i in range(1, seg+1))] for seg in range(1, n+1)]",
+              "example_args": [
+                [
+                  1
+                ],
+                [
+                  1.2
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9999857642282433,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "versions with a long local version part (many dot/underscore/hyphen separated alphanumeric segments). The new ``_cmpkey`` builds a ``CmpLocalType`` tuple of tuples ``(segment_int, \"\")`` for each local segment, whereas the old code built a similar tuple but filled with the singleton ``NegativeInfinity`` objects. Creating many small 2‑tuples per segment adds allocation overhead that grows with the number of local segments.",
+              "why": "Both versions allocate a tuple per local segment, but the new code allocates a 2‑tuple of ``(int, \"\")`` for each segment while the old code reused the singleton ``NegativeInfinity`` objects inside a 2‑tuple. The extra integer allocation and tuple creation per segment can make long local versions slower.",
+              "size_meaning": "n = number of local segments after the '+' (e.g. \"1.0+loc0.loc1.loc2\" → n=3). Cost grows roughly linearly with n because a new 2‑tuple is built for each segment.",
+              "make_source": "def make(n):\n    # n >= 1\n    local = '.'.join(f'loc{i}' for i in range(n))\n    return [[f'1.0+{local}']]",
+              "example_args": [
+                [
+                  [
+                    "1.0+loc0"
+                  ]
+                ],
+                [
+                  [
+                    "1.0+loc0.loc1.loc2"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9975426741371929,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Versions with a long local‑version segment containing many dot/underscore/hyphen separated alphanumeric parts (e.g. \"1.0+local.part1.part2….partN\")",
+              "why": "The new `_cmpkey` builds `cmp_local` as a tuple of 2‑element tuples `(seg, \"\")` for numeric parts and `(_LOCAL_STR_RANK, seg)` for alphabetic parts. A long local version therefore allocates a tuple‑of‑tuples whose size grows with the number of local segments. The old code built a similar structure but used the singleton `NegativeInfinity` objects for the string parts; the new code creates a fresh `(-1, seg)` tuple for every segment on every key construction. Because the key is cached, the extra allocation happens once per `Version` instance, but for workloads that create many distinct version objects with long local parts the extra tuple allocations can make object construction noticeably slower than the old singleton‑object approach.",
+              "size_meaning": "Number of dot/underscore/hyphen separated parts in the local version (n). Cost grows roughly linearly with n due to per‑segment tuple allocation.",
+              "make_source": "\ndef make(n):\n    # generate versions with 1..n local segments after a simple release\n    base = \"1.0\"\n    parts = [\"p\" + str(i) for i in range(1, n+1)]\n    # join with '.' to make many segments\n    return [[base + \"+\" + \".\".join(parts[:k])] for k in range(1, n+1)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.999508068388664,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Versions with many local‑version segments (e.g. \"1.0+local.part1.part2…partN\")",
+              "why": "The new ``_cmpkey`` builds a ``cmp_local`` tuple of ``(int, str)`` pairs for every local segment (``(seg, \"\")`` for numeric parts, ``(-1, seg)`` for alphanumeric parts). The old code built a tuple of custom ``NegativeInfinity`` objects via a generator expression. Creating many small ``(int, str)`` tuples and then comparing them element‑wise in Python can be slower than the old single‑object ``NegativeInfinity`` comparison, especially when the local part contains many segments, because tuple‑of‑tuple allocation and element‑wise integer comparison adds overhead.",
+              "size_meaning": "Number of dot‑separated segments in the local version part (n segments → local string length grows roughly linearly with n).",
+              "make_source": "\ndef make(n):\n    # produce n versions with 1..n local segments like \"1.0+loc.a.b.c...\"\n    base = \"1.0+\"\n    segs = [\"part\" + str(i) for i in range(1, n+1)]\n    return [[base + \".\".join(segs[:k])] for k in range(1, n+1)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9981533666493461,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.",
+              "why": "Even though the version is invalid, the extra disjoint check runs; the regex then fails. This is the single allowed invalid family.",
+              "size_meaning": "Number of dotted segments before the malformed tail.",
+              "make_source": "def make(n):\n    # \"1.\" repeated n times then an alphabetic tail – not a valid PEP‑440 version\n    version = \"1.\" * n + \"x\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9999353964547297,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"",
+              "why": "The indicator set is disjoint, so the fast path is entered. The code then executes `tuple(map(int, version.strip().split('.')))`, which raises `ValueError` on the bad segment; the exception is caught and re‑raised as `InvalidVersion`. Exception handling is considerably slower than the original regex‑only failure path.",
+              "size_meaning": "n = number of leading numeric segments before the bad segment; larger n makes the split and the failed `int` conversion traverse more items before the exception.",
+              "make_source": "def make(n):\n    # build \"1.1.1....1.x\" with n numeric parts then a non‑numeric \"x\"\n    good = \".\".join(\"1\" for _ in range(n))\n    version = f\"{good}.x\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9999353964547297,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "Each numeric chunk increases digit count linearly while keeping total chunks fixed",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    chunks = []\n    for i in range(1, n+1):\n        chunks.append(str(i).zfill(i))\n    version = '.'.join(chunks) + 'c5'\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9861231270856489,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Single repeated segment \"999.\" n times plus prerelease c5",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    release = \".\".join([\"999\"] * n)\n    version = f\"{release}c5\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9984320379303969,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "pure numeric versions (only digits and dots, no epoch, pre‑release, post‑release, dev or local parts). The new fast‑path in ``Version.__init__`` detects the ``_SIMPLE_VERSION_INDICATORS`` set and parses the release tuple with a cheap ``split('.')`` + ``map(int, …)`` plus a pre‑computed ``_STABLE_SUFFIX`` key, avoiding the regex and the full ``_cmpkey`` tuple construction.",
+              "why": "The old code always fell through to the regex and built a full ``_cmpkey`` tuple (including three singleton ``Infinity``/``NegativeInfinity`` objects) even for a plain ``1.2.3``. The new fast‑path returns a pre‑computed constant suffix and skips the regex entirely, so cost grows only with the number of dot‑separated segments (splitting and ``int`` conversion).",
+              "origin": "plan",
+              "screen_ratio": 0.9976638095744293,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 9342.63,
+                  "head_ir": 9275.76,
+                  "input_chars": 7.0,
+                  "ratio": 0.9928424865375168
+                },
+                {
+                  "n": 4,
+                  "base_ir": 11976.72,
+                  "head_ir": 11909.91,
+                  "input_chars": 11.0,
+                  "ratio": 0.9944216780554276
+                },
+                {
+                  "n": 16,
+                  "base_ir": 28597.84,
+                  "head_ir": 28531.03,
+                  "input_chars": 35.0,
+                  "ratio": 0.9976638095744293
+                },
+                {
+                  "n": 64,
+                  "base_ir": 95282.90666666666,
+                  "head_ir": 95278.24,
+                  "input_chars": 131.0,
+                  "ratio": 0.9999510230446371
+                },
+                {
+                  "n": 256,
+                  "base_ir": 364865.0,
+                  "head_ir": 363862.0,
+                  "input_chars": 515.0,
+                  "ratio": 0.9972510380551711
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 1418834.2222222222,
+                  "head_ir": 1418406.2222222222,
+                  "input_chars": 2051.0,
+                  "ratio": 0.999698343898606
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 5626370.0,
+                  "head_ir": 5625581.0,
+                  "input_chars": 8195.0,
+                  "ratio": 0.9998597674877407
+                }
+              ],
+              "slope_base": 0.9165631072819177,
+              "slope_head": 0.917425921530889,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 0.9999510230446371,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 19.18,
+            "screen": 143.51,
+            "full": 69.49,
+            "total": 232.18
+          }
+        }
+      }
+    }
+  ]
+}

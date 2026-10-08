@@ -1,0 +1,159 @@
+{
+  "id": "#1250",
+  "pr": 1250,
+  "title": "perf(markers): cache the default environment",
+  "base": "4c663c9ef5e1ec4f64b01ea9a61c981890a56407",
+  "head": "cf100d20e09c270cb6e19e72edbd0d40728de501",
+  "merged": "2026-07-10",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker#evaluate",
+      "run_id": "bt-1250-af3916",
+      "image": "bw-pair:f8fd127aa38ba6e4",
+      "usd": 0.0411,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.2,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 60.4,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.2,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-1250-af3916",
+          "target": "packaging.markers:Marker#evaluate",
+          "image": "bw-pair:f8fd127aa38ba6e4",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "caching",
+              "why": "The default marker environment is now built once per process via @functools.cache and a fresh shallow copy is returned on each call, avoiding repeated construction of the environment from sys/platform/sys modules on every evaluation.",
+              "size_meaning": "speedup",
+              "make_source": "def make(n):\n    m = min(n, 8)\n    args = []\n    for i in range(1, m + 1):\n        args.append([i])\n    return args",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9989569145338487,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "caching_of_process_environment",
+              "why": "The default marker environment is now built once per process and cached via @functools.cache, avoiding repeated calls to platform/sys/os APIs and string formatting on every Marker.evaluate call.",
+              "size_meaning": "large",
+              "make_source": "\ndef make(n):\n    bases = [{}, {}]\n    for _ in range(n - 2):\n        bases.append({\n            \"key\": string.ascii_lowercase[random.randint(0, 25)],\n            \"val\": random.randint(0, 100),\n            \"flag\": random.choice([True, False]),\n        })\n    return bases",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0024371973285786,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "cached_default_environment",
+              "why": "The base environment for the current Python process is now built once per process and cached via @functools.cache (_cached_default_environment). Subsequent calls to default_environment() return a shallow copy of the cached immutable mapping, eliminating repeated construction of the environment from platform/sys/os data on every Marker.evaluate call.",
+              "size_meaning": "Performance improvement on repeated marker evaluations (e.g., during dependency resolution or metadata evaluation) because the default environment is built once per process instead of on every call.",
+              "make_source": "def make(n):\n    limits = [1, 2, 4, 8]\n    k = min(n, len(limits))\n    return list(itertools.islice(itertools.combinations(limits, r) for r in range(1, k + 1), 0, 1))",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: Generator expression must be parenthesized (line 5)"
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "import_overhead",
+              "why": "Importing functools adds a module import at module import time, which adds a tiny import-time cost on interpreter start-up.",
+              "size_meaning": "slowdown",
+              "make_source": "def make(n):\n    # Import cost grows with n because string length grows and\n    # repeated module attribute lookups add up.\n    s = string.ascii_letters[:n % 52]\n    return [[s]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0134387367325253,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "allocation_overhead_per_evaluation",
+              "why": "default_environment() now returns a shallow copy (dict(_cached_default_environment())) on every call, allocating a new dict each evaluation; previously the environment dict was built from scratch, which also allocated but also performed string formatting work.",
+              "size_meaning": "small",
+              "make_source": "def make(n):\n    return [\n        [{}],\n        [{}],\n        [{}, {}],\n        [{}, {}],\n        [{}, {}, {}],\n        [{}, {}, {}],\n        [{}, {}, {}, {}],\n        [{}, {}, {}, {}],\n    ]",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9994832614761187,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "import_functools_overhead",
+              "why": "An additional import of functools is introduced to enable caching. While negligible, the import adds a tiny import-time cost and an extra function call indirection through the cache wrapper.",
+              "size_meaning": "Negligible runtime overhead; only a one‑time import cost at module import time.",
+              "make_source": "def make(n):\n    if n == 0:\n        return []\n    return [\n        [\"import functools\"],\n        [\"from functools import lru_cache\"],\n        [f\"lru_cache({i})\"],\n        [f\"lru_cache(maxsize={i})\"],\n        [\"import functools; from functools import lru_cache\"],\n        [\"import functools\", f\"lru_cache({i})\"],\n        [\"from functools import lru_cache\", f\"lru_cache(maxsize={i})\"],\n        [\"import functools\", \"from functools import lru_cache\", f\"lru_cache(maxsize={i})\"],\n    ][:n]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(2): NameError: name 'i' is not defined"
+            }
+          ],
+          "findings": [],
+          "seconds": {
+            "plan": 12.63,
+            "screen": 51.16,
+            "full": 0.0,
+            "total": 63.79
+          }
+        }
+      }
+    }
+  ]
+}

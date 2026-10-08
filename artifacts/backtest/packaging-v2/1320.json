@@ -1,0 +1,287 @@
+{
+  "id": "#1320",
+  "pr": 1320,
+  "title": "perf: add __slots__ to Requirement",
+  "base": "2b6726cec7bd55fd3adda07054d0a41288d44eba",
+  "head": "d5fedc90bba333ed0962ba5dfb7072d38f2c1d84",
+  "merged": "2026-07-07",
+  "after_ultra_release": true,
+  "known": [
+    {
+      "id": "requirement-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.requirements:Requirement",
+      "run_id": "bt-1320-81a5cc",
+      "image": "bw-pair:9728e5e1fd432d33",
+      "usd": 0.0492,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head eq-fresh|True|<exc:builtins.ValueError>"
+          ],
+          "known": [
+            "requirement-pickle"
+          ],
+          "seconds": 2.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head eq-fresh|True|<exc:builtins.ValueError>"
+          ],
+          "known": [
+            "requirement-pickle"
+          ],
+          "seconds": 38.8,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.8,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head eq-fresh|True|<exc:builtins.ValueError>",
+          "probe": "P4",
+          "detail": "base->head eq-fresh",
+          "args": [
+            [
+              "foo==10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"
+            ]
+          ],
+          "base": true,
+          "head": "<exc:builtins.ValueError>",
+          "found_by": [
+            "mutation:huge-number"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9868666927862122,
+        "report": {
+          "run_id": "bt-1320-81a5cc",
+          "target": "packaging.requirements:Requirement",
+          "image": "bw-pair:9728e5e1fd432d33",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "simple_requirements",
+              "why": "Adding __slots__ removes the per‑instance __dict__, so attribute writes in __init__ (name, url, extras, specifier, marker) become direct slot stores. Creating many tiny requirements should be measurably faster.",
+              "size_meaning": "number of requirement objects created",
+              "make_source": "def make(n):\n    base = 'pkg==1.0.0'\n    return [[base] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9999010595093569,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated attribute reads on many Requirement instances (slots make attribute lookup faster and reduce per‑object memory).",
+              "why": "The diff adds ``__slots__``; slots eliminate the per‑instance ``__dict__`` and make attribute access a direct C‑array lookup. Code that creates many Requirement objects and then reads their fields (name, extras, specifier, url, marker) will benefit.",
+              "size_meaning": "Number of Requirement objects created; each object has a modestly sized extras set (≈ n/2 items) so the workload grows with *n*.",
+              "make_source": "def make(n):\n    # Produce *n* requirement strings that parse successfully.\n    # Each string gets a name, a specifier, and ~n/2 extras to keep the\n    # objects non‑trivial while staying deterministic.\n    base = \"pkg\"\n    specs = [\"==1.0\", \">=2.0\", \"!=3.0\"]\n    extras_pool = [f\"extra{i}\" for i in range(max(1, n//2))]\n    out = []\n    for i in range(n):\n        name = f\"{base}{i}\"\n        specifier = specs[i % len(specs)]\n        extras = \",\".join(extras_pool[: (i % len(extras_pool)) + 1])\n        req = f\"{name}[{extras}]{specifier}\"\n        out.append([req])\n    return out",
+              "example_args": [
+                [
+                  "pkg0[extra0]==1.0"
+                ],
+                [
+                  "pkg1[extra0,extra1]>=2.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9868666927862122,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Many extras in the requirement",
+              "why": "Adding __slots__ makes attribute access (including the extras set) faster. Constructing requirements with a growing number of extras stresses the fast path for attribute storage.",
+              "size_meaning": "Number of extra names inside the brackets",
+              "make_source": "\ndef make(n):\n    # Build a requirement with n extras: pkg[extra0,extra1,...]\n    extras = ','.join(f'extra{i}' for i in range(n))\n    req = f'pkg[{extras}]'\n    return [[req]]",
+              "example_args": [
+                [
+                  "pkg[extra0,extra1,extra2]"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0014311756743892,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "requirements_with_extras",
+              "why": "Slots also accelerate assignment of the mutable ``extras`` set and the ``marker`` object. Requirements that carry several extras exercise those slots more heavily.",
+              "size_meaning": "number of extras per requirement (and number of objects)",
+              "make_source": "def make(n):\n    # n extras, each like 'extra{i}'\n    extras = ','.join(f'extra{i}' for i in range(n))\n    req = f'pkg[{extras}]==1.0.0'\n    return [[req] for _ in range(8)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.005152997623272,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Unpickling a legacy ``__dict__`` that contains exactly the five slot keys.",
+              "why": "Old code did ``self.__dict__.update(state)`` (single C call). New code checks ``state.keys() >= set(self.__slots__)`` then loops over the five slot names doing ``setattr`` – extra Python‑level work for every unpickle.",
+              "size_meaning": "Number of extra dummy keys added to the dict (the dict always contains the five real keys plus *n* harmless extra keys).",
+              "make_source": "def make(n):\n    # Build a list of state dicts that mimic the pre‑26.1 pickle format.\n    # Each dict has the five required keys plus *n* additional keys.\n    base = {\n        \"name\": \"demo\",\n        \"url\": None,\n        \"extras\": {\"dev\"},\n        \"specifier\": \"==1.0\",\n        \"marker\": None,\n    }\n    out = []\n    for i in range(1, n+1):\n        d = dict(base)\n        for k in range(i):\n            d[f\"_junk{k}\"] = k\n        out.append([d])\n    return out",
+              "example_args": [
+                [
+                  {
+                    "name": "demo",
+                    "url": null,
+                    "extras": [
+                      "dev"
+                    ],
+                    "specifier": "==1.0",
+                    "marker": null,
+                    "_junk0": 0
+                  }
+                ],
+                [
+                  {
+                    "name": "demo",
+                    "url": null,
+                    "extras": [
+                      "dev"
+                    ],
+                    "specifier": "==1.0",
+                    "marker": null,
+                    "_junk0": 0,
+                    "_junk1": 1
+                  }
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(2): TypeError: Object of type set is not JSON serializable"
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Long comma‑separated specifier list",
+              "why": "The parser must split and normalise each specifier. Although the change does not touch parsing, a very long specifier list exercises the unchanged hot path and can dominate any tiny overhead from the new __slots__ initialisation.",
+              "size_meaning": "Number of individual specifiers",
+              "make_source": "def make(n):\n    # Create n simple specifiers like '>=1.0', '<2.0', '!=1.5', ...\n    specs = []\n    for i in range(n):\n        op = ['>=', '<=', '==', '!=', '> ', '< '][i % 6]\n        specs.append(f'{op}{i}.0')\n    req = 'pkg' + ','.join(specs)\n    return [[req]]",
+              "example_args": [
+                [
+                  "pkg>=0.0,<=1.0,==2.0,!=3.0,>4.0,<5.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0012540382750987,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated attribute reads on many Requirement instances (slots make attribute lookup faster and reduce per‑object memory).",
+              "why": "The diff adds ``__slots__``; slots eliminate the per‑instance ``__dict__`` and make attribute access a direct C‑array lookup. Code that creates many Requirement objects and then reads their fields (name, extras, specifier, url, marker) will benefit.",
+              "origin": "plan",
+              "screen_ratio": 0.9868666927862122,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 163384.0875,
+                  "head_ir": 163518.1875,
+                  "input_chars": 21.0,
+                  "ratio": 1.0008207653637018
+                },
+                {
+                  "n": 4,
+                  "base_ir": 176843.78324468085,
+                  "head_ir": 176921.89361702127,
+                  "input_chars": 24.5,
+                  "ratio": 1.0004416913668508
+                },
+                {
+                  "n": 16,
+                  "base_ir": 246788.12259615384,
+                  "head_ir": 243546.97836538462,
+                  "input_chars": 45.875,
+                  "ratio": 0.9868666927862122
+                },
+                {
+                  "n": 64,
+                  "base_ir": 524400.578125,
+                  "head_ir": 525517.421875,
+                  "input_chars": 138.25,
+                  "ratio": 1.0021297530868354
+                },
+                {
+                  "n": 256,
+                  "base_ir": 896535.5,
+                  "head_ir": 902474.40625,
+                  "input_chars": 265.546875,
+                  "ratio": 1.0066242845375337
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 896535.5,
+                  "head_ir": 902474.40625,
+                  "input_chars": 265.546875,
+                  "ratio": 1.0066242845375337
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 896535.5,
+                  "head_ir": 902474.40625,
+                  "input_chars": 265.546875,
+                  "ratio": 1.0066242845375337
+                }
+              ],
+              "slope_base": 0.680145413565356,
+              "slope_head": 0.6838090635837745,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0066242845375337,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 20.04,
+            "screen": 105.02,
+            "full": 92.6,
+            "total": 217.65
+          }
+        }
+      }
+    }
+  ]
+}

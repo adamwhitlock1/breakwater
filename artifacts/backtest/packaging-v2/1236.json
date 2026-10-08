@@ -1,0 +1,920 @@
+{
+  "id": "#1236",
+  "pr": 1236,
+  "title": "perf: simply work done in parse_tag a bit",
+  "base": "e6cd4be75370b9730d70c7397ca2f873dae18f54",
+  "head": "1529771b80cf6a327afdf33a8a0e7a96ac3f428f",
+  "merged": "2026-06-09",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.tags:parse_tag",
+      "run_id": "bt-1236-1cca09",
+      "image": "bw-pair:6d11476928904c1e",
+      "usd": 0.0905,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 3.4,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 1.5,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|long-digits",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii+whitespace",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 36.0,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain"
+          ],
+          "known": [],
+          "seconds": 1.5,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "-"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A1/s2",
+            "A3/s2",
+            "A3/s1",
+            "A4/s1",
+            "A5/s1",
+            "seed",
+            "tests",
+            "mutation:separators",
+            "mutation:case",
+            "mutation:signs",
+            "mutation:equivalents",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "- "
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A1/s2",
+            "A3/s1",
+            "A4/s1",
+            "tests",
+            "mutation:whitespace-outer",
+            "mutation:whitespace-inner",
+            "mutation:case",
+            "mutation:signs",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "-\u001b"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A1/s2",
+            "A4/s1",
+            "mutation:edges",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              ""
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A3/s1",
+            "seed"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "-񠞝"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "mutation:unicode-digits",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|long-digits",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "py1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000-"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "mutation:huge-number"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii+whitespace",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "-"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "mutation:whitespace-outer",
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "F5",
+            "family": "tiny_tag",
+            "verdict": "slower",
+            "ladder": [
+              1.0876598578049792,
+              1.087079721621475,
+              1.0895078805489675,
+              1.0895078805489675,
+              1.0895078805489675,
+              1.0895078805489675,
+              1.0895078805489675
+            ],
+            "origin": "plan"
+          }
+        ],
+        "worst_valid_ratio": 1.0895078805489675,
+        "worst_family": "tiny_tag",
+        "speedup_ratio_small": 0.8386139725679109,
+        "report": {
+          "run_id": "bt-1236-1cca09",
+          "target": "packaging.tags:parse_tag",
+          "image": "bw-pair:6d11476928904c1e",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Valid tags with many dot-separated components in each of the three fields (interpreters, ABIs, platforms). The new implementation splits each component only once, while the old version split each component three times.",
+              "why": "The new version builds component_parts with a single split per component and reuses the lists for validation and the Cartesian product, avoiding repeated splits.",
+              "size_meaning": "n controls the number of dot-separated items per component; total tags generated = n^3, and string length grows ~ O(n).",
+              "make_source": "\ndef make(n):\n    # Generate n interpreters, n abis, n platforms\n    interpreters = '.'.join(f'py{i}' for i in range(2, 2 + n))\n    abis = '.'.join(f'abi{i}' for i in range(n))\n    platforms = '.'.join(f'plat{i}' for i in range(n))\n    tag = f'{interpreters}-{abis}-{platforms}'\n    return [[tag]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9510078429461927,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "invalid",
+              "why": "The new implementation splits all three \"-\" components up‑front (building a list of three split lists) before checking for empty components. The old code checks components one‑by‑one and aborts on the first empty component, splitting only the components examined so far. For an invalid tag whose first component contains an empty \".\" segment while the other two components are very large (many \"..\" segments), the new version does three large splits before raising, whereas the old version does only one split before raising, making the new version slower on this invalid input family.",
+              "size_meaning": "n controls the number of dot‑segments in the large second and third components (the first component always contains a single empty segment). Cost grows roughly linearly with n because splitting a long string is O(length).",
+              "make_source": "\ndef make(n):\n    # Produce up to 8 test cases, growing the size of the large components.\n    out = []\n    for i in range(1, min(n, 8) + 1):\n        # First component: a short prefix, then an empty segment, then a short suffix.\n        first = \".\".join([\"a\"] * i + [\"\"] + [\"b\"] * i)\n        # Second and third components: many dot‑segments to make splitting expensive.\n        second = \".\".join([\"c\"] * (i * 20))\n        third = \".\".join([\"d\"] * (i * 20))\n        tag = \"-\".join([first, second, third])\n        out.append([tag])          # parse_tag takes a single positional string argument\n    return out",
+              "example_args": [
+                [
+                  "a..b-c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c-d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d"
+                ],
+                [
+                  "a.a..b.b-c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c.c-d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d.d"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 2.3016767160534233,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "many_components",
+              "why": "The change splits each of the three tag components once and then builds the Cartesian product with a generator expression.  The old code re‑splits the ABI and platform strings for every interpreter, so the work grows as O(I·A·P).  When all three components contain many dot‑separated parts the new version does far fewer string splits and should be faster.",
+              "size_meaning": "n = number of dot‑separated items in *each* of the three components (interpreters, ABIs, platforms).  The tag length grows roughly as 3·n and the number of generated Tag objects grows as n³, which makes the old implementation repeatedly split strings.",
+              "make_source": "def make(n):\n    # build n interpreters, n ABIs, n platforms\n    interps = '.'.join(f'py{i}' for i in range(1, n+1))\n    abis = '.'.join(f'abi{i}' for i in range(1, n+1))\n    plats = '.'.join(f'plat{i}' for i in range(1, n+1))\n    tag = f'{interps}-{abis}-{plats}'\n    return [[tag]]",
+              "example_args": [
+                [
+                  [
+                    "py1.py2.py3-abi1.abi2.abi3-plat1.plat2.plat3"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9509821683353116,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "Valid tags with a large number of dot-separated interpreters but only one ABI and one platform. This exercises the interpreter component split path.",
+              "why": "The new version splits the interpreter component once and reuses the list for validation and product, while the old version split it three times.",
+              "size_meaning": "n controls the number of interpreters; string length grows ~ O(n).",
+              "make_source": "def make(n):\n    interpreters = '.'.join(f'py{i}' for i in range(2, 2 + n))\n    tag = f'{interpreters}-none-any'\n    return [[tag]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.8644430204545949,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "tiny_tag",
+              "why": "For the common case of a single‑component tag (e.g. \"py3-none-any\") the new implementation builds a temporary list of the three split components and then creates a frozenset via a generator expression.  The old version performed the three splits, a couple of tiny loops and a few `set.add` calls – a lower constant‑time overhead.  When the tag is tiny the extra list allocation and generator machinery dominates, making the new code slightly slower.",
+              "size_meaning": "n controls how many *independent* tiny tags are parsed in one benchmark run.  Each element of the returned list is a separate call to `parse_tag`; the total work therefore grows linearly with n.",
+              "make_source": "def make(n):\n    tag = 'py3-none-any'\n    # Return up to 8 argument lists; each list contains the single tag string.\n    return [[tag] for _ in range(min(n, 8))]",
+              "example_args": [
+                [
+                  [
+                    "py3-none-any"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0895078805489675,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Invalid tags containing many hyphens (more than the expected two). The new implementation splits all hyphen-separated components by '.' before attempting to unpack three parts, doing extra work before the unpacking error; the old version failed fast on the unpack.",
+              "why": "Extra list comprehension and per-component dot-splits are performed before the ValueError from unpacking.",
+              "size_meaning": "n controls the number of extra hyphen-separated components; work grows O(n).",
+              "make_source": "def make(n):\n    # Create a tag with n+2 components separated by hyphens\n    components = ['comp'] * (n + 2)\n    tag = '-'.join(components)\n    return [[tag]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 2.6160501871827986,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "invalid",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "size_meaning": "N = number of dash‑separated components in the malformed tag.",
+              "make_source": "\ndef make(n):\n    # Produce a single malformed tag with n dash‑separated components.\n    # Each component is a non‑empty string so the emptiness check passes,\n    # but the tag is invalid because it does not have exactly three components.\n    tag = '-'.join(['x'] * n)\n    return [[tag]]",
+              "example_args": [
+                [
+                  10
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 3.0402521518175996,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "invalid-many-dash-components",
+              "why": "The new implementation splits the tag on '-' once and then splits every resulting component on '.' (building a list of lists) before unpacking the three expected components. For an invalid tag containing many '-' separators this does O(k) extra work (splitting each of the k components on '.' and allocating a list of lists) before the unpacking fails, whereas the old code only split once on '-' and then immediately failed on unpacking. Thus the new version is slower on this invalid input family.",
+              "size_meaning": "number of dash-separated components in the tag",
+              "make_source": "def make(n):\n    # generate n tags with 1, 2, ..., n dash-separated components (all invalid)\n    return [[\"-\".join([\"x\"] * i)] for i in range(1, n + 1)]",
+              "example_args": [
+                [
+                  "x"
+                ],
+                [
+                  "x-x"
+                ],
+                [
+                  "x-x-x"
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 2.2280638076724872,
+              "valid_fraction": 0.0625,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "invalid tags that contain many empty dot‑components (e.g. \"a..b..c-d..e-f..g\")",
+              "why": "The new code still has to split the tag, then for each empty component it joins the parts back together to produce the error message (\"a..b..c\"). The old code raised the error directly on the original component string without a join. For a tag with many empty components the extra joins make the new version slower, though such inputs are invalid and rare in practice.",
+              "size_meaning": "n is the number of empty components inserted in each of the three fields; total length grows linearly with n.",
+              "make_source": "def make(n):\n    # Build a tag like \"a..b..c-d..e-f..g\" with n empty parts per field\n    def field(base, n):\n        parts = [base]\n        for i in range(n):\n            parts.append('')  # empty component\n            parts.append(base + str(i))\n        return \".\".join(parts)\n    tag = f\"{field('i', n)}-{field('a', n)}-{field('p', n)}\"\n    return [[tag]]",
+              "example_args": [
+                [
+                  "i..i0..i1-a..a0..a1-p..p0..p1"
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 1.8192857118926613,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5.1",
+              "kind": "suspected_slowdown",
+              "family": "tiny_tag",
+              "why": "For the common case of a single‑component tag (e.g. \"py3-none-any\") the new implementation builds a temporary list of the three split components and then creates a frozenset via a generator expression.  The old version performed the three splits, a couple of tiny loops and a few `set.add` calls – a lower constant‑time overhead.  When the tag is tiny the extra list allocation and generator machinery dominates, making the new code slightly slower.",
+              "size_meaning": "n controls how many *independent* tiny tags are parsed in one benchmark run.  Each element of the returned list is a separate call to `parse_tag`; the total work therefore grows linearly with n.",
+              "make_source": "def make(n):\n    tag = \"cp310-win_amd64\"\n    return [[tag] for _ in range(min(n, 8))]",
+              "example_args": [
+                [
+                  [
+                    "py3-none-any"
+                  ]
+                ]
+              ],
+              "origin": "expand:F5",
+              "screen_ratio": 1.4164485340859396,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1.1",
+              "kind": "suspected_slowdown",
+              "family": "excess-dashes-with-suffix",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "size_meaning": "N = number of dash‑separated components in the malformed tag.",
+              "make_source": "# Variant using excess dashes followed by an extra suffix after all components\ndef make(n):\n    # Creates tags like 'x-x-...-x-extra' where there are n+1 components\n    # ensuring at least four parts (more than expected three); splitting all\n    # components triggers O(N) work before validation fails due to wrong count.\n    tag = '-'.join(['x'] * n + ['extra'])\n    return [[tag]]",
+              "example_args": [
+                [
+                  10
+                ]
+              ],
+              "origin": "expand:R1",
+              "screen_ratio": 3.1067030746123607,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1.2",
+              "kind": "suspected_slowdown",
+              "family": "excess-dashes-with-nonempty-mid-empty-trailing",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "size_meaning": "N = number of dash‑separated components in the malformed tag.",
+              "make_source": "# Variant mixing empty and non-empty parts to stress emptiness checks after split\ndef make(n):\n    # Builds a tag starting with an empty component, then n non-empty 'x',\n    # ending with another empty component via trailing dash;\n    # this forces the new implementation to check emptiness on all n+2 parts\n    # before realizing the structure is invalid (not exactly three non-empty).\n    tag = '-'.join([''] + ['x'] * n + [''])\n    return [[tag]]",
+              "example_args": [
+                [
+                  10
+                ]
+              ],
+              "origin": "expand:R1",
+              "screen_ratio": 2.613360123613242,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1.3",
+              "kind": "suspected_slowdown",
+              "family": "excess-dashes-within-quoted-like-segments",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "size_meaning": "N = number of dash‑separated components in the malformed tag.",
+              "make_source": "# Variant using components that look like quoted strings to avoid early rejection\ndef make(n):\n    # Each component is a non‑empty lowercase alphabetic string mimicking\n    # interpreter/os/abi parts; the tag has many such parts separated by '-',\n    # so full split-and-validate runs in O(N) before length check fails.\n    tag = '-'.join(['cp' + str(i % 10) for i in range(n)])\n    return [[tag]]}]}",
+              "example_args": [
+                [
+                  10
+                ]
+              ],
+              "origin": "expand:R1",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: unmatched '}' (line 8)"
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "tiny_tag",
+              "why": "For the common case of a single‑component tag (e.g. \"py3-none-any\") the new implementation builds a temporary list of the three split components and then creates a frozenset via a generator expression.  The old version performed the three splits, a couple of tiny loops and a few `set.add` calls – a lower constant‑time overhead.  When the tag is tiny the extra list allocation and generator machinery dominates, making the new code slightly slower.",
+              "origin": "plan",
+              "screen_ratio": 1.0895078805489675,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 16129.96,
+                  "head_ir": 17543.91,
+                  "input_chars": 16.0,
+                  "ratio": 1.0876598578049792
+                },
+                {
+                  "n": 4,
+                  "base_ir": 15995.1275,
+                  "head_ir": 17387.97875,
+                  "input_chars": 16.0,
+                  "ratio": 1.087079721621475
+                },
+                {
+                  "n": 16,
+                  "base_ir": 15897.758152173914,
+                  "head_ir": 17320.732789855072,
+                  "input_chars": 16.0,
+                  "ratio": 1.0895078805489675
+                },
+                {
+                  "n": 64,
+                  "base_ir": 15897.758152173914,
+                  "head_ir": 17320.732789855072,
+                  "input_chars": 16.0,
+                  "ratio": 1.0895078805489675
+                },
+                {
+                  "n": 256,
+                  "base_ir": 15897.758152173914,
+                  "head_ir": 17320.732789855072,
+                  "input_chars": 16.0,
+                  "ratio": 1.0895078805489675
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 15897.758152173914,
+                  "head_ir": 17320.732789855072,
+                  "input_chars": 16.0,
+                  "ratio": 1.0895078805489675
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 15897.758152173914,
+                  "head_ir": 17320.732789855072,
+                  "input_chars": 16.0,
+                  "ratio": 1.0895078805489675
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [
+                {
+                  "args": [
+                    [
+                      [
+                        "py3-none-any"
+                      ]
+                    ]
+                  ],
+                  "cpu_ratio": 1.008,
+                  "base_ir": 7549.305,
+                  "head_ir": 7624.985,
+                  "ir_ratio": 1.0100247638689919,
+                  "outcome": "exc:builtins.AttributeError"
+                },
+                {
+                  "args": [
+                    [
+                      [
+                        "py3-none-any"
+                      ],
+                      [
+                        "py3-none-any"
+                      ],
+                      [
+                        "py3-none-any"
+                      ]
+                    ]
+                  ],
+                  "cpu_ratio": 1.007,
+                  "base_ir": 7527.55,
+                  "head_ir": 7592.185,
+                  "ir_ratio": 1.0085864590736695,
+                  "outcome": "exc:builtins.AttributeError"
+                }
+              ],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.0895078805489675,
+              "worst_search": {
+                "args": [
+                  [
+                    [
+                      "py3-none-any"
+                    ]
+                  ]
+                ],
+                "cpu_ratio": 1.008,
+                "base_ir": 7549.305,
+                "head_ir": 7624.985,
+                "ir_ratio": 1.0100247638689919,
+                "outcome": "exc:builtins.AttributeError"
+              }
+            },
+            {
+              "family_id": "R1.1",
+              "kind": "suspected_slowdown",
+              "family": "excess-dashes-with-suffix",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "origin": "expand:R1",
+              "screen_ratio": 3.1067030746123607,
+              "valid_fraction": 0.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 15889.665,
+                  "head_ir": 17376.835,
+                  "input_chars": 13.0,
+                  "ratio": 1.093593540203648
+                },
+                {
+                  "n": 4,
+                  "base_ir": 7849.01,
+                  "head_ir": 14443.885,
+                  "input_chars": 17.0,
+                  "ratio": 1.840217428694829
+                },
+                {
+                  "n": 16,
+                  "base_ir": 9054.8,
+                  "head_ir": 28130.575,
+                  "input_chars": 41.0,
+                  "ratio": 3.1067030746123607
+                },
+                {
+                  "n": 64,
+                  "base_ir": 15231.132867132867,
+                  "head_ir": 83797.96503496503,
+                  "input_chars": 137.0,
+                  "ratio": 5.5017552381669494
+                },
+                {
+                  "n": 256,
+                  "base_ir": 39175.10526315789,
+                  "head_ir": 339275.1052631579,
+                  "input_chars": 521.0,
+                  "ratio": 8.660477182743607
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 124539.0,
+                  "head_ir": 1494332.0,
+                  "input_chars": 2057.0,
+                  "ratio": 11.998907972602959
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 460302.0,
+                  "head_ir": 6160055.0,
+                  "input_chars": 8201.0,
+                  "ratio": 13.382637920321876
+                }
+              ],
+              "slope_base": 0.5758000863584467,
+              "slope_head": 0.9486144293536538,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "complexity-regression",
+              "worst_ratio": 13.382637920321876,
+              "worst_search": null
+            },
+            {
+              "family_id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "invalid",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "origin": "archive",
+              "screen_ratio": 3.0402521518175996,
+              "valid_fraction": 0.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 8221.01,
+                  "head_ir": 11548.18,
+                  "input_chars": 7.0,
+                  "ratio": 1.4047154789983225
+                },
+                {
+                  "n": 4,
+                  "base_ir": 7583.01,
+                  "head_ir": 12922.885,
+                  "input_chars": 11.0,
+                  "ratio": 1.7041893654366802
+                },
+                {
+                  "n": 16,
+                  "base_ir": 8736.8,
+                  "head_ir": 26562.075,
+                  "input_chars": 35.0,
+                  "ratio": 3.0402521518175996
+                },
+                {
+                  "n": 64,
+                  "base_ir": 14928.013333333334,
+                  "head_ir": 82049.84666666666,
+                  "input_chars": 131.0,
+                  "ratio": 5.496367455906166
+                },
+                {
+                  "n": 256,
+                  "base_ir": 38872.10526315789,
+                  "head_ir": 340123.1052631579,
+                  "input_chars": 515.0,
+                  "ratio": 8.749798935781309
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 122970.77777777778,
+                  "head_ir": 1493054.7777777778,
+                  "input_chars": 2051.0,
+                  "ratio": 12.141541305657983
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 454419.0,
+                  "head_ir": 6160135.0,
+                  "input_chars": 8195.0,
+                  "ratio": 13.55606829820056
+                }
+              ],
+              "slope_base": 0.5706152082632364,
+              "slope_head": 0.9090072420921559,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "complexity-regression",
+              "worst_ratio": 13.55606829820056,
+              "worst_search": null
+            },
+            {
+              "family_id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Invalid tags containing many hyphens (more than the expected two). The new implementation splits all hyphen-separated components by '.' before attempting to unpack three parts, doing extra work before the unpacking error; the old version failed fast on the unpack.",
+              "why": "Extra list comprehension and per-component dot-splits are performed before the ValueError from unpacking.",
+              "origin": "plan",
+              "screen_ratio": 2.6160501871827986,
+              "valid_fraction": 0.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 8425.01,
+                  "head_ir": 13821.885,
+                  "input_chars": 23.0,
+                  "ratio": 1.6405778746850153
+                },
+                {
+                  "n": 4,
+                  "base_ir": 8968.8,
+                  "head_ir": 16666.075,
+                  "input_chars": 33.0,
+                  "ratio": 1.8582279680670772
+                },
+                {
+                  "n": 16,
+                  "base_ir": 12706.83,
+                  "head_ir": 33241.705,
+                  "input_chars": 93.0,
+                  "ratio": 2.6160501871827986
+                },
+                {
+                  "n": 64,
+                  "base_ir": 28994.677966101695,
+                  "head_ir": 100513.67796610169,
+                  "input_chars": 333.0,
+                  "ratio": 3.466625084907458
+                },
+                {
+                  "n": 256,
+                  "base_ir": 93720.8,
+                  "head_ir": 404232.8,
+                  "input_chars": 1293.0,
+                  "ratio": 4.313159938882297
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 340124.0,
+                  "head_ir": 1750131.6666666667,
+                  "input_chars": 5133.0,
+                  "ratio": 5.145569458981626
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 1325820.5,
+                  "head_ir": 7159074.0,
+                  "input_chars": 20493.0,
+                  "ratio": 5.399730959055166
+                }
+              ],
+              "slope_base": 0.7516826171353747,
+              "slope_head": 0.9315157780472996,
+              "top_inputs": [
+                {
+                  "args": [
+                    [
+                      "comp-comp-comp-comp-comp"
+                    ]
+                  ],
+                  "cpu_ratio": 2.743,
+                  "base_ir": 7545.185,
+                  "head_ir": 7621.085,
+                  "ir_ratio": 1.0100593954952728,
+                  "outcome": "exc:builtins.AttributeError"
+                },
+                {
+                  "args": [
+                    [
+                      "comp-comp-comp-comp-comp-comp-comp"
+                    ]
+                  ],
+                  "cpu_ratio": 2.73,
+                  "base_ir": 7545.185,
+                  "head_ir": 7621.085,
+                  "ir_ratio": 1.0100593954952728,
+                  "outcome": "exc:builtins.AttributeError"
+                }
+              ],
+              "error": null,
+              "verdict": "complexity-regression",
+              "worst_ratio": 5.399730959055166,
+              "worst_search": {
+                "args": [
+                  [
+                    "comp-comp-comp-comp-comp"
+                  ]
+                ],
+                "cpu_ratio": 2.743,
+                "base_ir": 7545.185,
+                "head_ir": 7621.085,
+                "ir_ratio": 1.0100593954952728,
+                "outcome": "exc:builtins.AttributeError"
+              }
+            },
+            {
+              "family_id": "F4",
+              "kind": "claimed_speedup",
+              "family": "Valid tags with a large number of dot-separated interpreters but only one ABI and one platform. This exercises the interpreter component split path.",
+              "why": "The new version splits the interpreter component once and reuses the list for validation and product, while the old version split it three times.",
+              "origin": "plan",
+              "screen_ratio": 0.8644430204545949,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 25441.665,
+                  "head_ir": 25345.54,
+                  "input_chars": 20.0,
+                  "ratio": 0.996221748851736
+                },
+                {
+                  "n": 4,
+                  "base_ir": 42636.455,
+                  "head_ir": 39845.73,
+                  "input_chars": 28.0,
+                  "ratio": 0.9345460357808828
+                },
+                {
+                  "n": 16,
+                  "base_ir": 147761.665,
+                  "head_ir": 127731.54,
+                  "input_chars": 84.0,
+                  "ratio": 0.8644430204545949
+                },
+                {
+                  "n": 64,
+                  "base_ir": 570791.7213114754,
+                  "head_ir": 481001.737704918,
+                  "input_chars": 324.0,
+                  "ratio": 0.8426922110918987
+                },
+                {
+                  "n": 256,
+                  "base_ir": 2261242.846153846,
+                  "head_ir": 1896309.8461538462,
+                  "input_chars": 1442.0,
+                  "ratio": 0.8386139725679109
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 9324739.333333334,
+                  "head_ir": 7867361.666666667,
+                  "input_chars": 6076.0,
+                  "ratio": 0.8437084818599755
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 37920471.5,
+                  "head_ir": 32084014.0,
+                  "input_chars": 27580.0,
+                  "ratio": 0.8460868953066684
+                }
+              ],
+              "slope_base": 0.9978931663266013,
+              "slope_head": 0.9794672676641476,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 0.996221748851736,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 22.35,
+            "screen": 121.82,
+            "full": 290.74,
+            "total": 434.92
+          }
+        }
+      }
+    }
+  ]
+}

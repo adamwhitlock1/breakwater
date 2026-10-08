@@ -1,0 +1,261 @@
+{
+  "id": "#1105",
+  "pr": 1105,
+  "title": "perf: Speed up complex SpecifierSet filtering by implementing cost based ordering",
+  "base": "9b972011a53185a3c9be97dc1f86c042307e0e5a",
+  "head": "8810e9e66e2a137af5b16072c1ceb17427a2b21c",
+  "merged": "2026-03-08",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet#filter",
+      "run_id": "bt-1105-4c6611",
+      "image": "bw-pair:3124cc07c70a8c7a",
+      "usd": 0.1238,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 31.2,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 15.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 123.0,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.1,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.5141606219028452,
+        "report": {
+          "run_id": "bt-1105-4c6611",
+          "target": "packaging.specifiers:SpecifierSet#filter",
+          "image": "bw-pair:3124cc07c70a8c7a",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "SpecifierSet.filter with many versions and a mixed set of specifiers (range, compatible, wildcard equality) under warm prerelease handling",
+              "why": "The change introduces a fast‑path that resolves all specifiers once, sorts them by a static cost model and filters all versions in a single pass. The benchmark `time_filter_complex_warm` exercises exactly this path, so the change is advertised as a speed‑up for complex, warm specifier sets.",
+              "size_meaning": "Number of version strings (n) and number of specifiers (m) – both grow with the parameter.",
+              "make_source": "random.seed(0)\n\ndef make(n):\n    # n versions, n//5 specifiers (at least 3)\n    versions = [f\"{random.randint(1,10)}.{random.randint(0,9)}.{random.randint(0,9)}a{random.randint(0,9)}\" for _ in range(n)]\n    # Build a mixed specifier set: range, compatible, wildcard equality, inequality\n    ops = [\">=1.0\", \"~=2.0\", \"==3.*\", \"!=4.0\", \"<5.0\"]\n    spec = \",\".join(ops[:max(3, n//5)])\n    # The target function is SpecifierSet(...).filter(versions)\n    return [[spec, versions]]",
+              "example_args": [
+                [
+                  ">=1.0,~=2.0,==3.*,!=4.0",
+                  [
+                    "1.2.3a1",
+                    "2.0.0a2",
+                    "3.1.0a0",
+                    "4.5.6a9"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.8551914755262151,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "SpecifierSet filter (complex, cold) – many versions against a complex specifier set",
+              "why": "The change introduces a cost‑based single‑pass filter that orders specifiers so cheap rejecting operators run first. With many candidate versions the new single pass avoids the repeated iterator wrapping of the old chained‑filter implementation, giving a measurable speed‑up.",
+              "size_meaning": "Number of candidate version strings supplied to the filter.",
+              "make_source": "\ndef make(n):\n    # Produce a list with one argument list: an iterable of n version strings.\n    # Use simple PEP‑440 final releases that exercise the range and compatible operators.\n    versions = [f\"1.{i}.0\" for i in range(n)]\n    return [ [versions] ]",
+              "example_args": [
+                [
+                  "1.0.0",
+                  "1.1.0",
+                  "1.2.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0058763507377868,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet.filter (cold) with many pre‑release versions and several cheap range specifiers",
+              "why": "The new single‑pass filter first collects all non‑prereleases, then buffers every prerelease version until the end of the pass. With many prereleases and several cheap range specs that reject only a few, the old chained filters would discard most versions after the first cheap spec, so later specs never saw the buffered prereleases. The new code keeps the whole buffered list alive for the whole pass, increasing memory traffic and CPU work.",
+              "size_meaning": "n = number of version strings; m = number of range specifiers (both grow with the parameter).",
+              "make_source": "random.seed(1)\n\ndef make(n):\n    # generate many pre‑release versions\n    versions = [f\"1.{i}.0a{i%10}\" for i in range(n)]\n    # several cheap range specs that only reject a few\n    specs = [f\">={i}.0\" for i in range(1, max(3, n//20)+1)]\n    spec = \",\".join(specs)\n    return [[spec, versions]]",
+              "example_args": [
+                [
+                  ">=1.0,>=2.0,>=3.0",
+                  [
+                    "1.0.0a0",
+                    "1.1.0a1",
+                    "1.2.0a2",
+                    "1.3.0a3"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6695864850000335,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet filter (complex, cold) – worst‑case operator ordering",
+              "why": "The new implementation sorts specifiers by a static cost model. If a user‑supplied specifier list puts a very selective but expensive operator (e.g. \"!=1.*\") first, the old chained‑filter would reject most versions early. The new cost order moves that expensive operator later, so many versions survive cheap checks only to be rejected later, increasing total work.",
+              "size_meaning": "Number of candidate version strings; the specifiers string is fixed to a worst‑case ordering.",
+              "make_source": "\ndef make(n):\n    # A specifier set where the first specifier is an expensive wildcard not‑equal\n    # that would reject the majority of versions, followed by cheap range checks.\n    # The benchmark harness builds the SpecifierSet from this string.\n    # We only need to vary the size of the version iterable.\n    versions = [f\"1.{i}.0\" for i in range(n)]\n    return [ [versions] ]",
+              "example_args": [
+                [
+                  "1.0.0",
+                  "1.1.0",
+                  "1.2.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0058763507377868,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet.filter (cold) with many \"!=*.*\" wildcard inequality specifiers",
+              "why": "The cost model assigns wildcard !=.* a high cost (tier 4) so they are evaluated last. In the old code last. The old chained filter evaluated them in user order; if the user placed many !=*.* early, each version was checked against many cheap inequality tests that almost never reject, then later cheap range specs would run on the survivors. The new ordering forces all cheap range specs first (good) but still has to evaluate every !=*.* against the full surviving set, which can be large because the cheap range specs reject few versions. The net work per version can be higher.",
+              "size_meaning": "n = number of versions; m = number of !=*.* specifiers (both grow with the parameter).",
+              "make_source": "random.seed(2)\n\ndef make(n):\n    versions = [f\"{random.randint(1,9)}.{random.randint(0,9)}.{random.randint(0,9)}\" for _ in range(n)]\n    specs = [\"!=*.*\" for _ in range(max(2, n//30))]\n    # add a couple cheap range specs that reject little\n    specs += [\">=0.0\", \"<10.0\"]\n    spec = \",\".join(specs)\n    return [[spec, versions]]",
+              "example_args": [
+                [
+                  ">=0.0,<10.0,!=*.*,!=*.*",
+                  [
+                    "1.2.3",
+                    "2.3.4",
+                    "3.4.5",
+                    "4.5.6"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9977531190255632,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet filter (complex, cold) – many specifiers, large iterable",
+              "why": "The new single‑pass filter iterates every candidate version through *all* operators (short‑circuiting on the first failure) whereas the old implementation fed a shrinking iterator to each specifier. When the number of specifiers is large (≥10) and the iterable contains many versions that pass the cheap checks, the per‑item Python loop overhead dominates, making the new path slower.",
+              "size_meaning": "Number of candidate version strings; the specifier set is built with ten range specifiers.",
+              "make_source": "\ndef make(n):\n    # Build a large iterable of final releases.\n    versions = [f\"2.{i}.0\" for i in range(n)]\n    return [ [versions] ]",
+              "example_args": [
+                [
+                  "2.0.0",
+                  "2.1.0",
+                  "2.2.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0058763507377868,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "SpecifierSet.filter with many versions and a mixed set of specifiers (range, compatible, wildcard equality) under warm prerelease handling",
+              "why": "The change introduces a fast‑path that resolves all specifiers once, sorts them by a static cost model and filters all versions in a single pass. The benchmark `time_filter_complex_warm` exercises exactly this path, so the change is advertised as a speed‑up for complex, warm specifier sets.",
+              "origin": "plan",
+              "screen_ratio": 0.8551914755262151,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 524023.825,
+                  "head_ir": 470501.115,
+                  "input_chars": 45.0,
+                  "ratio": 0.8978620676264099
+                },
+                {
+                  "n": 4,
+                  "base_ir": 1040135.585,
+                  "head_ir": 903852.125,
+                  "input_chars": 68.0,
+                  "ratio": 0.868975293254677
+                },
+                {
+                  "n": 16,
+                  "base_ir": 3523634.102040816,
+                  "head_ir": 3013381.8469387754,
+                  "input_chars": 202.0,
+                  "ratio": 0.8551914755262151
+                },
+                {
+                  "n": 64,
+                  "base_ir": 13294929.423076924,
+                  "head_ir": 7636401.346153846,
+                  "input_chars": 749.0,
+                  "ratio": 0.574384496761511
+                },
+                {
+                  "n": 256,
+                  "base_ir": 52116696.666666664,
+                  "head_ir": 27296843.5,
+                  "input_chars": 2874.0,
+                  "ratio": 0.5237638846258419
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 215832073.0,
+                  "head_ir": 114339961.0,
+                  "input_chars": 11403.0,
+                  "ratio": 0.5297635305573885
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 856009526.5,
+                  "head_ir": 440126390.5,
+                  "input_chars": 45524.0,
+                  "ratio": 0.5141606219028452
+                }
+              ],
+              "slope_base": 1.051372725123336,
+              "slope_head": 0.95886399544333,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.8978620676264099,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 19.23,
+            "screen": 266.21,
+            "full": 154.32,
+            "total": 439.76
+          }
+        }
+      }
+    }
+  ]
+}

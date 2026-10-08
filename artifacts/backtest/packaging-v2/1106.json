@@ -1,0 +1,293 @@
+{
+  "id": "#1106",
+  "pr": 1106,
+  "title": "perf: simply Specifier regex",
+  "base": "e3af78f17a5230ffdc846e0b08f3e6e47b3edcfe",
+  "head": "e839d73030b410d4156e6a496249fbdb1e498fab",
+  "merged": "2026-03-09",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:Specifier",
+      "run_id": "bt-1106-20d609",
+      "image": "bw-pair:339ff3435317f389",
+      "usd": 0.1137,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 13.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head eq-fresh|True|<exc:builtins.AssertionError>",
+            "P4|base->head eq-fresh|True|<exc:builtins.ValueError>"
+          ],
+          "known": [],
+          "seconds": 7.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head eq-fresh|True|<exc:builtins.AssertionError>"
+          ],
+          "known": [],
+          "seconds": 84.3,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.8,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head eq-fresh|True|<exc:builtins.AssertionError>",
+          "probe": "P4",
+          "detail": "base->head eq-fresh",
+          "args": [
+            [
+              "~=10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"
+            ]
+          ],
+          "base": true,
+          "head": "<exc:builtins.AssertionError>",
+          "found_by": [
+            "mutation:huge-number"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9364916973923361,
+        "report": {
+          "run_id": "bt-1106-20d609",
+          "target": "packaging.specifiers:Specifier",
+          "image": "bw-pair:339ff3435317f389",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Simple specifier strings (e.g., \"==1.0\", \">=2.3.4\")",
+              "why": "The new implementation replaces a two‑stage regex match + regex group extraction with a single verbose regex followed by cheap `str.startswith` checks. For short, simple specifiers the new path avoids regex group overhead and is faster.",
+              "size_meaning": "Number of simple specifiers to construct (each call creates a new Specifier).",
+              "make_source": "def make(n):\n    specs = [\">=1.\" + \".0\" * i for i in range(n)]\n    return [[s] for s in specs]",
+              "example_args": [
+                [
+                  ">=1.0"
+                ],
+                [
+                  ">=1.0.0"
+                ],
+                [
+                  ">=1.0.0.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.8986033334222537,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Typical short PEP 440 specifiers (==, >=, <=, ~=, !=, === with short versions)",
+              "why": "The new hand‑rolled parser avoids a full regex match on every construction; for short, well‑formed specifiers the manual `startswith` checks are faster than a full verbose regex match.",
+              "size_meaning": "Number of specifiers in the generated list (each entry is a single argument list for `Specifier`).",
+              "make_source": "def make(n):\n    ops = ['==', '>=', '<=', '~=', '!=', '>', '<', '===']\n    base_versions = ['1.0', '2.3.4', '10.0.0a1', '3.2.1.post2', '5.0.0+local']\n    out = []\n    for i in range(min(n, len(ops)*len(base_versions))):\n        op = ops[i % len(ops)]\n        ver = base_versions[i % len(base_versions)]\n        out.append([f'{op}{ver}'])\n    return out",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.954287534744055,
+              "valid_fraction": 0.875,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "long_numeric_version",
+              "why": "The new verbose regex contains a large alternation with many optional groups for each version component. Long numeric version strings (many dot‑separated numbers) cause the engine to explore many alternatives and backtrack in the '>=', '<=', '>', '<', '~=', '==', '!=' branches, making the full‑match slower than the older, simpler concatenated regex.",
+              "size_meaning": "Number of numeric components in the version (e.g. \"1.2.3…\")",
+              "make_source": "\ndef make(n):\n    # create a version with n+1 numeric components, e.g. \"1.2.3...\"\n    version = \".\".join(str(i) for i in range(1, n + 2))\n    # use a range operator that exercises the complex branch of the new regex\n    spec = \">=\" + version\n    return [[spec]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.8965109533657188,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Specifiers with very long numeric version segments (many dot‑separated numbers)",
+              "why": "The new single verbose regex combines the operator and version patterns into one huge alternation. The version part `[0-9]+(?:\\.[0-9]+)*` is now inside a large alternation group; long dot‑separated numeric runs can cause the engine to backtrack across the operator alternatives when the version part fails to match, making matching slower than the old two‑stage regex.",
+              "size_meaning": "Number of numeric components after the first (e.g., \"1.2.3.4.5\" has size 4).",
+              "make_source": "def make(n):\n    # produce n specifiers each with an increasingly long numeric tail\n    specs = [\">=\" + \"1\" + \".0\" * i for i in range(1, n+1)]\n    return [[s] for s in specs]",
+              "example_args": [
+                [
+                  ">=1.0"
+                ],
+                [
+                  ">=1.0.0"
+                ],
+                [
+                  ">=1.0.0.0.0.0.0.0.0.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9647270246812021,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Very long numeric version strings (many dot‑separated components) with a simple operator, e.g. '>=1.2.3.4.5...'.",
+              "why": "The new combined verbose regex contains the pattern `[0-9]+(?:\\.[0-9]+)*` inside *every* operator alternative. A very long dotted version forces the regex engine to repeat the `\\.[0-9]+` group many times in each alternative before the engine can decide which alternative matches, causing noticeable back‑tracking on each construction.",
+              "size_meaning": "Number of dotted numeric components (n). The generated argument list contains a single specifier string of length ~2n characters.",
+              "make_source": "def make(n):\n    # generate a version like 1.0.0.0.... with n numeric components\n    parts = ['1'] + ['0'] * (n-1)\n    version = '.'.join(parts)\n    return [[f'>={version}']]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.897121217975965,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "many_local_segments",
+              "why": "The new verbose regex contains an extensive alternation for the local‑version part (+[a-z0-9]+(?:[-_.][a-z0-9]+)*). A specifier with many dot‑separated local segments forces the engine to repeatedly match the repeated group, causing noticeable backtracking compared with the older, more compact version regex.",
+              "size_meaning": "Number of dotted local‑version segments (e.g. \"+local1.local2...\")",
+              "make_source": "def make(n):\n    # build a version with n local segments: \"+local1.local2...localN\"\n    local = \".\".join(f\"local{i}\" for i in range(1, n + 1))\n    spec = \">=1.0+\" + local\n    return [[spec]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.8933075098785771,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "wildcard-many-segments",
+              "why": "The `==X.*` wildcard syntax allows many dot-separated numeric segments. The new parser strips the full string, slices off the two-char operator, then strips the version part — copying the long segment list three times. The old regex captured the version in a single slice.",
+              "size_meaning": "n = number of numeric segments before the .* wildcard",
+              "make_source": "def make(n):\n    # ==1.2.3....* with n segments\n    segs = \".\".join(str(i) for i in range(1, n + 1))\n    return [[f\"=={segs}.*\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9721108100310571,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "wildcard-one-fixed-length",
+              "why": "The `==X.*` wildcard syntax allows many dot-separated numeric segments. The new parser strips the full string, slices off the two-char operator, then strips the version part — copying the long segment list three times. The old regex captured the version in a single slice.",
+              "size_meaning": "n = number of numeric segments before the .* wildcard",
+              "make_source": "def make(n):\n    # ==N.N...* with fixed-length segment N repeated n times\n    segs = \".\".join([str(42)] * n)\n    return [[f\"=={segs}.*\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9725165987479164,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "wildcard-leading-zero-padded",
+              "why": "The `==X.*` wildcard syntax allows many dot-separated numeric segments. The new parser strips the full string, slices off the two-char operator, then strips the version part — copying the long segment list three times. The old regex captured the version in a single slice.",
+              "size_meaning": "n = number of numeric segments before the .* wildcard",
+              "make_source": "def make(n):\n    # ==001.002... with zero-padded segments before .*\n    segs = \".\".join(f\"{i:0>3}\" for i in range(1, n + 1))\n    return [[f\"=={segs}.*\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9731745936739924,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Typical short PEP 440 specifiers (==, >=, <=, ~=, !=, === with short versions)",
+              "why": "The new hand‑rolled parser avoids a full regex match on every construction; for short, well‑formed specifiers the manual `startswith` checks are faster than a full verbose regex match.",
+              "origin": "plan",
+              "screen_ratio": 0.954287534744055,
+              "valid_fraction": 0.875,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 15092.655,
+                  "head_ir": 15008.655,
+                  "input_chars": 10.0,
+                  "ratio": 0.9944343788418937
+                },
+                {
+                  "n": 4,
+                  "base_ir": 15559.37125,
+                  "head_ir": 15483.33625,
+                  "input_chars": 12.75,
+                  "ratio": 0.9951132344117054
+                },
+                {
+                  "n": 16,
+                  "base_ir": 16469.79649390244,
+                  "head_ir": 15716.921493902439,
+                  "input_chars": 13.1875,
+                  "ratio": 0.954287534744055
+                },
+                {
+                  "n": 64,
+                  "base_ir": 16439.5828125,
+                  "head_ir": 15395.5328125,
+                  "input_chars": 13.475,
+                  "ratio": 0.9364916973923361
+                },
+                {
+                  "n": 256,
+                  "base_ir": 16439.5828125,
+                  "head_ir": 15395.5328125,
+                  "input_chars": 13.475,
+                  "ratio": 0.9364916973923361
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 16439.5828125,
+                  "head_ir": 15395.5328125,
+                  "input_chars": 13.475,
+                  "ratio": 0.9364916973923361
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 16439.5828125,
+                  "head_ir": 15395.5328125,
+                  "input_chars": 13.475,
+                  "ratio": 0.9364916973923361
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 0.9951132344117054,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 17.13,
+            "screen": 171.03,
+            "full": 128.92,
+            "total": 317.08
+          }
+        }
+      }
+    }
+  ]
+}

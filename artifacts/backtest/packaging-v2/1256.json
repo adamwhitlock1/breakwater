@@ -1,0 +1,393 @@
+{
+  "id": "#1256",
+  "pr": 1256,
+  "title": "perf(utils): precompile the wheel project-name pattern",
+  "base": "54c697714e19da8659b67b5e96eb12a1f8250f9d",
+  "head": "d2ac6ba3f819cb5c81d79f4820db205d6f8bc126",
+  "merged": "2026-06-13",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.utils:parse_wheel_filename",
+      "run_id": "bt-1256-85d56f",
+      "image": "bw-pair:0e393c2af8d05bae",
+      "usd": 0.0418,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.8,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 45.2,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.8,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9125763458727995,
+        "report": {
+          "run_id": "bt-1256-85d56f",
+          "target": "packaging.utils:parse_wheel_filename",
+          "image": "bw-pair:0e393c2af8d05bae",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "The change replaces an inline `re.match` call with a pre‑compiled regular expression (`_wheel_name_regex`). For typical, well‑formed wheel filenames the compile",
+              "why": "The change replaces an inline `re.match` call with a pre‑compiled regular expression (`_wheel_name_regex`). For typical, well‑formed wheel filenames the compiled regex avoids repeated pattern compilation and cache lookup, so the new version should be faster.",
+              "size_meaning": "n = number of allowed characters in the project‑name part of the wheel filename (the part before the first dash).",
+              "make_source": "\ndef make(n):\n    # Build a project name consisting of n ASCII letters/digits/underscores/dots.\n    # The name must not contain \"__\" and must match the wheel name regex.\n    allowed = string.ascii_letters + string.digits + \"_.\"\n    # Ensure at least one character and no \"__\" sequence.\n    name = ''.join(allowed[i % len(allowed)] for i in range(max(1, n)))\n    # Avoid \"__\" by replacing any occurrence.\n    name = name.replace('__', '_')\n    # Construct a minimal valid wheel filename: name-version-py3-none-any.whl\n    wheel = f\"{name}-1.0-py3-none-any.whl\"\n    return [[wheel]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9164497052998334,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "valid_long_name",
+              "why": "The change pre‑compiles the wheel‑name validation regex (`_wheel_name_regex`). For valid wheel filenames the regex is executed on every call, so a longer project‑name part makes the match work harder. The head version avoids re‑compiling the pattern on each call, giving a measurable speed‑up that grows with the length of the name.",
+              "size_meaning": "n ≈ length of the project‑name segment (number of extra ASCII word characters).",
+              "make_source": "def make(n):\n    # Build a valid wheel filename whose name part grows with n.\n    # Format: {name}-{version}-{pyver}-{abi}-{platform}.whl  (4 dashes)\n    name = \"pkg\" + \"a\" * n          # only word characters, no '__'\n    version = \"1.0\"\n    tag = \"py3-none-any\"\n    filename = f\"{name}-{version}-{tag}.whl\"\n    return [(filename,)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9162208680280969,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "valid wheel filenames with varying project names",
+              "why": "The change replaces an inline regex compilation on each call with a pre‑compiled global regex. For the common case of many valid wheel filenames the head version avoids repeated regex compilation and therefore should be faster.",
+              "size_meaning": "number of distinct wheel filenames generated",
+              "make_source": "def make(n):\n    \"\"\"Return up to 8 wheel filenames; n controls how many are produced.\"\"\"\n    n = min(max(n, 1), 8)\n    result = []\n    for i in range(n):\n        # Vary the project name length to exercise the regex on different input sizes\n        name = 'pkg' + 'a' * (i + 1)\n        filename = f'{name}-1.0-py3-none-any.whl'\n        result.append([filename])\n    return result",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9141243816038184,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Both the old and the new code run the same regular‑expression engine over the entire project‑name string. If the name part is extremely long and contains many U",
+              "why": "Both the old and the new code run the same regular‑expression engine over the entire project‑name string. If the name part is extremely long and contains many Unicode word characters, the regex match will scan the whole string, and the overhead of the Python function call to the compiled regex object (`_wheel_name_regex.match`) may be marginally higher than the single `re.match` call that also compiles (or reuses a cached pattern). In practice the difference is tiny, but this family exercises the worst‑case path for the new code.",
+              "size_meaning": "n = length of the Unicode project‑name part (number of characters).",
+              "make_source": "\ndef make(n):\n    # Use a Unicode word character outside ASCII to force the UNICODE flag path.\n    # U+03B1 (Greek small letter beta) is a word character.\n    ch = chr(0x03B1)\n    name = ch * max(1, n)          # e.g. βββ…\n    # Ensure no \"__\" sequence.\n    wheel = f\"{name}-1.0-py3-none-any.whl\"\n    return [[wheel]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9217904566260525,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "valid_name_unicode_stress",
+              "why": "Both versions use the same Unicode‑aware regex, but the head version accesses a module‑level compiled object (`_wheel_name_regex.match`) while the base version calls `re.match` each time. For inputs that force the regex engine to scan a long Unicode string before succeeding (e.g., many non‑ASCII word characters), the extra global‑lookup and method call could add a tiny constant overhead, making the head version marginally slower on this specific family.",
+              "size_meaning": "n ≈ number of Unicode word characters (e.g., accented letters) in the project name.",
+              "make_source": "def make(n):\n    # Use a Unicode letter that is a word character but not ASCII.\n    ch = \"\\u00e9\"   # 'é'\n    name = \"pkg\" + ch * n\n    version = \"1.0\"\n    tag = \"py3-none-any\"\n    filename = f\"{name}-{version}-{tag}.whl\"\n    return [(filename,)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9196396060656897,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "invalid wheel filenames containing '__' (invalid project name)",
+              "why": "Both versions check for '__' before the regex, so the regex is never evaluated. The head version still pays the cost of the pre‑compiled regex object lookup, which is negligible; however if there were any micro‑overhead it would appear on the worst‑case shows up on inputs that fail the early '__' test. This family is marked invalid because such filenames are rejected by the spec.",
+              "size_meaning": "number of invalid wheel filenames generated",
+              "make_source": "def make(n):\n    \"\"\"Return up to 8 invalid wheel filenames containing '__'.\"\"\"\n    n = min(max(n, 1), 8)\n    result = []\n    for i in range(n):\n        name = 'pkg__' + 'b' * i\n        filename = f'{name}-1.0-py3-none-any.whl'\n        result.append([filename])\n    return result",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F3",
+              "kind": "claimed_speedup",
+              "family": "valid wheel filenames with varying project names",
+              "why": "The change replaces an inline regex compilation on each call with a pre‑compiled global regex. For the common case of many valid wheel filenames the head version avoids repeated regex compilation and therefore should be faster.",
+              "origin": "plan",
+              "screen_ratio": 0.9141243816038184,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 39585.8825,
+                  "head_ir": 36125.14,
+                  "input_chars": 29.5,
+                  "ratio": 0.9125763458727995
+                },
+                {
+                  "n": 4,
+                  "base_ir": 39501.18137254902,
+                  "head_ir": 36056.356209150326,
+                  "input_chars": 30.5,
+                  "ratio": 0.9127918446056238
+                },
+                {
+                  "n": 16,
+                  "base_ir": 39605.630208333336,
+                  "head_ir": 36204.47222222222,
+                  "input_chars": 32.5,
+                  "ratio": 0.9141243816038184
+                },
+                {
+                  "n": 64,
+                  "base_ir": 39605.630208333336,
+                  "head_ir": 36204.47222222222,
+                  "input_chars": 32.5,
+                  "ratio": 0.9141243816038184
+                },
+                {
+                  "n": 256,
+                  "base_ir": 39605.630208333336,
+                  "head_ir": 36204.47222222222,
+                  "input_chars": 32.5,
+                  "ratio": 0.9141243816038184
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 39605.630208333336,
+                  "head_ir": 36204.47222222222,
+                  "input_chars": 32.5,
+                  "ratio": 0.9141243816038184
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 39605.630208333336,
+                  "head_ir": 36204.47222222222,
+                  "input_chars": 32.5,
+                  "ratio": 0.9141243816038184
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [
+                {
+                  "args": [
+                    [
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "jbsvmmbx",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "jbsvmmbx",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ]
+                    ]
+                  ],
+                  "cpu_ratio": 4.414,
+                  "base_ir": 6964.64406779661,
+                  "head_ir": 6964.64406779661,
+                  "ir_ratio": 1.0,
+                  "outcome": "exc:builtins.AttributeError"
+                },
+                {
+                  "args": [
+                    [
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "jbsvmmbx",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ],
+                      [
+                        "a",
+                        "1.0",
+                        "py3",
+                        "none",
+                        "any.whl"
+                      ]
+                    ]
+                  ],
+                  "cpu_ratio": 3.163,
+                  "base_ir": 6966.872340425532,
+                  "head_ir": 6966.872340425532,
+                  "ir_ratio": 1.0,
+                  "outcome": "exc:builtins.AttributeError"
+                }
+              ],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 1.0,
+              "worst_search": {
+                "args": [
+                  [
+                    [
+                      "a",
+                      "1.0",
+                      "py3",
+                      "none",
+                      "any.whl"
+                    ],
+                    [
+                      "a",
+                      "1.0",
+                      "py3",
+                      "none",
+                      "any.whl"
+                    ],
+                    [
+                      "jbsvmmbx",
+                      "1.0",
+                      "py3",
+                      "none",
+                      "any.whl"
+                    ],
+                    [
+                      "a",
+                      "1.0",
+                      "py3",
+                      "none",
+                      "any.whl"
+                    ],
+                    [
+                      "a",
+                      "1.0",
+                      "py3",
+                      "none",
+                      "any.whl"
+                    ],
+                    [
+                      "jbsvmmbx",
+                      "1.0",
+                      "py3",
+                      "none",
+                      "any.whl"
+                    ],
+                    [
+                      "a",
+                      "1.0",
+                      "py3",
+                      "none",
+                      "any.whl"
+                    ],
+                    [
+                      "a",
+                      "1.0",
+                      "py3",
+                      "none",
+                      "any.whl"
+                    ]
+                  ]
+                ],
+                "cpu_ratio": 4.414,
+                "base_ir": 6964.64406779661,
+                "head_ir": 6964.64406779661,
+                "ir_ratio": 1.0,
+                "outcome": "exc:builtins.AttributeError"
+              }
+            }
+          ],
+          "seconds": {
+            "plan": 12.15,
+            "screen": 70.11,
+            "full": 101.44,
+            "total": 183.7
+          }
+        }
+      }
+    }
+  ]
+}

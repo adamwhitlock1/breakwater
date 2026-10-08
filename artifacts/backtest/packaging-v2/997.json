@@ -1,0 +1,272 @@
+{
+  "id": "#997",
+  "pr": 997,
+  "title": "perf: better string building",
+  "base": "1c4e8056b1c0b2efc9c68a71c7f2a1a1920db8f3",
+  "head": "65092ce350ac2cc73e61d770f5d16a0957bf6e45",
+  "merged": "2026-01-06",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-997-27f243",
+      "image": "bw-pair:d358a5c896312bf0",
+      "usd": 0.0601,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 55.4,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.9,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9993014544274319,
+        "report": {
+          "run_id": "bt-997-27f243",
+          "target": "packaging.version:Version",
+          "image": "bw-pair:d358a5c896312bf0",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "Versions that contain *all* optional components (epoch, pre‑release, post‑release, dev‑release and a local segment) *and* a growing number of release segments. Each extra release segment makes the base string longer; the new `__str__` builds the result by repeated `+=` concatenations, copying the whole string on every step, while the old implementation collected the parts in a list and performed a single `join`.",
+              "why": "The head version does up to five string concatenations (`version += …`). With a release segment of length O(n) each concatenation copies O(n) characters → total work O(k·n) (k ≈ 5). The base version does one `join` over the same parts → O(n).",
+              "size_meaning": "n = number of release segments (each a small integer). Larger n ⇒ longer intermediate strings ⇒ more copying.",
+              "make_source": "def make(n):\n    # n >= 1 release components, all optional markers present\n    release = '.'.join(str(i + 1) for i in range(n))\n    # epoch=1, pre=a1, post=2, dev=3, local=localpart\n    version = f'1!{release}.a1.post2.dev3+localpart'\n    return [[version]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0079740367742938,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "Versions with a *very large* local version segment (many dot/underscore/hyphen separated parts) but otherwise minimal. The local segment is built once by the `local` property, then the new `__str__` appends it with `version += f\"+{self.local}\"`, copying the whole public version *again*. The old code added the local part to a list and performed a single final `join`, copying the data only once.",
+              "why": "Extra full‑string copy of length O(|public| + |local|). When |local| grows with n, the head version does O(|public| + |local|) work twice; the base version does it once.",
+              "size_meaning": "n = number of components in the local segment. Larger n ⇒ larger local string ⇒ more data copied twice.",
+              "make_source": "def make(n):\n    # n >= 1 local components, simple public version 1.0\n    local = '.'.join(f'part{i}' for i in range(n))\n    version = f'1.0+{local}'\n    return [[version]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0075610518239337,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Plain versions that have *only* a release segment (any length) and no epoch, pre, post, dev or local parts. The change was motivated by avoiding the `self.base_version` property access; the new code builds the release string directly with a single `join` and returns it.",
+              "why": "Both versions perform one `join` over the release tuple, but the head version skips the property lookup and the extra `if self.epoch` branch, giving a tiny constant‑factor win for the common case of simple versions.",
+              "size_meaning": "n = number of release segments. Cost grows linearly with n in both versions, but the head version has a smaller constant overhead.",
+              "make_source": "def make(n):\n    # n >= 1 release components, no optional markers\n    release = '.'.join(str(i + 1) for i in range(n))\n    return [[release]]",
+              "example_args": [
+                [
+                  1
+                ],
+                [
+                  1.2
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0009330102855902,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "The patch replaces building a list of string parts and joining them with a single string that is built by a single join for the release segment and then a handf",
+              "why": "The patch replaces building a list of string parts and joining them with a single string that is built by a single join for the release segment and then a handful of += concatenations for epoch, post, dev and local parts. The comment explicitly marks the function as a hot path and avoids a method call to self.base_version, reducing function‑call overhead and the allocation of an intermediate list.",
+              "size_meaning": "expected reduction of a few microseconds per Version.__str__ call in tight packaging loops",
+              "make_source": "\ndef make(n):\n    result = []\n    for i in range(1, n + 1):\n        major = 1 + (i % 20)\n        minor = 1 + ((i // 20) % 20)\n        patch = 1 + ((i // 400) % 20)\n        pre = itertools.cycle(('a', 'b', 'rc')).__next__() if i % 3 else ''\n        local = ''.join(random.choices(string.ascii_lowercase + string.digits, k=random.randint(1, 4)))\n        args = [\n            major, minor, patch,\n            pre,\n            'post' if i % 2 == 0 else '',\n            local\n        ]\n        result.append(args)\n    return result",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: attribute '__next__' is not allowed"
+            },
+            {
+              "id": "F5",
+              "kind": "claimed_speedup",
+              "family": "The diff adds a comment stating \"This is a hot function, so not calling self.base_version\" and rewrites the version string construction to avoid a method call a",
+              "why": "The diff adds a comment stating \"This is a hot function, so not calling self.base_version\" and rewrites the version string construction to avoid a method call and use a single join plus incremental string concatenations, which the author marks as a hot‑function optimization.",
+              "size_meaning": "claimed speed‑up",
+              "make_source": "\ndef make(n):\n    combos = list(itertools.product(string.ascii_lowercase, repeat=2))\n    random.shuffle(combos)\n    args = []\n    for _ in range(min(n, 8)):\n        a = ''.join(random.choice(combos) for _ in range(random.randint(1, 6)))\n        b = ''.join(random.choice(string.digits) for _ in range(random.randint(1, 4)))\n        args.append([a, b])\n    return args",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(2): TypeError: sequence item 0: expected str instance, tuple found"
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "The new code builds the final version string by repeatedly using += on a Python string (epoch prefix, post, dev, local). Even though there are only a few concat",
+              "why": "The new code builds the final version string by repeatedly using += on a Python string (epoch prefix, post, dev, local). Even though there are only a few concatenations, each += creates a new string object, which can be slightly slower than building a list of parts and doing a single ''.join(parts) as the old code did.",
+              "size_meaning": "possible few‑microsecond slowdown per Version.__str__ call when many post/dev/local segments are present",
+              "make_source": "def make(n):\n    parts = []\n    # epoch prefix\n    parts += [str(n % 100)]\n    # post segment\n    parts += [f\"post{random.randint(0, 99):02d}\" if n % 2 else \"\"]\n    # dev segment\n    parts += [f\"dev{random.getrandbits(8):02x}\" if n % 3 else \"\"]\n    # local segment\n    parts += [f\"local{random.randint(0, 0xFFFF):04x}\" if n % 4 else \"\"]\n    # keep only non-empty parts, at least one\n    parts = [p for p in parts if p] or [\"0.0.0\"]\n    # build string with repeated += as per the target\n    s = \"\"\n    for p in parts:\n        s += p\n    return [list(parts), s]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0016997099290488,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.",
+              "why": "Even though the version is invalid, the extra disjoint check runs; the regex then fails. This is the single allowed invalid family.",
+              "size_meaning": "Number of dotted segments before the malformed tail.",
+              "make_source": "def make(n):\n    # \"1.\" repeated n times then an alphabetic tail – not a valid PEP‑440 version\n    version = \"1.\" * n + \"x\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0022514288258109,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "Single repeated segment \"999.\" n times plus prerelease c5",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    release = \".\".join([\"999\"] * n)\n    version = f\"{release}c5\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0008068536348251,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "Versions with many release segments and a pre‑release suffix (e.g. \"1.2.3…a1\"). The fast‑path scans the whole string looking for indicator characters, finds the “a”, then falls back to the regex parser – an extra O(n) pass over the input.",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    # Build \"1.2.3…n\" then add a pre‑release marker \"a1\"\n    release = \".\".join(str(i) for i in range(1, n + 1))\n    version = f\"{release}a1\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0008764298629533,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Many numeric release segments followed by 'b' pre-release",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    release = \".\".join(str(i) for i in range(1, n + 1))\n    version = f\"{release}b1\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.00087146530454,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Plain versions that have *only* a release segment (any length) and no epoch, pre, post, dev or local parts. The change was motivated by avoiding the `self.base_version` property access; the new code builds the release string directly with a single `join` and returns it.",
+              "why": "Both versions perform one `join` over the release tuple, but the head version skips the property lookup and the extra `if self.epoch` branch, giving a tiny constant‑factor win for the common case of simple versions.",
+              "origin": "plan",
+              "screen_ratio": 1.0009330102855902,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 23901.05,
+                  "head_ir": 23945.05,
+                  "input_chars": 7.0,
+                  "ratio": 1.0018409233067167
+                },
+                {
+                  "n": 4,
+                  "base_ir": 26847.06,
+                  "head_ir": 26891.06,
+                  "input_chars": 11.0,
+                  "ratio": 1.0016389131621861
+                },
+                {
+                  "n": 16,
+                  "base_ir": 47159.18,
+                  "head_ir": 47203.18,
+                  "input_chars": 42.0,
+                  "ratio": 1.0009330102855902
+                },
+                {
+                  "n": 64,
+                  "base_ir": 133913.3396226415,
+                  "head_ir": 133957.3396226415,
+                  "input_chars": 186.0,
+                  "ratio": 1.0003285707019478
+                },
+                {
+                  "n": 256,
+                  "base_ir": 491892.2380952381,
+                  "head_ir": 492612.2380952381,
+                  "input_chars": 919.0,
+                  "ratio": 1.00146373523353
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 1917197.75,
+                  "head_ir": 1915858.5,
+                  "input_chars": 4016.0,
+                  "ratio": 0.9993014544274319
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 7757154.5,
+                  "head_ir": 7755067.0,
+                  "input_chars": 19376.0,
+                  "ratio": 0.9997308935899111
+                }
+              ],
+              "slope_base": 0.7384625253416194,
+              "slope_head": 0.7381965105195819,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0018409233067167,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 18.39,
+            "screen": 132.1,
+            "full": 74.57,
+            "total": 225.06
+          }
+        }
+      }
+    }
+  ]
+}

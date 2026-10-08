@@ -15,3 +15,6 @@ cachegrind.out.*
 research/
 artifacts/cache/
 artifacts/archive/
+# Backtest scratch runs; only published results are committed
+artifacts/backtest/*
+!artifacts/backtest/packaging-v2/

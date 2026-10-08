@@ -1,0 +1,309 @@
+{
+  "id": "#1253",
+  "pr": 1253,
+  "title": "perf(specifiers): keep range caches across canonicalization",
+  "base": "26b89a05f6f404dbfd808f6ac60d744e8a5e0386",
+  "head": "e64c20eb7a854c72710d4c962bc8a95f343230e6",
+  "merged": "2026-06-16",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet#contains",
+      "run_id": "bt-1253-7b2670",
+      "image": "bw-pair:92555005a9f709e0",
+      "usd": 0.0991,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.2,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 58.8,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.5,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9885014930255579,
+        "report": {
+          "run_id": "bt-1253-7b2670",
+          "target": "packaging.specifiers:SpecifierSet#contains",
+          "image": "bw-pair:92555005a9f709e0",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "SpecifierSet with many comma‑separated specifiers; canonicalisation runs once during construction and then many contains() calls",
+              "why": "The change removes two assignments (`self._is_unsatisfiable = None; self._ranges = None`) that were executed every time `_canonicalize_specs()` ran.  The method is only executed once per instance (when `_canonicalized` flips from False to True), so the assignments were pure overhead.  Removing them makes construction of a large SpecifierSet slightly faster.",
+              "size_meaning": "Number of comma‑separated specifiers in the input string",
+              "make_source": "def make(n):\n    # n = number of specifiers, e.g. '>=1.0,>=2.0,...'\n    specs = [f\">={i}.0\" for i in range(1, n + 1)]\n    spec_str = \",\".join(specs)\n    # argument list for the benchmark target:\n    #   first element -> spec string used to construct a SpecifierSet\n    #   second element -> version string passed to contains()\n    return [[spec_str, \"1.0\"]]",
+              "example_args": [
+                [
+                  1.0
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9970711759020903,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Many duplicate specifiers in a SpecifierSet, exercised with many repeated contains() calls",
+              "why": "The change removes cache invalidation (_is_unsatisfiable and _ranges = None) inside _canonicalize(). Canonicalization runs once (deduping/sorting the specifier list). Previously it cleared the cached ranges and unsatisfiability flag, forcing a recompute on the next contains()/filter() call. With many duplicate specifiers the canonicalization cost dominates, and clearing the caches adds unnecessary work. Removing the clears makes repeated contains() calls faster.",
+              "size_meaning": "n = number of duplicate specifier strings placed in the SpecifierSet (the set will canonicalize to a single unique specifier). The generator produces n calls to contains() with a version that matches the specifier.",
+              "make_source": "\ndef make(n):\n    \"\"\"Return a list of n argument lists for SpecifierSet.contains.\n    Each call checks a version that satisfies the sole unique specifier.\"\"\"\n    # a simple, always‑matching specifier\n    spec = \">=1.0.0\"\n    # the version that satisfies it\n    version = \"1.2.3\"\n    # we just repeat the same call n times – the benchmark will create the\n    # SpecifierSet once (with n duplicates) and then call contains n times.\n    return [[version] for _ in range(n)]",
+              "example_args": [
+                [
+                  "1.2.3"
+                ],
+                [
+                  "1.2.3"
+                ],
+                [
+                  "1.2.3"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9968732043191149,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "SpecifierSet built from a comma‑separated string that contains many duplicate “===…\" arbitrary specifiers (e.g. \"===1.0,===1.0,===1.0,>=1.0\"). The base version clears the cached `_is_unsatisfiable` flag when the spec list is canonicalised (duplicates removed). The head version leaves the stale flag in place; the first call to `is_unsatisfiable()` therefore returns a stale value and the next call has to recompute the flag, making the second call slower than the base version.",
+              "why": "Removing `self._is_unsatisfiable = None` from the canonicalisation step leaves a stale cache when duplicate arbitrary specifiers are collapsed. The first call sees the stale value, the second call must recompute, adding an extra range‑intersection pass.",
+              "size_meaning": "n = number of duplicate “===…\" specifiers (the generator builds a spec string with `n` copies of the same arbitrary version followed by a single normal specifier). Cost grows with `n` because the duplicate list gets longer before it is de‑duplicated.",
+              "make_source": "\ndef make(n):\n    # n duplicates of the same arbitrary specifier, plus one normal specifier\n    base = \"===1.0\"\n    specs = [base] * n + [\">=1.0\"]\n    spec_str = \",\".join(specs)\n    # The target is the SpecifierSet constructor; we return a list of one argument tuple\n    return [(spec_str,)]",
+              "example_args": [
+                [
+                  "===1.0,===1.0,===1.0,>=1.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9942303756890585,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Invalid specifier strings that raise InvalidSpecifier during construction",
+              "why": "The diff only touches cache invalidation inside _canonicalize; it does not affect the parsing path that raises InvalidSpecifier. No slowdown is expected, but an invalid‑input family is listed for completeness.",
+              "size_meaning": "n = number of invalid specifier strings supplied to the SpecifierSet constructor (each will raise on construction).",
+              "make_source": "\ndef make(n):\n    # generate n distinct invalid spec strings\n    invalids = [f\"@@invalid{i}@@\" for i in range(n)]\n    # the benchmark harness will try to build a SpecifierSet with each;\n    # we return a single‑element list per call so the harness can iterate.\n    return [[s] for s in invalids]",
+              "example_args": [
+                [
+                  "@@invalid0@@"
+                ],
+                [
+                  "@@invalid1@@"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9988686301616042,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "claimed_speedup",
+              "family": "Repeated calls to `SpecifierSet.contains` (or the `in` operator) on a large SpecifierSet that contains many normal specifiers (e.g. \">=1.0,<2.0,!=1.5,~=1.2,>=2.5,<3.0\"). The first call triggers canonicalisation (sorting + deduplication) and builds the intersected version‑range cache (`_ranges`). The base version clears that cache during canonicalisation, forcing every subsequent call to rebuild the range intersection. The head version keeps the cache, so the second and later calls reuse the already‑computed ranges and are noticeably faster.",
+              "why": "The removed lines `self._is_unsatisfiable = None; self._ranges = None` were the only place where the cached range intersection was discarded after the spec list was sorted/deduped. Keeping the cache avoids the O(N) range‑intersection work on every `contains` after the first one.",
+              "size_meaning": "n = number of ordinary specifiers in the set (each adds a range that must be intersected). Cost of building the intersection grows linearly with `n`.",
+              "make_source": "\ndef make(n):\n    # Build a comma‑separated specifier string with `n` distinct normal specifiers\n    ops = [\">=\", \"<=\", \">\", \"<\", \"!=\", \"~=\"]\n    specs = []\n    for i in range(n):\n        op = ops[i % len(ops)]\n        ver = f\"{1 + i}.0\"\n        specs.append(f\"{op}{ver}\")\n    spec_str = \",\".join(specs)\n    # Return several argument tuples so the benchmark can call `contains` repeatedly\n    return [(spec_str, v) for v in [\"1.0\", \"1.5\", \"2.0\", \"2.5\", \"3.0\"]]",
+              "example_args": [
+                [
+                  ">=1.0,<2.0,!=1.5,~=1.2",
+                  "1.5"
+                ],
+                [
+                  ">=1.0,<2.0,!=1.5,~=1.2,>=2.5,<3.0",
+                  "2.7"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0118814000178915,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "claimed_speedup",
+              "family": "many_simple_specs_variant_1",
+              "why": "The change removes the cache‑clearing that happened on every canonicalisation.  When a SpecifierSet contains many simple specifiers (e.g. many \">=1.0\", \"<=2.0\", \"==1.5\" …) the first call canonicalises the list, builds the intersected range cache and then re‑uses it on every subsequent `contains`/`filter` call.  The base version threw the cache away on every canonicalisation, forcing a full range‑intersection on every call; the head version keeps the cached ranges and is therefore faster.",
+              "size_meaning": "number of simple specifiers in the SpecifierSet (duplicates are allowed – they are deduped by canonicalisation)",
+              "make_source": "def make(n):\n    specs = [f\"<={i}.0\" for i in range(1, n + 1)]\n    return [[\", \".join(specs), \"2.5\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9969513852727684,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "claimed_speedup",
+              "family": "many_simple_specs",
+              "why": "The change removes the cache‑clearing that happened on every canonicalisation.  When a SpecifierSet contains many simple specifiers (e.g. many \">=1.0\", \"<=2.0\", \"==1.5\" …) the first call canonicalises the list, builds the intersected range cache and then re‑uses it on every subsequent `contains`/`filter` call.  The base version threw the cache away on every canonicalisation, forcing a full range‑intersection on every call; the head version keeps the cached ranges and is therefore faster.",
+              "size_meaning": "number of simple specifiers in the SpecifierSet (duplicates are allowed – they are deduped by canonicalisation)",
+              "make_source": "\ndef make(n):\n    # produce n simple specifiers like \">=1.0\", \">=2.0\", …\n    specs = [f\">={i}.0\" for i in range(1, n+1)]\n    # return a list with a single argument list for SpecifierSet.__contains__\n    return [[\",\".join(specs), \"1.5\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.997062303825154,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "claimed_speedup",
+              "family": "many_simple_specs_variant_2",
+              "why": "The change removes the cache‑clearing that happened on every canonicalisation.  When a SpecifierSet contains many simple specifiers (e.g. many \">=1.0\", \"<=2.0\", \"==1.5\" …) the first call canonicalises the list, builds the intersected range cache and then re‑uses it on every subsequent `contains`/`filter` call.  The base version threw the cache away on every canonicalisation, forcing a full range‑intersection on every call; the head version keeps the cached ranges and is therefore faster.",
+              "size_meaning": "number of simple specifiers in the SpecifierSet (duplicates are allowed – they are deduped by canonicalisation)",
+              "make_source": "def make(n):\n    specs = []\n    for i in range(1, n // 2 + 1):\n        specs.append(f\">={i}.0\")\n        specs.append(f\"<={(i * 2)}.0\")\n    if len(specs) < n:\n        specs.extend([f\">={len(specs)+j}.0\" for j in range(1, n - len(specs) + 1)])\n    return [[\",\" .join(specs[:n]), \"1.0\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9971418180693268,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "R1",
+              "kind": "claimed_speedup",
+              "family": "many_simple_specs_variant_1",
+              "why": "The change removes the cache‑clearing that happened on every canonicalisation.  When a SpecifierSet contains many simple specifiers (e.g. many \">=1.0\", \"<=2.0\", \"==1.5\" …) the first call canonicalises the list, builds the intersected range cache and then re‑uses it on every subsequent `contains`/`filter` call.  The base version threw the cache away on every canonicalisation, forcing a full range‑intersection on every call; the head version keeps the cached ranges and is therefore faster.",
+              "origin": "archive",
+              "screen_ratio": 0.9969513852727684,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 70024.31,
+                  "head_ir": 69914.86,
+                  "input_chars": 23.0,
+                  "ratio": 0.9984369713889363
+                },
+                {
+                  "n": 4,
+                  "base_ir": 100389.815,
+                  "head_ir": 100268.725,
+                  "input_chars": 37.0,
+                  "ratio": 0.9987938019409639
+                },
+                {
+                  "n": 16,
+                  "base_ir": 284785.9411764706,
+                  "head_ir": 283917.7385620915,
+                  "input_chars": 128.0,
+                  "ratio": 0.9969513852727684
+                },
+                {
+                  "n": 64,
+                  "base_ir": 1020884.6315789474,
+                  "head_ir": 1047457.1315789474,
+                  "input_chars": 512.0,
+                  "ratio": 1.0260288960946564
+                },
+                {
+                  "n": 256,
+                  "base_ir": 4091883.3333333335,
+                  "head_ir": 4110748.888888889,
+                  "input_chars": 2205.0,
+                  "ratio": 1.004610482269099
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 17204494.5,
+                  "head_ir": 17006668.5,
+                  "input_chars": 9142.0,
+                  "ratio": 0.9885014930255579
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 68389241.5,
+                  "head_ir": 68323389.0,
+                  "input_chars": 39862.0,
+                  "ratio": 0.9990370926982719
+                }
+              ],
+              "slope_base": 0.9299515668559702,
+              "slope_head": 0.9295041442730744,
+              "top_inputs": [
+                {
+                  "args": [
+                    "í",
+                    1,
+                    ","
+                  ],
+                  "cpu_ratio": 2.551,
+                  "base_ir": 16405.72,
+                  "head_ir": 16359.65,
+                  "ir_ratio": 0.9971918330923604,
+                  "outcome": "exc:packaging.specifiers.InvalidSpecifier"
+                },
+                {
+                  "args": [
+                    "ß",
+                    61,
+                    ","
+                  ],
+                  "cpu_ratio": 2.5,
+                  "base_ir": 16405.72,
+                  "head_ir": 16359.65,
+                  "ir_ratio": 0.9971918330923604,
+                  "outcome": "exc:packaging.specifiers.InvalidSpecifier"
+                }
+              ],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0260288960946564,
+              "worst_search": {
+                "args": [
+                  "í",
+                  1,
+                  ","
+                ],
+                "cpu_ratio": 2.551,
+                "base_ir": 16405.72,
+                "head_ir": 16359.65,
+                "ir_ratio": 0.9971918330923604,
+                "outcome": "exc:packaging.specifiers.InvalidSpecifier"
+              }
+            }
+          ],
+          "seconds": {
+            "plan": 20.72,
+            "screen": 82.59,
+            "full": 107.66,
+            "total": 210.97
+          }
+        }
+      }
+    }
+  ]
+}

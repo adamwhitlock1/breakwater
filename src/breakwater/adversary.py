@@ -134,8 +134,8 @@ Relevant diff:
 {diff}
 ```"""
 
-MUTATION_LIMIT = 150
-BATCH_LIMIT = 320
+MUTATION_LIMIT = 250
+BATCH_LIMIT = 450
 FOCUS_LIMIT = 60
 
 # ---------------------------------------------------------------------------------------------------
@@ -332,7 +332,11 @@ def run_strategy(backend: Backend, image: PairImage, target: Target, src: str, *
 
 def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Target, *,
           n_attacks: int = 5, strategies_per_attack: int = 4, max_examples: int = 300, seed: int = 0,
-          run_id: str | None = None, workers: int = 4, log=print) -> AuditReport:
+          run_id: str | None = None, workers: int = 4, extra_seeds: list[list[Any]] | None = None,
+          log=print) -> AuditReport:
+    """`extra_seeds`: inputs the project already has (e.g. string literals from its tests). They are
+    mutated and probed alongside the planner's examples, so the full audit covers everything the
+    no-LLM baseline does and the difference between them is what Nemotron adds."""
     run_id = run_id or uuid.uuid4().hex[:12]
     timings: dict[str, float] = {}
     t0 = time.perf_counter()
@@ -385,8 +389,11 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
     def key(args: Any) -> str:
         return json.dumps(args, ensure_ascii=False, sort_keys=True)
 
-    seeds = [args for a in attacks for args in a.example_args]
-    origin: dict[str, str] = {key(a): "seed" for a in seeds}
+    planned = [args for a in attacks for args in a.example_args]
+    origin: dict[str, str] = {key(a): "seed" for a in planned}
+    for args in extra_seeds or []:
+        origin.setdefault(key(args), "tests")
+    seeds = planned + list(extra_seeds or [])
     mutants = mutate_args(seeds + samples[:20], limit=MUTATION_LIMIT)
     for name, args in mutants:
         origin.setdefault(key(args), f"mutation:{name}")

@@ -1,0 +1,898 @@
+{
+  "id": "#1030",
+  "pr": 1030,
+  "title": "perf: translate for canonicalize_name",
+  "base": "52e57f20037ff6fc40c72fffbd7905ed81c7d390",
+  "head": "3803ce341b59a24c598eb7b8100d5f8d6773f63e",
+  "merged": "2026-01-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "unicode-lowercase",
+      "match": {
+        "probe": "P1",
+        "traits": "non-ascii"
+      },
+      "fixed_by": 1064,
+      "status": "verified",
+      "discovered_by": "breakwater"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.utils:canonicalize_name",
+      "run_id": "bt-1030-e38d1c",
+      "image": "bw-pair:a959e7a1becfaee9",
+      "usd": 0.0508,
+      "harvested": 69,
+      "arms": {
+        "hypothesis": {
+          "classes": [
+            "P1|value|differs|control+non-ascii",
+            "P1|value|differs|control+non-ascii+whitespace",
+            "P1|value|differs|non-ascii",
+            "P1|value|differs|non-ascii+whitespace",
+            "P3|gt|False|True",
+            "P3|lt|True|False",
+            "P4|base->head eq-fresh|True|False"
+          ],
+          "known": [
+            "unicode-lowercase"
+          ],
+          "seconds": 22.2,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P1|value|differs|non-ascii",
+            "P4|base->head eq-fresh|True|False"
+          ],
+          "known": [
+            "unicode-lowercase"
+          ],
+          "seconds": 9.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P1|value|differs|control+non-ascii",
+            "P1|value|differs|non-ascii",
+            "P1|value|differs|non-ascii+whitespace",
+            "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+            "P3|gt|False|True",
+            "P3|gt|True|False",
+            "P3|lt|False|True",
+            "P3|lt|True|False",
+            "P4|base->head eq-fresh|True|False"
+          ],
+          "known": [
+            "unicode-lowercase"
+          ],
+          "seconds": 55.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P1|value|differs|non-ascii",
+            "P3|gt|False|True",
+            "P3|gt|True|False",
+            "P3|lt|False|True",
+            "P3|lt|True|False",
+            "P4|base->head eq-fresh|True|False"
+          ],
+          "known": [
+            "unicode-lowercase"
+          ],
+          "seconds": 3.9,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P1|value|differs|non-ascii",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              "İ"
+            ]
+          ],
+          "base": "i̇",
+          "head": "İ",
+          "found_by": [
+            "A3/s2",
+            "A5/s3",
+            "seed",
+            "mutation:separators",
+            "mutation:signs",
+            "mutation:edges",
+            "mutation:case",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P1|value|differs|non-ascii+whitespace",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              " À"
+            ]
+          ],
+          "base": " à",
+          "head": " À",
+          "found_by": [
+            "A5/s3",
+            "mutation:whitespace-outer",
+            "mutation:whitespace-inner"
+          ]
+        },
+        {
+          "signature": "P1|value|differs|control+non-ascii",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              "\u001bÀ"
+            ]
+          ],
+          "base": "\u001bà",
+          "head": "\u001bÀ",
+          "found_by": [
+            "A5/s3",
+            "mutation:edges"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              []
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "found_by": [
+            "A4/s1",
+            "A4/s4"
+          ]
+        },
+        {
+          "signature": "P3|gt|True|False",
+          "probe": "P3",
+          "detail": "gt",
+          "args": [
+            [
+              "ẞ"
+            ],
+            [
+              "K"
+            ]
+          ],
+          "base": true,
+          "head": false,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|gt|False|True",
+          "probe": "P3",
+          "detail": "gt",
+          "args": [
+            [
+              "K"
+            ],
+            [
+              "py3"
+            ]
+          ],
+          "base": false,
+          "head": true,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|lt|False|True",
+          "probe": "P3",
+          "detail": "lt",
+          "args": [
+            [
+              "ẞ"
+            ],
+            [
+              "K"
+            ]
+          ],
+          "base": false,
+          "head": true,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|lt|True|False",
+          "probe": "P3",
+          "detail": "lt",
+          "args": [
+            [
+              "K"
+            ],
+            [
+              "py3"
+            ]
+          ],
+          "base": true,
+          "head": false,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P4|base->head eq-fresh|True|False",
+          "probe": "P4",
+          "detail": "base->head eq-fresh",
+          "args": [
+            [
+              "İ"
+            ]
+          ],
+          "base": true,
+          "head": false,
+          "found_by": [
+            "seed",
+            "mutation:whitespace-outer",
+            "mutation:whitespace-inner",
+            "mutation:separators",
+            "mutation:signs",
+            "mutation:edges",
+            "mutation:case",
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "R1.2",
+            "family": "Names starting/ending with multiple dots or underscores",
+            "verdict": "slower",
+            "ladder": [
+              1.2824553962608296,
+              1.2824553962608296,
+              2.275487929110813,
+              2.156755295657273,
+              0.8208934774162838,
+              0.3516870541057739,
+              0.2153359279949592
+            ],
+            "origin": "expand:R1"
+          },
+          {
+            "id": "R4",
+            "family": "many_underscores_and_dots",
+            "verdict": "complexity-regression",
+            "ladder": [
+              1.0360770256459968,
+              1.2756788636224345,
+              1.9668213939732073,
+              3.0261918231341913,
+              4.203187256306862,
+              4.357209588569598,
+              4.517412301093331
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "R1",
+            "family": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear tim",
+            "verdict": "slower",
+            "ladder": [
+              0.6476983761012984,
+              0.9346159146780114,
+              1.6559583356877723,
+              1.1692049075155342,
+              0.356864305673456,
+              0.1340912387017206,
+              0.06777095089895306
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "F3",
+            "family": "typical_package_names",
+            "verdict": "slower",
+            "ladder": [
+              0.660089684198932,
+              0.9069600207979266,
+              1.5657320215107469,
+              1.8967216207019288,
+              1.0449068623972064,
+              0.3494585747267035,
+              0.15289695535327885
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F1",
+            "family": "typical package names containing mixed case, dots and underscores",
+            "verdict": "slower",
+            "ladder": [
+              1.129182757597942,
+              0.912276751959024,
+              0.49977540622092187,
+              0.1952970891316579,
+              0.12339961763147544,
+              0.10656124244903926,
+              0.09648510903114219
+            ],
+            "origin": "plan"
+          }
+        ],
+        "worst_valid_ratio": 4.517412301093331,
+        "worst_family": "many_underscores_and_dots",
+        "speedup_ratio_small": 0.2153359279949592,
+        "report": {
+          "run_id": "bt-1030-e38d1c",
+          "target": "packaging.utils:canonicalize_name",
+          "image": "bw-pair:a959e7a1becfaee9",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "typical package names containing mixed case, dots and underscores",
+              "why": "The new path replaces the regex + lower() with a single translate pass and a fast while‑loop that usually finishes in one iteration. Real‑world names have few consecutive “-” characters, so the loop runs once and the C‑level translate is faster than the regex engine.",
+              "size_meaning": "number of dotted/underscored segments (each adds a few characters)",
+              "make_source": "\ndef make(n):\n    # Build a name like 'Pkg_0.Sub_1.Pkg_2...' with n segments\n    parts = []\n    for i in range(n):\n        seg = f'Pkg{i}'\n        if i % 2 == 0:\n            parts.append(seg)\n        else:\n            parts.append('_' + seg)\n    name = '.'.join(parts)\n    return [[name]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.49977540622092187,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Typical distribution names consist of a few alphanumeric segments separated by single hyphens; the new translate+loop path avoids the regex engine and is faster",
+              "why": "Typical distribution names consist of a few alphanumeric segments separated by single hyphens; the new translate+loop path avoids the regex engine and is faster on these common inputs.",
+              "size_meaning": "Number of generated names (each name length stays O(1)).",
+              "make_source": "def make(n):\n    # generate n typical package names like 'pkg-0', 'pkg-1', …\n    return [[f'pkg-{i}'] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.2266602455701294,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "typical_package_names",
+              "why": "Normal package names contain only a few separators (‑, _, .) and short runs of them. The new translate‑+‑while path does a single pass over the characters and at most one extra replace pass, which is faster than the regex substitution used before.",
+              "size_meaning": "Length of the name (including separators).",
+              "make_source": "\ndef make(n):\n    # generate a realistic name of total length ~n\n    # start and end with alnum, insert a few separators\n    alnum = string.ascii_letters + string.digits\n    if n < 3:\n        n = 3\n    # ensure at least one separator\n    sep = random.choice(['-', '_', '.'])\n    left = n // 2 - 1\n    right = n - left - 2\n    name = (\n        random.choice(alnum) +\n        ''.join(random.choice(alnum) for _ in range(left)) +\n        sep +\n        ''.join(random.choice(alnum) for _ in range(right)) +\n        random.choice(alnum)\n    )\n    return [[name]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.5657320215107469,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "a name consisting of a very long run of '_' characters",
+              "why": "translate turns every '_' into '-', producing a single run of n dashes. The while‑loop then repeatedly halves the run (each pass replaces '--' with '-'), so it executes O(log n) iterations, each creating a new string. The old regex does the whole replacement in one C pass, so for large n the new code does more work.",
+              "size_meaning": "length of the underscore run",
+              "make_source": "def make(n):\n    name = '_' * n\n    return [[name]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.4946978350701607,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "A long run of '_' characters becomes a long run of '-' after translation. The while‑loop replaces '--' → '-' one step per iteration, so a run of length L needs ",
+              "why": "A long run of '_' characters becomes a long run of '-' after translation. The while‑loop replaces '--' → '-' one step per iteration, so a run of length L needs L‑1 iterations. The old regex does it in one pass.",
+              "size_meaning": "Length of the underscore run (≈ n).",
+              "make_source": "def make(n):\n    # name like 'a' + '_'*n + 'b' (valid per PEP 503)\n    return [[ 'a' + '_' * n + 'b' ]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.508513962345953,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "long_underscore_run",
+              "why": "A very long run of '_' (or '.' or '-') becomes a long run of '-' after translate. The while‑loop replaces \"--\" with \"-\" repeatedly; each iteration scans the whole string, giving O(log L) passes over a length‑L run. The old regex performed a single linear pass, so for huge runs the new code is slower.",
+              "size_meaning": "Number of '_' characters in the middle of the name.",
+              "make_source": "\ndef make(n):\n    # name = 'a' + '_'*n + 'b'  (valid: starts/ends with alnum)\n    name = 'a' + '_' * n + 'b'\n    return [[name]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.508513962345953,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "claimed_speedup",
+              "family": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear tim",
+              "why": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear time and avoids the regex engine, giving the advertised ~2× speed‑up.",
+              "size_meaning": "n ≈ total length of the name",
+              "make_source": "def make(n):\n    # Produce a handful of realistic names whose length grows with n.\n    # Each name contains alphanumerics and occasional '_' or '.'.\n    base = []\n    for i in range(min(8, max(1, n // 4))):\n        # create a name of length roughly n using a simple pattern\n        length = max(1, n - i)\n        parts = []\n        for j in range(length):\n            if j % 7 == 0:\n                parts.append('_' if (j // 7) % 2 == 0 else '.')\n            else:\n                # alphanumeric: a‑z, 0‑9\n                parts.append(chr(ord('a') + (j % 26)))\n        base.append([''.join(parts)])\n    return base",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.6559583356877723,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "many_consecutive_underscores",
+              "why": "A name like \"a____…____b\" passes validation (first/last alnum). Translation turns every '_' into '-', producing a run of n dashes. The while‑loop then repeatedly halves that run (log₂ n passes), each pass scanning the whole string → O(n log n) versus the original single‑pass regex.",
+              "size_meaning": "Number of consecutive '_' characters between two alphanumerics.",
+              "make_source": "def make(n):\n    name = 'a' + '_' * n + 'b'\n    return [[name]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.508513962345953,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "A string consisting of N '_' characters becomes N '-' after translate. The while‑loop then repeatedly scans the whole string collapsing '--' → '-', costing O(N²",
+              "why": "A string consisting of N '_' characters becomes N '-' after translate. The while‑loop then repeatedly scans the whole string collapsing '--' → '-', costing O(N²) time, whereas the old single regex substitution is O(N).",
+              "size_meaning": "n = number of '_' characters",
+              "make_source": "def make(n):\n    # One argument: a name made of n underscores.\n    return [['_' * n]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.4946978350701607,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "many_underscores_and_dots",
+              "why": "Each '_' and '.' triggers a separate `str.replace` pass that allocates a new string. With O(n) such characters the new code does three full‑string scans (lower, replace('_'), replace('.')) plus the condensation loop, while the old `translate` version performed a single C‑level pass. Cost grows linearly with the number of '_' / '.' characters.",
+              "size_meaning": "n = number of '_' characters (same number of '.' characters); total length ≈ 2n.",
+              "make_source": "def make(n):\n    # a string like '_.' repeated n times, e.g. '_. _.' ...\n    s = \"_.\" * n\n    return [[s]]",
+              "example_args": [
+                [
+                  "_._._."
+                ],
+                [
+                  "_._._._._._."
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 1.9668213939732073,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R4.1",
+              "kind": "suspected_slowdown",
+              "family": "only_underscore_slow",
+              "why": "Each '_' and '.' triggers a separate `str.replace` pass that allocates a new string. With O(n) such characters the new code does three full‑string scans (lower, replace('_'), replace('.')) plus the condensation loop, while the old `translate` version performed a single C‑level pass. Cost grows linearly with the number of '_' / '.' characters.",
+              "size_meaning": "n = number of '_' characters (same number of '.' characters); total length ≈ 2n.",
+              "make_source": "\ndef make(n):\n    s = \"_\" * n\n    return [[s]]",
+              "example_args": [
+                [
+                  "_._._."
+                ],
+                [
+                  "_._._._._._."
+                ]
+              ],
+              "origin": "expand:R4",
+              "screen_ratio": 1.4946978350701607,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1.1",
+              "kind": "claimed_speedup",
+              "family": "Names with more frequent separators",
+              "why": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear time and avoids the regex engine, giving the advertised ~2× speed‑up.",
+              "size_meaning": "n ≈ total length of the name",
+              "make_source": "def make(n):\n    result = []\n    k = min(5, max(1, n // 8))\n    seg_len = max(2, n // (k * 2))\n    for _ in range(k):\n        chars = []\n        pos = 0\n        while len(chars) < seg_len:\n            if pos % 3 == 0:\n                chars.append('_'\n                           if ((pos // 3) % 2 == 0)\n                           else '.')\n            else:\n                chars.append(chr(ord('a') + (len(chars) % 26)))\n            pos += 1\n        result.append([''.join(chars)])\n    return result",
+              "example_args": [],
+              "origin": "expand:R1",
+              "screen_ratio": 0.7804441349536214,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1.2",
+              "kind": "claimed_speedup",
+              "family": "Names starting/ending with multiple dots or underscores",
+              "why": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear time and avoids the regex engine, giving the advertised ~2× speed‑up.",
+              "size_meaning": "n ≈ total length of the name",
+              "make_source": "def make(n):\n    core = max(0, n - 4)\n    tails = ['..', '.__.', '__..', '._._.']\n    out = []\n    for t in tails:\n        if core >= 0:\n            mid = ''.join(chr(ord('a') + (i % 26)) for i in range(core))\n            out.append([t + mid + t])\n    return out[:min(8, len(out))]",
+              "example_args": [],
+              "origin": "expand:R1",
+              "screen_ratio": 2.275487929110813,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1.3",
+              "kind": "claimed_speedup",
+              "family": "Long runs of letters with very rare separators",
+              "why": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear time and avoids the regex engine, giving the advertised ~2× speed‑up.",
+              "size_meaning": "n ≈ total length of the name",
+              "make_source": "def make(n):\n    sep_every = max(3, n // 20)\n    out = []\n    for start in range(sep_every):\n        chars = []\n        for i in range(n):\n            if (i - start) % sep_every == 0 and i != start:\n                chars.append('_.'[(i // sep_every) % 2])\n            else:\n                chars.append(chr(ord('a') + (i % 26)))\n        out.append([''.join(chars)])\n        if len(out) >= 8:\n            break\n    return out",
+              "example_args": [],
+              "origin": "expand:R1",
+              "screen_ratio": 1.2066893161264511,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "R1.2",
+              "kind": "claimed_speedup",
+              "family": "Names starting/ending with multiple dots or underscores",
+              "why": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear time and avoids the regex engine, giving the advertised ~2× speed‑up.",
+              "origin": "expand:R1",
+              "screen_ratio": 2.275487929110813,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 4512.16375,
+                  "head_ir": 5786.64875,
+                  "input_chars": 11.5,
+                  "ratio": 1.2824553962608296
+                },
+                {
+                  "n": 4,
+                  "base_ir": 4512.16375,
+                  "head_ir": 5786.64875,
+                  "input_chars": 11.5,
+                  "ratio": 1.2824553962608296
+                },
+                {
+                  "n": 16,
+                  "base_ir": 8598.070153061224,
+                  "head_ir": 19564.804846938776,
+                  "input_chars": 23.5,
+                  "ratio": 2.275487929110813
+                },
+                {
+                  "n": 64,
+                  "base_ir": 17423.23161764706,
+                  "head_ir": 37577.64705882353,
+                  "input_chars": 71.5,
+                  "ratio": 2.156755295657273
+                },
+                {
+                  "n": 256,
+                  "base_ir": 53016.01388888889,
+                  "head_ir": 43520.5,
+                  "input_chars": 263.5,
+                  "ratio": 0.8208934774162838
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 196909.4375,
+                  "head_ir": 69250.5,
+                  "input_chars": 1031.5,
+                  "ratio": 0.3516870541057739
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 766349.125,
+                  "head_ir": 165022.5,
+                  "input_chars": 4103.5,
+                  "ratio": 0.2153359279949592
+                }
+              ],
+              "slope_base": 0.858427532821715,
+              "slope_head": 0.5179554989014242,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 2.275487929110813,
+              "worst_search": null
+            },
+            {
+              "family_id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "many_underscores_and_dots",
+              "why": "Each '_' and '.' triggers a separate `str.replace` pass that allocates a new string. With O(n) such characters the new code does three full‑string scans (lower, replace('_'), replace('.')) plus the condensation loop, while the old `translate` version performed a single C‑level pass. Cost grows linearly with the number of '_' / '.' characters.",
+              "origin": "archive",
+              "screen_ratio": 1.9668213939732073,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 4848.515,
+                  "head_ir": 5023.435,
+                  "input_chars": 8.0,
+                  "ratio": 1.0360770256459968
+                },
+                {
+                  "n": 4,
+                  "base_ir": 4976.515,
+                  "head_ir": 6348.435,
+                  "input_chars": 12.0,
+                  "ratio": 1.2756788636224345
+                },
+                {
+                  "n": 16,
+                  "base_ir": 5744.515,
+                  "head_ir": 11298.435,
+                  "input_chars": 36.0,
+                  "ratio": 1.9668213939732073
+                },
+                {
+                  "n": 64,
+                  "base_ir": 8743.442953020134,
+                  "head_ir": 26459.335570469797,
+                  "input_chars": 132.0,
+                  "ratio": 3.0261918231341913
+                },
+                {
+                  "n": 256,
+                  "base_ir": 19741.447368421053,
+                  "head_ir": 82977.0,
+                  "input_chars": 516.0,
+                  "ratio": 4.203187256306862
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 70051.0,
+                  "head_ir": 305226.8888888889,
+                  "input_chars": 2052.0,
+                  "ratio": 4.357209588569598
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 266708.0,
+                  "head_ir": 1204830.0,
+                  "input_chars": 8196.0,
+                  "ratio": 4.517412301093331
+                }
+              ],
+              "slope_base": 0.5643239496139442,
+              "slope_head": 0.7835468130469792,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "complexity-regression",
+              "worst_ratio": 4.517412301093331,
+              "worst_search": null
+            },
+            {
+              "family_id": "R1",
+              "kind": "claimed_speedup",
+              "family": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear tim",
+              "why": "Normal package names are short‑ish alphanumerics with only a few '_' or '.' characters. The new translate‑table + single‑pass replace handles this in linear time and avoids the regex engine, giving the advertised ~2× speed‑up.",
+              "origin": "archive",
+              "screen_ratio": 1.6559583356877723,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 6321.515,
+                  "head_ir": 4094.435,
+                  "input_chars": 6.0,
+                  "ratio": 0.6476983761012984
+                },
+                {
+                  "n": 4,
+                  "base_ir": 6929.515,
+                  "head_ir": 6476.435,
+                  "input_chars": 8.0,
+                  "ratio": 0.9346159146780114
+                },
+                {
+                  "n": 16,
+                  "base_ir": 10330.66375,
+                  "head_ir": 17107.14875,
+                  "input_chars": 18.5,
+                  "ratio": 1.6559583356877723
+                },
+                {
+                  "n": 64,
+                  "base_ir": 29291.807432432433,
+                  "head_ir": 34248.125,
+                  "input_chars": 64.5,
+                  "ratio": 1.1692049075155342
+                },
+                {
+                  "n": 256,
+                  "base_ir": 105890.77777777778,
+                  "head_ir": 37788.63888888889,
+                  "input_chars": 256.5,
+                  "ratio": 0.356864305673456
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 388285.0625,
+                  "head_ir": 52065.625,
+                  "input_chars": 1024.5,
+                  "ratio": 0.1340912387017206
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 1577964.0625,
+                  "head_ir": 106940.125,
+                  "input_chars": 4096.5,
+                  "ratio": 0.06777095089895306
+                }
+              ],
+              "slope_base": 0.8560256840502828,
+              "slope_head": 0.4400776167413549,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.6559583356877723,
+              "worst_search": null
+            },
+            {
+              "family_id": "F3",
+              "kind": "claimed_speedup",
+              "family": "typical_package_names",
+              "why": "Normal package names contain only a few separators (‑, _, .) and short runs of them. The new translate‑+‑while path does a single pass over the characters and at most one extra replace pass, which is faster than the regex substitution used before.",
+              "origin": "plan",
+              "screen_ratio": 1.5657320215107469,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 7081.515,
+                  "head_ir": 4674.435,
+                  "input_chars": 8.0,
+                  "ratio": 0.660089684198932
+                },
+                {
+                  "n": 4,
+                  "base_ir": 7481.515,
+                  "head_ir": 6785.435,
+                  "input_chars": 9.0,
+                  "ratio": 0.9069600207979266
+                },
+                {
+                  "n": 16,
+                  "base_ir": 9670.515,
+                  "head_ir": 15141.435,
+                  "input_chars": 21.0,
+                  "ratio": 1.5657320215107469
+                },
+                {
+                  "n": 64,
+                  "base_ir": 18528.515,
+                  "head_ir": 35143.435,
+                  "input_chars": 69.0,
+                  "ratio": 1.8967216207019288
+                },
+                {
+                  "n": 256,
+                  "base_ir": 53951.72368421053,
+                  "head_ir": 56374.52631578947,
+                  "input_chars": 261.0,
+                  "ratio": 1.0449068623972064
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 197582.7894736842,
+                  "head_ir": 69047.0,
+                  "input_chars": 1029.0,
+                  "ratio": 0.3494585747267035
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 767732.75,
+                  "head_ir": 117384.0,
+                  "input_chars": 4101.0,
+                  "ratio": 0.15289695535327885
+                }
+              ],
+              "slope_base": 0.7424878197843604,
+              "slope_head": 0.48484774680303483,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.8967216207019288,
+              "worst_search": null
+            },
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "typical package names containing mixed case, dots and underscores",
+              "why": "The new path replaces the regex + lower() with a single translate pass and a fast while‑loop that usually finishes in one iteration. Real‑world names have few consecutive “-” characters, so the loop runs once and the C‑level translate is faster than the regex engine.",
+              "origin": "plan",
+              "screen_ratio": 0.49977540622092187,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 8243.515,
+                  "head_ir": 9308.435,
+                  "input_chars": 14.0,
+                  "ratio": 1.129182757597942
+                },
+                {
+                  "n": 4,
+                  "base_ir": 13258.515,
+                  "head_ir": 12095.435,
+                  "input_chars": 25.0,
+                  "ratio": 0.912276751959024
+                },
+                {
+                  "n": 16,
+                  "base_ir": 43734.515,
+                  "head_ir": 21857.435,
+                  "input_chars": 97.0,
+                  "ratio": 0.49977540622092187
+                },
+                {
+                  "n": 64,
+                  "base_ir": 171548.89583333334,
+                  "head_ir": 33503.0,
+                  "input_chars": 409.0,
+                  "ratio": 0.1952970891316579
+                },
+                {
+                  "n": 256,
+                  "base_ir": 692668.2727272727,
+                  "head_ir": 85475.0,
+                  "input_chars": 1813.0,
+                  "ratio": 0.12339961763147544
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 2763059.0,
+                  "head_ir": 294435.0,
+                  "input_chars": 7597.0,
+                  "ratio": 0.10656124244903926
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 11919943.0,
+                  "head_ir": 1150097.0,
+                  "input_chars": 33709.0,
+                  "ratio": 0.09648510903114219
+                }
+              ],
+              "slope_base": 0.9365291643021316,
+              "slope_head": 0.5938072165871816,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.129182757597942,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 16.58,
+            "screen": 253.23,
+            "full": 452.94,
+            "total": 722.74
+          }
+        }
+      }
+    }
+  ]
+}

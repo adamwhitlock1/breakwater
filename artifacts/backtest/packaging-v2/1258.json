@@ -1,0 +1,254 @@
+{
+  "id": "#1258",
+  "pr": 1258,
+  "title": "perf: add __slots__ to token classes",
+  "base": "e7f0351352783a8a2f17f8fe15d8504f604468eb",
+  "head": "bce44a178e0033b51200880de3a1cb9bfadfb849",
+  "merged": "2026-06-13",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.requirements:Requirement",
+      "run_id": "bt-1258-a58f0c",
+      "image": "bw-pair:aa205a50cfdfbeb7",
+      "usd": 0.0399,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.5,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head eq-fresh|True|<exc:builtins.ValueError>"
+          ],
+          "known": [],
+          "seconds": 2.8,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head eq-fresh|True|<exc:builtins.ValueError>"
+          ],
+          "known": [],
+          "seconds": 39.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.8,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head eq-fresh|True|<exc:builtins.ValueError>",
+          "probe": "P4",
+          "detail": "base->head eq-fresh",
+          "args": [
+            [
+              "requests>=10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"
+            ]
+          ],
+          "base": true,
+          "head": "<exc:builtins.ValueError>",
+          "found_by": [
+            "mutation:huge-number"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9717406770004221,
+        "report": {
+          "run_id": "bt-1258-a58f0c",
+          "target": "packaging.requirements:Requirement",
+          "image": "bw-pair:aa205a50cfdfbeb7",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "requirement strings with a large number of extra markers (extras), which produce many Token objects during tokenization; the added __slots__ on Token reduces per‑token memory and attribute‑access cost, so this path should become faster.",
+              "why": "The tokenizer creates one Token per extra name (plus a few for the name, specifier, URL, marker). With many extras the number of Token allocations dominates runtime, and __slots__ eliminates the per‑instance __dict__, giving a measurable speedup.",
+              "size_meaning": "n = number of extras in the requirement (each extra adds a token).",
+              "make_source": "\ndef make(n):\n    # Build a requirement like  pkg[extra0,extra1,...,extraN-1] >=1.0\n    extras = ','.join(f'extra{i}' for i in range(n))\n    req = f'pkg[{extras}] >=1.0'\n    return [[req]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9828485794520616,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "complex_requirement",
+              "why": "Long requirement strings with many extras, version specifiers, a URL and an environment marker exercise the tokenizer heavily; the added __slots__ on Token and Tokenizer reduces per‑token attribute‑access overhead, so this family should be faster in head.",
+              "size_meaning": "n = number of extra names (also drives length of specifier and marker)",
+              "make_source": "def make(n):\n    # Build a requirement with n extras, a multi‑clause specifier, a URL and a marker.\n    extras = ','.join(f'extra{i}' for i in range(n))\n    specifier = '>=1.0,<2.0,!=1.5,==1.2.*'\n    url = 'https://example.com/pkg'\n    marker = 'python_version>=\"3.6\" and sys_platform==\"linux\"'\n    req = f'myproj[{extras}]{specifier} @ {url} ; {marker}'\n    return [[req]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9828299573253478,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "simple_requirement",
+              "why": "A single, well‑formed requirement like \"requests>=2.25\" exercises the fast path of the tokenizer (few tokens, no extras, no markers). Adding __slots__ to Token/Tokenizer reduces per‑token overhead, so this case should be faster in the head version.",
+              "size_meaning": "Number of characters in the version specifier; grows linearly with n.",
+              "make_source": "\ndef make(n: int):\n    # n controls the length of the version number (e.g. 1.0, 1.0.0, …)\n    # keep it a valid PEP 440 version.\n    base = \"requests>=\"\n    # produce versions like 1.0, 1.0.0, 1.0.0.0 …\n    version = \".\".join(str(i) for i in range(1, n + 2))\n    req = base + version\n    return [[req]]",
+              "example_args": [
+                [
+                  "requests>=1.0"
+                ],
+                [
+                  "requests>=1.0.0"
+                ],
+                [
+                  "requests>=1.0.0.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9918430204703024,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "a batch of very small, trivial requirements (just a plain project name). Each call constructs a fresh Tokenizer instance; the __slots__ version adds a tiny per‑instance overhead for slot initialization that can outweigh the saved __dict__ when the token stream is only one or two tokens.",
+              "why": "Tokenizer.__init__ now has to allocate the fixed slot array for every parse. When the input yields only a single token, the fixed cost of slot setup dominates, making the new version slightly slower per call.",
+              "size_meaning": "n = number of separate tiny requirements (capped at 8 because the generator returns at most 8 argument lists).",
+              "make_source": "def make(n):\n    # Produce up to 8 independent tiny requirements; each is a separate call.\n    count = min(8, max(1, n))\n    return [[f'pkg{i}'] for i in range(count)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9889928390718853,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "simple_requirement",
+              "why": "A minimal requirement ('pkg') creates only a handful of Token objects. The extra class‑level __slots__ descriptor look‑ups add a constant overhead per object creation that can dominate when the workload is tiny, making head slightly slower for very small inputs.",
+              "size_meaning": "n = number of independent tiny requirements parsed in one batch",
+              "make_source": "def make(n):\n    # Return n identical minimal requirements; cost grows linearly with n.\n    return [[\"pkg\"] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9888247526792141,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "many_extras",
+              "why": "Each extra (e.g. \"[extra1,extra2,…]\") is tokenized as a separate identifier token. A requirement with many extras creates many Token objects; the new __slots__ layout may add a small per‑object allocation cost that outweighs the attribute‑access win when the token count is high.",
+              "size_meaning": "Number of extras in the requirement; token count grows O(n).",
+              "make_source": "\ndef make(n: int):\n    # Build a name with n extras: pkg[extra0,extra1,…,extra{n‑1}]\n    extras = \",\".join(f\"extra{i}\" for i in range(n))\n    req = f\"pkg[{extras}]\"\n    return [[req]]",
+              "example_args": [
+                [
+                  "pkg[extra0]"
+                ],
+                [
+                  "pkg[extra0,extra1]"
+                ],
+                [
+                  "pkg[extra0,extra1,extra2]"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9821486161727504,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "requirement strings with a large number of extra markers (extras), which produce many Token objects during tokenization; the added __slots__ on Token reduces per‑token memory and attribute‑access cost, so this path should become faster.",
+              "why": "The tokenizer creates one Token per extra name (plus a few for the name, specifier, URL, marker). With many extras the number of Token allocations dominates runtime, and __slots__ eliminates the per‑instance __dict__, giving a measurable speedup.",
+              "origin": "plan",
+              "screen_ratio": 0.9828485794520616,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 192267.125,
+                  "head_ir": 189983.105,
+                  "input_chars": 28.0,
+                  "ratio": 0.9881205900384686
+                },
+                {
+                  "n": 4,
+                  "base_ir": 239620.34,
+                  "head_ir": 236373.14,
+                  "input_chars": 42.0,
+                  "ratio": 0.9864485627555658
+                },
+                {
+                  "n": 16,
+                  "base_ir": 524531.2684563758,
+                  "head_ir": 515534.8120805369,
+                  "input_chars": 132.0,
+                  "ratio": 0.9828485794520616
+                },
+                {
+                  "n": 64,
+                  "base_ir": 1666814.4473684211,
+                  "head_ir": 1648961.5,
+                  "input_chars": 516.0,
+                  "ratio": 0.9892891812903305
+                },
+                {
+                  "n": 256,
+                  "base_ir": 6362234.666666667,
+                  "head_ir": 6182442.222222222,
+                  "input_chars": 2208.0,
+                  "ratio": 0.9717406770004221
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 24806711.5,
+                  "head_ir": 24437030.0,
+                  "input_chars": 9144.0,
+                  "ratio": 0.9850975208866358
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 99257131.5,
+                  "head_ir": 97360688.0,
+                  "input_chars": 39864.0,
+                  "ratio": 0.9808936297942481
+                }
+              ],
+              "slope_base": 0.8684969408134784,
+              "slope_head": 0.8675152841206557,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 0.9892891812903305,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 10.34,
+            "screen": 132.49,
+            "full": 134.72,
+            "total": 277.56
+          }
+        }
+      },
+      "rescored": "eq-hash-contract class removed: base also violates it (probe fix, deterministic re-check)"
+    }
+  ]
+}

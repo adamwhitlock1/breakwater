@@ -1,0 +1,201 @@
+{
+  "id": "#1058",
+  "pr": 1058,
+  "title": "perf:  10% faster stripping zeros",
+  "base": "350a2306700b738f487f251efa278f532b263dee",
+  "head": "716beb1c0a5d7a398bf57fbd80bc2501811e616b",
+  "merged": "2026-01-14",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1058-db9087",
+      "image": "bw-pair:1e7b57d2a90aaab0",
+      "usd": 0.1801,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.0,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.5,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 112.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.8,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-1058-db9087",
+          "target": "packaging.version:Version",
+          "image": "bw-pair:1e7b57d2a90aaab0",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "many_release_segments",
+              "why": "The new _cmpkey inlines a Python‑level while‑loop to strip trailing zeros. For a release tuple with many components the loop executes in pure Python, whereas the old helper used a C‑level ``for i in range(...)`` loop that is faster per iteration. The cost grows linearly with the number of release segments.",
+              "size_meaning": "Number of dot‑separated numeric components in the release segment (n).",
+              "make_source": "def make(n):\n    # Build a version like '1.' repeated n‑1 times followed by '0' -> n components\n    # Example n=3 -> '1.1.0'\n    parts = ['1'] * (n - 1) + ['0']\n    version = '.'.join(parts)\n    return [[version]]",
+              "example_args": [
+                [
+                  "1.0"
+                ],
+                [
+                  "1.1.0"
+                ],
+                [
+                  "1.1.1.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.999854822765645,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "many_trailing_zeros",
+              "why": "Both old and new code walk backwards over trailing zeros, but the new version does it with a ``while i and release[i-1] == 0`` loop in Python. When the release tuple ends with a long run of zeros (e.g. \"1.\" + \"0.\"*k) the loop iterates k times in the interpreter, while the former ``_strip_trailing_zeros`` used a ``for`` loop implemented in C and returned early via a Python ``return``. The overhead per iteration is higher in the new code, so runtime grows with the number of trailing zeros.",
+              "size_meaning": "Count of trailing zero components after a non‑zero prefix (k).",
+              "make_source": "def make(k):\n    # One non‑zero component followed by k zeros: '1' + '.0'*k\n    version = '1' + '.0' * k\n    return [[version]]",
+              "example_args": [
+                [
+                  "1.0"
+                ],
+                [
+                  "1.0.0"
+                ],
+                [
+                  "1.0.0.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9998591793034054,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "long_local_version",
+              "why": "Parsing the local version splits on ``[._-]`` and builds a tuple of mixed int/str objects. The change does not touch this path, but the overall Version construction now spends relatively more time in the new release‑stripping loops, so a version that also carries a very long local part (many separators) amplifies the total cost and makes the regression visible.",
+              "size_meaning": "Number of dot‑separated identifiers in the local segment (m).",
+              "make_source": "def make(m):\n    # Base version '1.0' plus a local part with m components like 'a.1.b.2...'\n    local_parts = []\n    for i in range(m):\n        local_parts.append('a' if i % 2 == 0 else str(i))\n    local = '.'.join(local_parts)\n    version = f'1.0+{local}'\n    return [[version]]",
+              "example_args": [
+                [
+                  "1.0+a"
+                ],
+                [
+                  "1.0+a.1"
+                ],
+                [
+                  "1.0+a.1.b.2"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9989912134135978,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "The hot helper `_strip_trailing_zeros` was removed and its logic inlined into `_cmpkey` using a simple while‑loop with index manipulation, removing a function c",
+              "why": "The hot helper `_strip_trailing_zeros` was removed and its logic inlined into `_cmpkey` using a simple while‑loop with index manipulation, removing a function call and a slightly slower reverse‑range loop. The new while‑loop stops as soon as a non‑zero is found, avoiding the range object creation and function‑call overhead, giving a modest speedup for the hot version‑key path.",
+              "size_meaning": "claimed_speedup",
+              "make_source": "\ndef make(n):\n    claim = 0.05 + 0.02 * (n % 8)\n    sizes = [2, 3, 4, 5, 4, 3, 2, 1]\n    sz = sizes[n % 8]\n    args = [f\"Version('{i}.{j}.{k}')\" for i, j, k in itertools.islice(itertools.product(range(10), repeat=3), sz)]\n    return [args]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.",
+              "why": "Even though the version is invalid, the extra disjoint check runs; the regex then fails. This is the single allowed invalid family.",
+              "size_meaning": "Number of dotted segments before the malformed tail.",
+              "make_source": "def make(n):\n    # \"1.\" repeated n times then an alphabetic tail – not a valid PEP‑440 version\n    version = \"1.\" * n + \"x\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9997436179456157,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"",
+              "why": "The indicator set is disjoint, so the fast path is entered. The code then executes `tuple(map(int, version.strip().split('.')))`, which raises `ValueError` on the bad segment; the exception is caught and re‑raised as `InvalidVersion`. Exception handling is considerably slower than the original regex‑only failure path.",
+              "size_meaning": "n = number of leading numeric segments before the bad segment; larger n makes the split and the failed `int` conversion traverse more items before the exception.",
+              "make_source": "def make(n):\n    # build \"1.1.1....1.x\" with n numeric parts then a non‑numeric \"x\"\n    good = \".\".join(\"1\" for _ in range(n))\n    version = f\"{good}.x\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9997436179456157,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "Single repeated segment \"999.\" n times plus prerelease c5",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    release = \".\".join([\"999\"] * n)\n    version = f\"{release}c5\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9998793336759706,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Versions with many release segments and a pre‑release suffix (e.g. \"1.2.3…a1\"). The fast‑path scans the whole string looking for indicator characters, finds the “a”, then falls back to the regex parser – an extra O(n) pass over the input.",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    # Build \"1.2.3…n\" then add a pre‑release marker \"a1\"\n    release = \".\".join(str(i) for i in range(1, n + 1))\n    version = f\"{release}a1\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9998689193662715,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [],
+          "seconds": {
+            "plan": 69.09,
+            "screen": 183.11,
+            "full": 0.0,
+            "total": 252.2
+          }
+        }
+      }
+    }
+  ]
+}

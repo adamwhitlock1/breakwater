@@ -1,0 +1,239 @@
+{
+  "id": "#1083",
+  "pr": 1083,
+  "title": "perf: Add fast path for `Version` to `Version` comparison by skipping `_key` property",
+  "base": "cd1520c475213d45df1cfe0e7b9d27e3166ef660",
+  "head": "659955c8a0f6025b4dd27dd0a4bce7e640b40bfe",
+  "merged": "2026-03-06",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1083-25b0ce",
+      "image": "bw-pair:e2821dbc0500312f",
+      "usd": 0.0859,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 13.9,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.7,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 49.8,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.9,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-1083-25b0ce",
+          "target": "packaging.version:Version",
+          "image": "bw-pair:e2821dbc0500312f",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "simple_release",
+              "why": "Very short release tuples (1‑element) make tuple comparison extremely cheap, so the extra isinstance checks added in the new comparison overrides dominate the runtime. The old _BaseVersion.__lt__ performed a single isinstance check and a property access; the new version does two isinstance checks and explicit cache initialisation on every comparison.",
+              "size_meaning": "Number of dot‑separated numeric segments in the release part (n). Cost grows with n because tuple comparison is O(n), but for n=1 the constant‑time overhead dominates.",
+              "make_source": "\ndef make(n):\n    # Build a simple release version like '1.2.3' with n segments\n    seg = '.'.join('1' for _ in range(n))\n    return [[seg]]",
+              "example_args": [
+                [
+                  "1"
+                ],
+                [
+                  "1.1"
+                ],
+                [
+                  "1.1.1"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0006849981383448,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "unique_pairwise_comparisons",
+              "why": "The new version lazily builds the comparison key (_cmpkey) on the first comparison of each Version object. When many distinct Version objects are each compared only once (e.g., pairwise adjacent comparisons of a long list of unique versions), the new code pays the _cmpkey construction cost twice per comparison (once for each operand) while the original version may have cached the key earlier (e.g., in __init__ or via a property). This extra work makes the new version slower for workloads that create many unique versions and compare each only once.",
+              "size_meaning": "n = number of distinct version strings; the benchmark will create n Version objects and perform n‑1 pairwise comparisons, each operand seeing its first comparison.",
+              "make_source": "\ndef make(n):\n    # Produce n distinct simple version strings like '1.0.0', '1.0.1', …\n    # Each element of the returned list is a single‑argument list for Version(...).\n    return [[f\"1.0.{i}\"] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0008352089417163,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "comparison with non-Version objects",
+              "why": "The new __lt__/__eq__ implementations add an extra isinstance(other, Version) check before falling back to the base class. When a Version instance is compared to a non‑Version object (e.g. int, str, None) the head version performs two isinstance checks instead of one, making the comparison slower.",
+              "size_meaning": "number of dot‑separated release segments in the version string; larger n makes the version string longer but the slowdown is dominated by the extra type check, so cost grows only modestly with n",
+              "make_source": "\ndef make(n):\n    # Generate a simple dotted version like \"1.2.3...\" with n segments.\n    segs = '.'.join(str(i) for i in range(1, n + 1))\n    return [[segs]]",
+              "example_args": [
+                [
+                  [
+                    "1"
+                  ]
+                ],
+                [
+                  [
+                    "1.2.3.4.5"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0006314165794672,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "pre_release_long_number",
+              "why": "Pre‑release segment adds a (letter, number) tuple to the comparison key. Making the numeric part large (many digits) does not change tuple length but makes integer comparison a bit slower; the constant overhead of the new double‑isinstance check still dominates for small tuples.",
+              "size_meaning": "Number of digits in the pre‑release number (n).",
+              "make_source": "def make(n):\n    # version like '1.0a' followed by n‑digit number\n    num = '9' * n\n    return [[f'1.0a{num}']]",
+              "example_args": [
+                [
+                  "1.0a9"
+                ],
+                [
+                  "1.0a99"
+                ],
+                [
+                  "1.0a999"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0010478289802174,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "cross_type_comparisons",
+              "why": "The new comparison operators first test `isinstance(other, Version)` and then fall back to `super().__lt__(other)`, which repeats an `isinstance(other, _BaseVersion)` check. The old code performed only the single `_BaseVersion` check. When a workload repeatedly compares Version objects with instances of a different `_BaseVersion` subclass (a realistic scenario in downstream libraries that subclass `_BaseVersion`), the extra type check adds measurable overhead per comparison.",
+              "size_meaning": "n = number of repeated comparisons between a Version instance and a non‑Version `_BaseVersion` subclass instance.",
+              "make_source": "\ndef make(n):\n    # Produce a single simple version string; the benchmark will create one Version\n    # and one dummy `_BaseVersion` subclass instance and compare them n times.\n    # The argument list contains the version string for the Version constructor.\n    return [[\"1.0.0\"] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0008472321621138,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "comparison with non-Version objects (complex local part)",
+              "why": "Same extra isinstance overhead as the simple family, but the version strings contain a large local‑version component (many dot/underscore separated segments). The head version still pays the extra type check while also paying the (identical) key‑construction cost, so the relative slowdown is more visible for larger n.",
+              "size_meaning": "number of segments in the local version part; each segment adds a dot/underscore separated token, increasing key construction work",
+              "make_source": "\ndef make(n):\n    # Build a version with a large local part: \"1.0+local.seg1.seg2....segN\"\n    local_segments = '.'.join(f'seg{i}' for i in range(1, n + 1))\n    version_str = f'1.0+{local_segments}'\n    return [[version_str]]",
+              "example_args": [
+                [
+                  [
+                    "1.0+seg1"
+                  ]
+                ],
+                [
+                  [
+                    "1.0+seg1.seg2.seg3.seg4.seg5"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0023005515078378,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.",
+              "why": "Even though the version is invalid, the extra disjoint check runs; the regex then fails. This is the single allowed invalid family.",
+              "size_meaning": "Number of dotted segments before the malformed tail.",
+              "make_source": "def make(n):\n    # \"1.\" repeated n times then an alphabetic tail – not a valid PEP‑440 version\n    version = \"1.\" * n + \"x\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.000465461094223,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"",
+              "why": "The indicator set is disjoint, so the fast path is entered. The code then executes `tuple(map(int, version.strip().split('.')))`, which raises `ValueError` on the bad segment; the exception is caught and re‑raised as `InvalidVersion`. Exception handling is considerably slower than the original regex‑only failure path.",
+              "size_meaning": "n = number of leading numeric segments before the bad segment; larger n makes the split and the failed `int` conversion traverse more items before the exception.",
+              "make_source": "def make(n):\n    # build \"1.1.1....1.x\" with n numeric parts then a non‑numeric \"x\"\n    good = \".\".join(\"1\" for _ in range(n))\n    version = f\"{good}.x\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.000465461094223,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "Single repeated segment \"999.\" n times plus prerelease c5",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    release = \".\".join([\"999\"] * n)\n    version = f\"{release}c5\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.00049385053119,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Versions with many release segments and a pre‑release suffix (e.g. \"1.2.3…a1\"). The fast‑path scans the whole string looking for indicator characters, finds the “a”, then falls back to the regex parser – an extra O(n) pass over the input.",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    # Build \"1.2.3…n\" then add a pre‑release marker \"a1\"\n    release = \".\".join(str(i) for i in range(1, n + 1))\n    version = f\"{release}a1\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0005560778858236,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [],
+          "seconds": {
+            "plan": 15.65,
+            "screen": 353.96,
+            "full": 0.0,
+            "total": 369.61
+          }
+        }
+      }
+    }
+  ]
+}

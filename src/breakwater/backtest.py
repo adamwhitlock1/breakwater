@@ -142,7 +142,8 @@ def run_target(item: dict, tgt: dict, repo: str, backend: Backend, *, arms: tupl
     full: dict[str, Any] = {}
 
     def arm_breakwater() -> list[str]:
-        rep = adversary.audit(ctx, image, llm, backend, target, seed=seed, run_id=run_id, log=lambda *_: None)
+        rep = adversary.audit(ctx, image, llm, backend, target, seed=seed, run_id=run_id,
+                              extra_seeds=literal_args(lits, arg_kinds), log=lambda *_: None)
         full["report"] = rep
         return sorted(f.signature for f in rep.findings)
 

@@ -1,0 +1,277 @@
+{
+  "id": "#1032",
+  "pr": 1032,
+  "title": "perf: add __slots__ to Nodes",
+  "base": "842c16cef598bf80178b3894b7039b69cca3621c",
+  "head": "c39b6da9ab11f649f5497a11628f9dfc98380bb2",
+  "merged": "2026-01-02",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1032-bd4ecb",
+      "image": "bw-pair:810a13228d4ca505",
+      "usd": 0.0409,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 10.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [],
+          "seconds": 3.2,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [],
+          "seconds": 43.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [],
+          "seconds": 4.3,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "probe": "P4",
+          "detail": "base->head load",
+          "args": [
+            [
+              "extra== 'test'"
+            ]
+          ],
+          "base": "loads",
+          "head": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "found_by": [
+            "seed",
+            "tests",
+            "mutation:unicode-digits",
+            "mutation:whitespace-outer",
+            "mutation:whitespace-inner",
+            "mutation:huge-number",
+            "mutation:separators",
+            "mutation:underscores",
+            "mutation:equivalents",
+            "mutation:case"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9937954921461972,
+        "report": {
+          "run_id": "bt-1032-bd4ecb",
+          "target": "packaging.markers:Marker",
+          "image": "bw-pair:810a13228d4ca505",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "marker with many chained comparisons",
+              "why": "Each comparison creates a Variable, Op, Value tuple (three Node subclasses). Adding __slots__ reduces per‑object memory and attribute‑lookup cost, which compounds when thousands of nodes are created during parsing.",
+              "size_meaning": "number of binary comparisons chained with 'and'",
+              "make_source": "\ndef make(n):\n    # Build a marker like:\n    # python_version > '3.0' and python_version > '3.1' and ...\n    parts = []\n    for i in range(n):\n        parts.append(f\"python_version > '{i}' version > '{i}'\")\n    marker = ' and '.join(parts)\n    return [[marker]]",
+              "example_args": [
+                [
+                  "python_version > '0' and python_version > '1' and python_version > '2'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9930624759994504,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "large_flat_marker",
+              "why": "The change adds __slots__ to the node classes, reducing per‑node memory and attribute‑access overhead. A marker that expands to many node objects (many comparisons combined with “or”) exercises the fast path the most.",
+              "size_meaning": "Number of top‑level comparisons (each creates a Variable, Op, Value tuple and a list entry).",
+              "make_source": "def make(n):\n    # Build a marker like: python_version == \"3.0\" or python_version == \"3.1\" or …\n    parts = [f'python_version == \"3.{i}\"' for i in range(n)]\n    marker = \" or \".join(parts)\n    return [[marker]]",
+              "example_args": [
+                [
+                  "python_version == \"3.0\" or python_version == \"3.1\""
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9937954921461972,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Markers consisting of many simple comparisons joined by \"or\" (or \"and\"), e.g. \"python_version > '3.0' or python_version > '3.1' or …\". This exercises creation of many Variable/Value/Op nodes during parsing, which the __slots__ change aims to make faster.",
+              "why": "The diff adds __slots__ to Node, Variable, Value, and Op. Instances of these classes are created for each atom in the parsed marker. A marker with many atoms creates many instances; slots reduce per‑instance memory and attribute‑access overhead, so the new version should be faster.",
+              "size_meaning": "n = number of atomic comparisons in the marker.",
+              "make_source": "\ndef make(n):\n    # Build a marker like: python_version > '3.0' or python_version > '3.1' ...\n    parts = []\n    for i in range(n):\n        parts.append(f\"python_version > '{3+i}.0'\")\n    marker = \" or \".join(parts)\n    return [[marker]]",
+              "example_args": [
+                [
+                  "python_version > '3.0' or python_version > '3.1'"
+                ],
+                [
+                  "python_version > '3.0' or python_version > '3.1' or python_version > '3.2' or python_version > '3.3'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9969108093087604,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "marker with deep parentheses nesting",
+              "why": "Nesting creates many temporary MarkerList objects that hold tuples of Node instances. Slots make each Node cheaper, so the total parse time drops noticeably as nesting depth grows.",
+              "size_meaning": "nesting depth (each level adds a new sub‑list)",
+              "make_source": "def make(n):\n    # Produce: ( ( ( python_version == '3.8' ) ) ... )\n    inner = \"python_version == '3.8'\"\n    for _ in range(n):\n        inner = f'({inner})'\n    return [[inner]]",
+              "example_args": [
+                [
+                  "(((python_version == '3.8')))"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9994379872325394,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "deeply_nested_marker",
+              "why": "Deep nesting creates many list objects that hold a single sub‑list each (e.g. (((expr)))). The __slots__ change does not affect list creation, but the extra indirection may expose any hidden overhead in the new node layout.",
+              "size_meaning": "Nesting depth – each level adds a list wrapper around the previous expression.",
+              "make_source": "def make(n):\n    # Build a marker like: (((python_version == \"3.0\"))) with n pairs of parentheses\n    inner = 'python_version == \"3.0\"'\n    marker = '(' * n + inner + ')' * n\n    return [[marker]]",
+              "example_args": [
+                [
+                  "((((python_version == \"3.0\" ))))"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9994325100584895,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Markers with deep nesting of groups (parenthesised sub‑expressions). Example: \"(python_version > '3.0' and (python_version > '3.1' and (...)))\".",
+              "why": "Deep nesting creates many list objects for the MarkerList structure but does not increase the number of Node instances. The __slots__ change does not affect list handling, so performance should be unchanged; any observed slowdown would be noise.",
+              "size_meaning": "n = nesting depth.",
+              "make_source": "def make(n):\n    inner = \"python_version > '3.0'\"\n    for i in range(1, n+1):\n        inner = f\"(python_version > '3.{i}' and {inner})\"\n    return [[inner]]",
+              "example_args": [
+                [
+                  "(python_version > '3.1' and python_version > '3.0')"
+                ],
+                [
+                  "(python_version > '3.2' and (python_version > '3.1' and python_version > '3.0'))"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9974647401028149,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "large_flat_marker",
+              "why": "The change adds __slots__ to the node classes, reducing per‑node memory and attribute‑access overhead. A marker that expands to many node objects (many comparisons combined with “or”) exercises the fast path the most.",
+              "origin": "plan",
+              "screen_ratio": 0.9937954921461972,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 232373.45,
+                  "head_ir": 231663.72,
+                  "input_chars": 58.0,
+                  "ratio": 0.9969457354099618
+                },
+                {
+                  "n": 4,
+                  "base_ir": 461436.07100591715,
+                  "head_ir": 459969.6923076923,
+                  "input_chars": 116.0,
+                  "ratio": 0.9968221411580847
+                },
+                {
+                  "n": 16,
+                  "base_ir": 1853721.3333333333,
+                  "head_ir": 1842219.9047619049,
+                  "input_chars": 470.0,
+                  "ratio": 0.9937954921461972
+                },
+                {
+                  "n": 64,
+                  "base_ir": 7514410.2,
+                  "head_ir": 7468278.3,
+                  "input_chars": 1910.0,
+                  "ratio": 0.9938608754683101
+                },
+                {
+                  "n": 256,
+                  "base_ir": 30123635.5,
+                  "head_ir": 30160978.5,
+                  "input_chars": 7826.0,
+                  "ratio": 1.0012396578095628
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 121029054.5,
+                  "head_ir": 120280488.5,
+                  "input_chars": 31658.0,
+                  "ratio": 0.9938149892759841
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 490071961.0,
+                  "head_ir": 487325598.0,
+                  "input_chars": 129962.0,
+                  "ratio": 0.9943960005498049
+                }
+              ],
+              "slope_base": 0.992306694841567,
+              "slope_head": 0.9921461523823009,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0012396578095628,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 8.14,
+            "screen": 169.34,
+            "full": 189.11,
+            "total": 366.59
+          }
+        }
+      }
+    }
+  ]
+}

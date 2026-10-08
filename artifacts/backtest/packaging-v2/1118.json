@@ -1,0 +1,288 @@
+{
+  "id": "#1118",
+  "pr": 1118,
+  "title": "perf: Cache `Version` hash value in dedicated slot",
+  "base": "f2bbd4f578644865bc5cb2534768e46563ee7f66",
+  "head": "1676a10cdad3f6183dc7f738d3a30950c67199a4",
+  "merged": "2026-03-13",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "hash-cache-copy",
+      "match": {
+        "probe": "P3"
+      },
+      "fixed_by": 1242,
+      "status": "candidate"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1118-e98cb3",
+      "image": "bw-pair:dcd905da4078ada1",
+      "usd": 0.0698,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.7,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 50.9,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.1,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 1.0071858172125294,
+        "report": {
+          "run_id": "bt-1118-e98cb3",
+          "target": "packaging.version:Version",
+          "image": "bw-pair:dcd905da4078ada1",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "repeated_hashing_same_versions",
+              "why": "The new version adds a _hash_cache slot and caches the hash value on first __hash__ call. When the same Version objects are hashed repeatedly (e.g., used repeatedly as dict/set keys), the cached hash avoids recomputing the comparison key and its hash, giving a speedup.",
+              "size_meaning": "Number of distinct version strings created; each will be hashed many times in the benchmark.",
+              "make_source": "def make(n):\n    \"\"\"Return a list of n single-element argument lists for Version(\\\"1.0.{i}\\\").\"\"\"\n    return [[f\"1.0.{i}\"] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.007308072115251,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "repeated_hash_same_versions",
+              "why": "The change adds a cached ``_hash_cache`` attribute and makes ``__hash__`` return the cached value on subsequent calls. Workloads that create a modest number of ``Version`` objects and then hash them repeatedly (e.g. using versions as dictionary keys or set members) should see a speed‑up because the hash is computed only once per object.",
+              "size_meaning": "Number of distinct version objects created; each will be hashed many times in the benchmark.",
+              "make_source": "\ndef make(n):\n    # Produce *n* distinct but simple version strings (fast‑path parser).\n    # Each call to the constructor receives a single‑element list.\n    base = \"1.0.\"\n    return [[base + str(i)] for i in range(1, n + 1)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0072914676390057,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "hash_reuse",
+              "why": "The change adds a cached ``_hash_cache`` on ``Version``.  Objects that are hashed repeatedly (e.g. used as dict keys or put into a set and looked‑up many times) now pay the hashing cost only once; subsequent ``__hash__`` calls return the cached integer.",
+              "size_meaning": "n = number of distinct version strings inserted into a set/dict and then looked‑up n times each",
+              "make_source": "\ndef make(n):\n    # generate n distinct, simple version strings (fast‑path)\n    rng = random.Random(0xC0FFEE)\n    versions = [f\"{rng.randint(0,9)}.{rng.randint(0,9)}.{rng.randint(0,9)}\" for _ in range(n)]\n    # each version will be inserted into a set and then looked‑up n times\n    # the benchmark will create Version objects from these strings\n    return [[v] for v in versions]",
+              "example_args": [
+                [
+                  "0.1.2"
+                ],
+                [
+                  "3.4.5"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0073977151604938,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "cold_sort_many_versions",
+              "why": "The new version adds a _hash_cache attribute that is initialised to None in __init__, from_parts and __replace__. The cold‑sort benchmark creates many Version objects, clears _key_cache (and now also clears _hash_cache) before each sort, and then sorts them using only rich comparisons (__lt__). The extra attribute write on construction and the extra attribute clear in the benchmark add overhead while providing no benefit because __hash__ is never called during sorting.",
+              "size_meaning": "Number of distinct version strings to parse and sort; larger n means more objects and a longer sort.",
+              "make_source": "def make(n):\n    \"\"\"Return a list of n single-element argument lists for Version(\\\"1.{i}.0\\\").\"\"\"\n    return [[f\"1.{i}.0\"] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.007308072115251,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "many_simple_versions",
+              "why": "The new ``_hash_cache`` slot adds an extra attribute write in ``__init__`` (``self._hash_cache = None``) and in ``__new__`` paths (``from_parts``, ``__replace__``). When a program creates many short, pure‑numeric versions (the fast‑path parser that splits on ‘.’) but never hashes them, the extra attribute write and the larger ``__slots__`` layout add overhead to every construction.",
+              "size_meaning": "Number of simple ``X.Y.Z`` version strings parsed via the fast‑path.",
+              "make_source": "\ndef make(n):\n    # Simple dot‑separated numeric versions – fast path in ``__init__``.\n    return [[f\"{i}.{i+1}.{i+2}\"] for i in range(1, n + 1)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0070170316240725,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "simple_version_construction",
+              "why": "The fast‑path parser now has to initialise an extra ``_hash_cache`` slot (and set it to ``None``) on every ``Version`` constructed from a simple ``X.Y.Z`` string.  When many simple versions are created but never hashed, the extra attribute initialisation and the extra ``self._hash_cache = None`` store add overhead.",
+              "size_meaning": "n = number of simple ``X.Y.Z`` version strings to construct",
+              "make_source": "\ndef make(n):\n    rng = random.Random(0xBEEF)\n    # simple dot‑only versions hit the fast‑path parser\n    return [[f\"{rng.randint(0,9)}.{rng.randint(0,9)}.{rng.randint(0,9)}\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "1.2.3"
+                ],
+                [
+                  "4.5.6"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0073969334403987,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.",
+              "why": "Even though the version is invalid, the extra disjoint check runs; the regex then fails. This is the single allowed invalid family.",
+              "size_meaning": "Number of dotted segments before the malformed tail.",
+              "make_source": "def make(n):\n    # \"1.\" repeated n times then an alphabetic tail – not a valid PEP‑440 version\n    version = \"1.\" * n + \"x\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0018008324919971,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"",
+              "why": "The indicator set is disjoint, so the fast path is entered. The code then executes `tuple(map(int, version.strip().split('.')))`, which raises `ValueError` on the bad segment; the exception is caught and re‑raised as `InvalidVersion`. Exception handling is considerably slower than the original regex‑only failure path.",
+              "size_meaning": "n = number of leading numeric segments before the bad segment; larger n makes the split and the failed `int` conversion traverse more items before the exception.",
+              "make_source": "def make(n):\n    # build \"1.1.1....1.x\" with n numeric parts then a non‑numeric \"x\"\n    good = \".\".join(\"1\" for _ in range(n))\n    version = f\"{good}.x\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0018008324919971,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "Each numeric chunk increases digit count linearly while keeping total chunks fixed",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    chunks = []\n    for i in range(1, n+1):\n        chunks.append(str(i).zfill(i))\n    version = '.'.join(chunks) + 'c5'\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0013444352855538,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Single repeated segment \"999.\" n times plus prerelease c5",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    release = \".\".join([\"999\"] * n)\n    version = f\"{release}c5\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0016451254429442,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "repeated_hash_same_versions",
+              "why": "The change adds a cached ``_hash_cache`` attribute and makes ``__hash__`` return the cached value on subsequent calls. Workloads that create a modest number of ``Version`` objects and then hash them repeatedly (e.g. using versions as dictionary keys or set members) should see a speed‑up because the hash is computed only once per object.",
+              "origin": "plan",
+              "screen_ratio": 1.0072914676390057,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 9706.2725,
+                  "head_ir": 9776.02,
+                  "input_chars": 9.0,
+                  "ratio": 1.0071858172125294
+                },
+                {
+                  "n": 4,
+                  "base_ir": 9572.155,
+                  "head_ir": 9642.1825,
+                  "input_chars": 9.0,
+                  "ratio": 1.0073157507374253
+                },
+                {
+                  "n": 16,
+                  "base_ir": 9600.262041284404,
+                  "head_ir": 9670.262041284404,
+                  "input_chars": 9.4375,
+                  "ratio": 1.0072914676390057
+                },
+                {
+                  "n": 64,
+                  "base_ir": 9736.495192307691,
+                  "head_ir": 9806.551682692309,
+                  "input_chars": 9.859375,
+                  "ratio": 1.0071952472630978
+                },
+                {
+                  "n": 256,
+                  "base_ir": 9736.495192307691,
+                  "head_ir": 9806.551682692309,
+                  "input_chars": 9.859375,
+                  "ratio": 1.0071952472630978
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 9736.495192307691,
+                  "head_ir": 9806.551682692309,
+                  "input_chars": 9.859375,
+                  "ratio": 1.0071952472630978
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 9736.495192307691,
+                  "head_ir": 9806.551682692309,
+                  "input_chars": 9.859375,
+                  "ratio": 1.0071952472630978
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0073157507374253,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 19.22,
+            "screen": 73.03,
+            "full": 33.86,
+            "total": 126.12
+          }
+        }
+      }
+    }
+  ]
+}

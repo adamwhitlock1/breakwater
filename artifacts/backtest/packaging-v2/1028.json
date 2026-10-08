@@ -1,0 +1,255 @@
+{
+  "id": "#1028",
+  "pr": 1028,
+  "title": "perf: don't renormalize extras",
+  "base": "65092ce350ac2cc73e61d770f5d16a0957bf6e45",
+  "head": "b20096ccce1ca389fa1d3c4290065ab4ede370cc",
+  "merged": "2026-01-06",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.requirements:Requirement",
+      "run_id": "bt-1028-74aaa2",
+      "image": "bw-pair:1777b4e053ae8975",
+      "usd": 0.0518,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.5,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 46.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.5,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 1.0018026475518533,
+        "report": {
+          "run_id": "bt-1028-74aaa2",
+          "target": "packaging.requirements:Requirement",
+          "image": "bw-pair:1777b4e053ae8975",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "requirements with many extra markers",
+              "why": "The new `_normalize` skips `canonicalize_name` for the \"extra\" key, so each extra marker avoids two name normalizations. The speedup grows with the number of extras.",
+              "size_meaning": "n = number of extras in the requirement",
+              "make_source": "def make(n):\n    extras = ','.join(f'extra{i}' for i in range(1, n + 1))\n    return [[f'pkg[{extras}]']]",
+              "example_args": [
+                [
+                  "pkg[extra1]"
+                ],
+                [
+                  "pkg[extra1,extra2]"
+                ],
+                [
+                  "pkg[extra1,extra2,extra3]"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0070553204761523,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "The diff removes a double canonicalize_name call for the \"extra\" key in _normalize and skips normalisation when the value is empty.  A requirement whose marker ",
+              "why": "The diff removes a double canonicalize_name call for the \"extra\" key in _normalize and skips normalisation when the value is empty.  A requirement whose marker expression contains many \"extra == 'value'\" comparisons exercises the fast path (the key is \"extra\" and the value is non‑empty) and therefore should be faster in the head version.",
+              "size_meaning": "Number of \"extra == 'value'\" clauses combined with \"and\" in the marker expression.",
+              "make_source": "\ndef make(n):\n    # Build up to 8 requirement strings, each with an increasing number of extra clauses.\n    # Each string is a valid requirement: a name followed by a marker expression.\n    out = []\n    for i in range(1, min(n, 8) + 1):\n        clauses = \" and \".join(f\"extra == 'val{j}'\" for j in range(i))\n        req = f\"pkg ; {clauses}\"\n        out.append([req])\n    return out",
+              "example_args": [
+                [
+                  "pkg ; extra == 'val0'"
+                ],
+                [
+                  "pkg ; extra == 'val0' and extra == 'val1'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0018026475518533,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Requirement strings with a large number of extra dependencies (e.g. `pkg[extra1,extra2,…,extraN]`). The old code canonicalised every extra name during parsing; the new code skips that work.",
+              "why": "During `_normalize_extra_values` the old `_normalize` implementation called `canonicalize_name` for each side of every \"extra\" marker comparison. The head version returns the values unchanged, assuming they are already normalised, so the per‑extra cost disappears.",
+              "size_meaning": "n = number of extras in the bracket list",
+              "make_source": "def make(n):\n    # Build a requirement like  pkg[extra0,extra1,...,extra{n-1}]\n    extras = ','.join(f'extra{i}' for i in range(n))\n    return [[f'myproj[{extras}]']]",
+              "example_args": [
+                [
+                  "myproj[extra0,extra1,extra2]"
+                ],
+                [
+                  "myproj[extra0,extra1,extra2,extra3,extra4]"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.007054793144669,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "requirements with many non‑extra environment markers",
+              "why": "The added `if key == \"extra\":` branch is evaluated for every marker clause. For clauses that are not \"extra\" the code still falls through to the generic `MARKERS_ALLOWING_SET` path, so each clause pays an extra branch test without any saved work.",
+              "size_meaning": "n = number of non‑extra marker clauses joined with \" and \"",
+              "make_source": "def make(n):\n    clauses = ' and '.join(f\"os_name=='posix{i}'\" for i in range(1, n + 1))\n    return [[f'pkg ; {clauses}']]",
+              "example_args": [
+                [
+                  "pkg ; os_name=='posix1'"
+                ],
+                [
+                  "pkg ; os_name=='posix1' and os_name=='posix2'"
+                ],
+                [
+                  "pkg ; os_name=='posix1' and os_name=='posix2' and os_name=='posix3'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0000289371461049,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "The new code unconditionally executes the `if \"extra\" in current_environment:` block for every marker evaluation, canonicalising the (often empty) extra value. ",
+              "why": "The new code unconditionally executes the `if \"extra\" in current_environment:` block for every marker evaluation, canonicalising the (often empty) extra value.  The old version only touched the extra key when it was explicitly `None`.  Any requirement that includes a marker (even one unrelated to \"extra\") now pays this extra work.",
+              "size_meaning": "Number of distinct requirement strings each containing a marker expression (no \"extra\" clauses).",
+              "make_source": "\ndef make(n):\n    out = []\n    markers = [\"python_version>='3.6'\", \"sys_platform == 'linux'\", \"implementation_name == 'cpython'\"]\n    for i in range(min(n, 8)):\n        req = f\"pkg ; {markers[i % len(markers)]}\"\n        out.append([req])\n    return out",
+              "example_args": [
+                [
+                  "pkg ; python_version>='3.6'"
+                ],
+                [
+                  "pkg ; sys_platform == 'linux'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0056643064080788,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Requirement strings that contain a marker with an `extra == \"value\"` comparison (e.g. `pkg; extra == \"dev\"`). The new `_normalize` no longer canonicalises the left‑ and right‑hand sides, so the first evaluation of the marker must canonicalise the value at run‑time via `canonicalize_name`, adding work that the old version performed once during parsing.",
+              "why": "Old path: `_normalize` canonicalised both sides when the AST was built, so later evaluation only did a cheap string compare. New path: the canonicalisation is deferred to `Marker.__call__`, which runs each time the marker is evaluated (e.g. during environment resolution). For a single requirement this adds a `canonicalize_name` call on the extra value.",
+              "size_meaning": "n = length of the extra value string (more characters ⇒ more work in canonicalise)",
+              "make_source": "def make(n):\n    # Build a requirement with a marker that checks an extra of length n\n    val = 'x' * n\n    return [[f'myproj; extra == \"{val}\"']]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0054347403856958,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "The diff removes a double canonicalize_name call for the \"extra\" key in _normalize and skips normalisation when the value is empty.  A requirement whose marker ",
+              "why": "The diff removes a double canonicalize_name call for the \"extra\" key in _normalize and skips normalisation when the value is empty.  A requirement whose marker expression contains many \"extra == 'value'\" comparisons exercises the fast path (the key is \"extra\" and the value is non‑empty) and therefore should be faster in the head version.",
+              "origin": "plan",
+              "screen_ratio": 1.0018026475518533,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 274910.86,
+                  "head_ir": 276340.36,
+                  "input_chars": 35.0,
+                  "ratio": 1.0051998673315417
+                },
+                {
+                  "n": 4,
+                  "base_ir": 399902.1350574713,
+                  "head_ir": 401916.1982758621,
+                  "input_chars": 55.0,
+                  "ratio": 1.0050363902610857
+                },
+                {
+                  "n": 16,
+                  "base_ir": 654986.605,
+                  "head_ir": 656167.315,
+                  "input_chars": 95.0,
+                  "ratio": 1.0018026475518533
+                },
+                {
+                  "n": 64,
+                  "base_ir": 654986.605,
+                  "head_ir": 656167.315,
+                  "input_chars": 95.0,
+                  "ratio": 1.0018026475518533
+                },
+                {
+                  "n": 256,
+                  "base_ir": 654986.605,
+                  "head_ir": 656167.315,
+                  "input_chars": 95.0,
+                  "ratio": 1.0018026475518533
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 654986.605,
+                  "head_ir": 656167.315,
+                  "input_chars": 95.0,
+                  "ratio": 1.0018026475518533
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 654986.605,
+                  "head_ir": 656167.315,
+                  "input_chars": 95.0,
+                  "ratio": 1.0018026475518533
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0051998673315417,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 16.89,
+            "screen": 194.91,
+            "full": 220.91,
+            "total": 432.71
+          }
+        }
+      },
+      "rescored": "eq-hash-contract class removed: base also violates it (probe fix, deterministic re-check)"
+    }
+  ]
+}

@@ -129,4 +129,4 @@ def test_equivalents_keep_numeric_value():
     from breakwater.mutate import equivalents
 
     assert equivalents("1.2") == ["1.2.0", "01.2"]
-    assert equivalents(">=1.0,!=2.0") == [">=1.0,!=2.0,>=1.0", ">=1.0.0,!=2.0", ">=01.0,!=2.0"]
+    assert equivalents(">=1.0,!=2.0") == [">=1.0.0,!=2.0", ">=01.0,!=2.0", ">=1.0,!=2.0,>=1.0", ">=1.0,!=2.0,>=1.0.0"]

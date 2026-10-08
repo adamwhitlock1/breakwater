@@ -25,7 +25,10 @@ ITEMS = [
     (997, [V], []),
     (1028, [REQ], []),
     (1029, [MARKER], []),
-    (1030, [CANON], []),
+    # Found by Breakwater's first backtest, then confirmed by hand: #1030 stopped lowercasing non-ASCII
+    # letters; #1064 (a perf fix whose description only mentions speed) restored it 14 days later.
+    (1030, [CANON], [{"id": "unicode-lowercase", "match": {"probe": "P1", "traits": "non-ascii"}, "fixed_by": 1064,
+                      "status": "verified", "discovered_by": "breakwater"}]),
     (1032, [MARKER], []),
     (1058, [V], []),
     (1064, [CANON], []),

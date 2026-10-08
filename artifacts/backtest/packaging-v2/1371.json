@@ -1,0 +1,145 @@
+{
+  "id": "#1371",
+  "pr": 1371,
+  "title": "perf(markers): speed up _format_marker and benchmark str(Marker)",
+  "base": "46980084996620ed1606765f7c5946c99d3c0618",
+  "head": "9483cb8a744606bdbad0438f01d3026a1ce4826f",
+  "merged": "2026-09-25",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1371-f2f7ba",
+      "image": "bw-pair:6515042e553ea90a",
+      "usd": 0.1391,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 52.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.6,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-1371-f2f7ba",
+          "target": "packaging.markers:Marker",
+          "image": "bw-pair:6515042e553ea90a",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "Marker evaluate",
+              "why": "Evaluating many markers against an environment is the core hot path; changes to marker evaluation logic often regress runtime.",
+              "size_meaning": "ops_per_iteration",
+              "make_source": "def make(n):\n    # Deterministic list of argument sets for evaluating n Marker instances.\n    # ops_per_iteration grows with n, using math.comb to increase cost.\n    # Seed is pre-set; we use it to produce deterministic ops count.\n    ops = n * (n + 1) // 2  # quadratic growth\n    args_list = []\n    for i in range(1, min(ops, 8) + 1):\n        # Build a Marker-evaluation argument tuple.\n        # Each tuple contains positional args representing environment checks.\n        args = tuple(string.ascii_lowercase[j % 26] for j in range(i))\n        args_list.append(list(args))\n    # If fewer than 8 were generated, pad with empty lists to hit the cap.\n    while len(args_list) < 8:\n        args_list.append([])\n    return args_list",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0013499639249104,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "Marker evaluate",
+              "why": "Marker evaluation logic unchanged but new marker formatting path may add overhead during evaluation.",
+              "size_meaning": "lower is better",
+              "make_source": "def make(n):\n    # Generate between 1 and 8 argument lists, each of length 3.\n    # The total number of operations is O(n * list_length), so cost grows with n.\n    import itertools as it\n    \n    count = it.count(1).__next__  # Not used directly, but demonstrates itertools usage\n    k = 1 + (n % 8)  # 1 to 8\n    args = []\n    for _ in range(k):\n        # Create a tuple of 3 ints: base, offset, and a multiplier derived from n.\n        # Using math.prod and math.comb to involve math module without external imports.\n        a = 1 + (n * 7) % 100\n        b = 1 + (n * 13) % 50\n        c = 1 + (n * 17) % 30\n        args.append([a, b, c])\n    return args",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: imports are not allowed"
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Marker str",
+              "why": "Stringifying markers is a hot path for logging/serialization; the new __str__ implementation removes redundant list‑wrapping and recursion, promising a speedup.",
+              "size_meaning": "ops_per_iteration",
+              "make_source": "def make(n):\n    ops = n\n    result = []\n    for _ in range(ops):\n        marker = \"Development Status :: 5 - Production/Stable :: \" + ''.join(random.choices(string.ascii_letters, k=8))\n        result.append([marker])\n    return result",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0070737808404033,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "Marker str",
+              "why": "The _format_marker fast path for tuple markers avoids list/tuple checks and uses direct tuple unpacking, speeding up str(marker) benchmark added in benchmarks/markers.py.",
+              "size_meaning": "lower is better",
+              "make_source": "\ndef make(n):\n    chars = string.ascii_letters + string.digits\n    return [\n        [random.choice(chars) for _ in range(math.ceil(math.log2(i + 2)))]\n        for i in range(min(n, 8))\n    ]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.003845961437863,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Marker parse",
+              "why": "Marker parsing from PEP 508 strings is exercised by the test suite; parser changes can regress parsing latency.",
+              "size_meaning": "ops_per_iteration",
+              "make_source": "def make(n):\n    sizes = list(range(1, min(n, 8) + 1))\n    return [\n        [str(s)]\n        for s in sizes\n    ]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0068394357288137,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Marker eval context",
+              "why": "Evaluation under different contexts (metadata, lock_file, requirement) exercises different environment builds; changes to environment building may regress.",
+              "size_meaning": "ops_per_iteration",
+              "make_source": "def make(n):\n    ops = list(range(1, min(n, 8) + 1))\n    return [ [op] for op in ops ]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0009400684335263,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [],
+          "seconds": {
+            "plan": 62.02,
+            "screen": 107.71,
+            "full": 0.0,
+            "total": 169.73
+          }
+        }
+      }
+    }
+  ]
+}

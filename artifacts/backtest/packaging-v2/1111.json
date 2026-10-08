@@ -1,0 +1,289 @@
+{
+  "id": "#1111",
+  "pr": 1111,
+  "title": "perf: Speed up wildcard comparison",
+  "base": "210d878577f7f5d95b50904063c889139654813a",
+  "head": "e3af78f17a5230ffdc846e0b08f3e6e47b3edcfe",
+  "merged": "2026-03-09",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:Specifier#contains",
+      "run_id": "bt-1111-402f78",
+      "image": "bw-pair:a2272377c91373ce",
+      "usd": 0.1213,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.5,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.5,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 67.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.7735589114968952,
+        "report": {
+          "run_id": "bt-1111-402f78",
+          "target": "packaging.specifiers:Specifier#contains",
+          "image": "bw-pair:a2272377c91373ce",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Many prospective versions checked against a wildcard equality specifier (e.g. \"==1.*\"). The change caches the split of the wildcard spec, turning a per‑comparison split‑and‑pad into a cheap attribute lookup plus a small left‑pad.",
+              "why": "Head caches the result of `_get_wildcard_split`, turning O(N) work per comparison into O(1) + a tiny `_left_pad`. Base recomputed the split and numeric prefix on every call.",
+              "size_meaning": "n = number of prospective versions to test (each call to `contains` gets one version string).",
+              "make_source": "\ndef make(n):\n    spec = \"==1.*\"\n    # generate n version strings like \"1.0\", \"1.1\", … \"1.n\"\n    versions = [f\"1.{i}\" for i in range(n)]\n    # each call to Specifier.contains receives a.contains gets a new Specifier instance, then we call contains\n    # The benchmark harness will create the Specifier once and call contains repeatedly.\n    # We just need the argument lists for `contains`.\n    return [[v] for v in versions]",
+              "example_args": [
+                [
+                  "1.0"
+                ],
+                [
+                  "1.1"
+                ],
+                [
+                  "1.2"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9964471878704373,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "wildcard prefix equality (==X.*)",
+              "why": "The change adds a per‑Specifier cache (_wildcard_split) for the split version components used by the \"==X.*\" prefix‑match logic.  Repeated contains() calls with many prospective versions should now reuse the cached split instead of recomputing it each time.",
+              "size_meaning": "n = number of prospective version strings fed to contains(); each version gets longer (more dot‑segments) as n grows, so the cost of splitting the prospective version grows while the spec split stays cached.",
+              "make_source": "\ndef make(n):\n    \"\"\"Return a list of argument lists for Specifier.contains.\n    Each inner list is [version_string] – the specifier is fixed to \"==1.*\".\"\"\"\n    spec = \"==1.*\"\n    # generate n versions like \"1.0\", \"1.1\", … \"1.n\" with increasing segment count\n    versions = []\n    for i in range(1, n + 1):\n        # create a version with i numeric segments after the leading \"1\"\n        segs = [\"1\"] + [str(j) for j in range(i)]\n        versions.append(['.'.join(segs)])\n    # each call to contains receives a single version string\n    return [[spec, v[0]] for v in versions]",
+              "example_args": [
+                [
+                  "==1.*",
+                  "1.0"
+                ],
+                [
+                  "==1.*",
+                  "1.0.1"
+                ],
+                [
+                  "==1.*",
+                  "1.0.1.2"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.8102164158617108,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "Many prospective version strings checked against a single wildcard equality specifier (e.g. \"==1.*\").",
+              "why": "The new implementation caches the wildcard split for the specifier (good), but pads each prospective version with `_left_pad`, which computes the numeric‑prefix length via a pure‑Python loop (`_numeric_prefix_len`) and builds a new list for every prospective version. The old code used `itertools.takewhile` (implemented in C) inside `_pad_version`, which was faster per‑prospective‑version. When a single `Specifier` instance filters a large list of versions, the per‑item Python loop makes the head slower.",
+              "size_meaning": "n = number of prospective version strings fed to `Specifier(...).filter([...])` (or repeated `contains` calls).",
+              "make_source": "\ndef make(n):\n    \"\"\"Return argument lists for Specifier.contains / .filter.\n    Each inner list is a single call: [specifier_string, prospective_version].\n    The specifier is a list length grows with n.\n    \"\"\"\n    spec = \"==1.*\"\n    # generate n version strings with growing numeric prefix length\n    versions = [\".\".join([str(i) for i in range(1, k+2)]) for k in range(n)]\n    # each call uses the same specifier instance, many prospective versions\n    return [[spec, v] for v in versions]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.8120553637329713,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Many wildcard equality checks where the spec ends with \".*\" but the prospective versions are long non‑numeric (e.g. \"1.0a1\", \"1.0b2\", …). The head version adds an attribute load (`self._wildcard_split`) and a call to `_numeric_prefix_len` for every prospective version, which can be slightly slower than the old inline logic that kept the split in local variables.",
+              "why": "Base kept the split spec and numeric length in local variables inside `_compare_equal`; head stores them on the instance and reads them back each call, adding a couple of attribute accesses per comparison.",
+              "size_meaning": "n = number of prospective versions (each becomes one `contains` call).",
+              "make_source": "\ndef make(n):\n    # specifier with a wildcard\n    spec = \"==1.*\"\n    # prospective versions that have a long numeric prefix then a pre‑release\n    # e.g. \"1.0.0.0.0a1\" – the numeric prefix length grows with i\n    versions = [\"1.\" + \".\".join([\"0\"]*i) + \"a1\" for i in range(1, n+1)]\n    return [[v] for v in versions]",
+              "example_args": [
+                [
+                  "1.0a1"
+                ],
+                [
+                  "1.0.0a1"
+                ],
+                [
+                  "1.0.0.0a1"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9966109731150778,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "plain equality (==X.Y.Z) with many prospective versions",
+              "why": "The new __init__ adds an extra slot (_wildcard_split) and an explicit `self._wildcard_split = None` assignment.  When a benchmark creates many Specifier objects (e.g. one per specifier in a large SpecifierSet) this extra work shows up as a measurable slowdown even though the contains() hot path is unchanged for non‑wildcard specs.",
+              "size_meaning": "n = number of Specifier objects created; each spec is a simple equality like \"==1.0\", \"==2.0\", …",
+              "make_source": "def make(n):\n    \"\"\"Return argument lists for constructing many Specifier instances.\n    Each inner list is a single specifier string passed to Specifier.__init__.\"\"\"\n    specs = [f\"=={i}.0\" for i in range(1, n + 1)]\n    return [[s] for s in specs]",
+              "example_args": [
+                [
+                  "==1.0"
+                ],
+                [
+                  "==2.0"
+                ],
+                [
+                  "==3.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0037386726077022,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct wildcard equality specifiers each used once (e.g. filtering a single version against many specs).",
+              "why": "Each new `Specifier(\"==X.*\")` triggers `_get_wildcard_split`, which canonicalises and splits the spec using Python code (`_numeric_prefix_len` loop) and stores a tuple. The old path performed the split with `_version_split` and `itertools.takewhile` (C‑level) on every call but without the extra Python loop and tuple allocation. When many one‑off specifiers are created, the extra Python work dominates and the head becomes slower.",
+              "size_meaning": "n = number of distinct wildcard specifiers (each used once).",
+              "make_source": "def make(n):\n    \"\"\"Return argument lists for many distinct specifiers each checked once.\n    Each inner list is [specifier_string, \"1.2.3\"] – a single prospective version.\n    \"\"\"\n    base = \"1.2.3\"\n    specs = [f\"=={i}.*\" for i in range(1, n+1)]\n    return [[s, base] for s in specs]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.7728906753814948,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "wildcard prefix equality (==X.*)",
+              "why": "The change adds a per‑Specifier cache (_wildcard_split) for the split version components used by the \"==X.*\" prefix‑match logic.  Repeated contains() calls with many prospective versions should now reuse the cached split instead of recomputing it each time.",
+              "origin": "plan",
+              "screen_ratio": 0.8102164158617108,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 96289.7575,
+                  "head_ir": 74485.8,
+                  "input_chars": 17.0,
+                  "ratio": 0.7735589114968952
+                },
+                {
+                  "n": 4,
+                  "base_ir": 101234.045,
+                  "head_ir": 78762.84625,
+                  "input_chars": 19.0,
+                  "ratio": 0.7780272560481013
+                },
+                {
+                  "n": 16,
+                  "base_ir": 133516.97395833334,
+                  "head_ir": 108177.64409722222,
+                  "input_chars": 32.3125,
+                  "ratio": 0.8102164158617108
+                },
+                {
+                  "n": 64,
+                  "base_ir": 274198.7421875,
+                  "head_ir": 236175.15625,
+                  "input_chars": 102.203125,
+                  "ratio": 0.8613283721356422
+                },
+                {
+                  "n": 256,
+                  "base_ir": 274198.7421875,
+                  "head_ir": 236175.15625,
+                  "input_chars": 102.203125,
+                  "ratio": 0.8613283721356422
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 274198.7421875,
+                  "head_ir": 236175.15625,
+                  "input_chars": 102.203125,
+                  "ratio": 0.8613283721356422
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 274198.7421875,
+                  "head_ir": 236175.15625,
+                  "input_chars": 102.203125,
+                  "ratio": 0.8613283721356422
+                }
+              ],
+              "slope_base": 0.5923527015562182,
+              "slope_head": 0.6515939880377071,
+              "top_inputs": [
+                {
+                  "args": [
+                    "==1.*",
+                    "1.506.415.175.72.249"
+                  ],
+                  "cpu_ratio": 2.628,
+                  "base_ir": 121382.37,
+                  "head_ir": 97872.16,
+                  "ir_ratio": 0.8063128113250714,
+                  "outcome": "ok"
+                },
+                {
+                  "args": [
+                    "==1.*",
+                    "1.121.121.121.300.801"
+                  ],
+                  "cpu_ratio": 2.481,
+                  "base_ir": 122245.69,
+                  "head_ir": 98735.48,
+                  "ir_ratio": 0.8076806634246164,
+                  "outcome": "ok"
+                }
+              ],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.8613283721356422,
+              "worst_search": {
+                "args": [
+                  "==1.*",
+                  "1.121.121.121.300.801"
+                ],
+                "cpu_ratio": 2.481,
+                "base_ir": 122245.69,
+                "head_ir": 98735.48,
+                "ir_ratio": 0.8076806634246164,
+                "outcome": "ok"
+              }
+            }
+          ],
+          "seconds": {
+            "plan": 18.25,
+            "screen": 98.83,
+            "full": 126.6,
+            "total": 243.68
+          }
+        }
+      }
+    }
+  ]
+}

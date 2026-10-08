@@ -118,7 +118,12 @@ def run_probes(runner: Runner, inputs: list[list[Any]], probes: tuple[str, ...] 
             for name in ("eq", "lt", "gt", "hash_eq"):
                 if b_rel[key][name] != h_rel[key][name]:
                     divs.append(Divergence("P3", name, pair, b_rel[key][name], h_rel[key][name]))
-            if h_rel[key]["eq"] is True and h_rel[key]["hash_eq"] is False:
+            # Only a regression if head breaks the eq/hash contract on a pair where base kept it;
+            # a violation present on both sides is a pre-existing bug, not this change's.
+            def violates(rel: dict) -> bool:
+                return rel["eq"] is True and rel["hash_eq"] is False
+
+            if violates(h_rel[key]) and not violates(b_rel[key]):
                 divs.append(Divergence("P3", "eq-hash-contract", pair, "contract holds", "a == b but hash differs"))
 
     # P4: cross-version state

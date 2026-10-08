@@ -59,17 +59,23 @@ def equivalents(s: str) -> list[str]:
     """Variants that a normalizing parser would likely treat as EQUAL to s: a repeated separated
     component, a redundant trailing ".0", a leading zero. Paired with s, they test ==, hash and
     de-duplication (classic fuzzing operators, nothing library-specific)."""
-    out = []
+    out = _numeric_equivalents(s)
     for sep in (",", ";", "|", " "):
         if sep in s.strip():
             parts = s.split(sep)
-            out.append(sep.join(parts + [parts[0]]))
+            out.append(sep.join(parts + [parts[0]]))  # exact duplicate component
+            # equivalent-but-different duplicate (">1.0,>1.0.0"): what de-duplication bugs need
+            out += [sep.join(parts + [e]) for e in _numeric_equivalents(parts[0])[:1]]
             break
+    return list(dict.fromkeys(x for x in out if x != s))
+
+
+def _numeric_equivalents(s: str) -> list[str]:
     m = _DOTTED.search(s)
-    if m:
-        out.append(s[: m.end()] + ".0" + s[m.end():])  # 1.2 -> 1.2.0
-        out.append(s[: m.start()] + "0" + s[m.start():])  # 1.2 -> 01.2
-    return [x for x in out if x != s]
+    if not m:
+        return []
+    return [s[: m.end()] + ".0" + s[m.end():],  # 1.2 -> 1.2.0
+            s[: m.start()] + "0" + s[m.start():]]  # 1.2 -> 01.2
 
 
 def mutate_args(examples: list[list[Any]], limit: int = 120) -> list[tuple[str, list[Any]]]:

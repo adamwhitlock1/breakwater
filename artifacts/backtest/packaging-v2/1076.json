@@ -1,0 +1,208 @@
+{
+  "id": "#1076",
+  "pr": 1076,
+  "title": "perf: Stream PEP440 filtering in `SpecifierSet.filter`",
+  "base": "120ce2561585cb7e857078c0a15b36780a9760fd",
+  "head": "39ad033eac63d81834fef48a7d0c88f59eddf158",
+  "merged": "2026-01-30",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet#filter",
+      "run_id": "bt-1076-ab6517",
+      "image": "bw-pair:c1336cd60e02c221",
+      "usd": 0.1015,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 18.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 69.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.7,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-1076-ab6517",
+          "target": "packaging.specifiers:SpecifierSet#filter",
+          "image": "bw-pair:c1336cd60e02c221",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "many final (non‑prerelease) versions after the first final",
+              "why": "The new helper streams final versions directly once a final is seen, while the old code buffered every final version into a list before returning an iterator.",
+              "size_meaning": "n = number of final versions yielded",
+              "make_source": "def make(n):\n    # n final versions, all non‑prerelease\n    versions = [f\"1.{i}\" for i in range(n)]\n    # filter is called as spec_set.filter(iterable, prereleases=None, key=None)\n    return [(versions, None, None)]",
+              "example_args": [
+                [
+                  [
+                    "1.0",
+                    "1.1",
+                    "1.2"
+                  ],
+                  null,
+                  null
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9982031445788855,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "many_finals_after_early_final",
+              "why": "The refactored _pep440_filter_prereleases streams final releases as soon as the first final is seen, avoiding buffering the entire tail of the iterable. For a large stream of non‑prerelease versions that appears after an early final release, the new code can start yielding immediately, reducing peak memory and latency.",
+              "size_meaning": "number of version strings after the first final release",
+              "make_source": "\ndef make(n):\n    # first element is a final release, followed by n more final releases\n    return [[\"1.0.0\"] + [f\"1.0.{i}\" for i in range(1, n+1)]]",
+              "example_args": [
+                [
+                  [
+                    "1.0.0",
+                    "1.0.1",
+                    "1.0.2",
+                    "1.0.3",
+                    "1.0.4"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "late_final_many_prereleases",
+              "why": "Many pre‑release versions appear before the first final release. The new lazy filter buffers only until the first final version, then streams the rest, while the old filter buffers the whole input before deciding which list to return.",
+              "size_meaning": "n = number of pre‑release items before the first final version (plus a few items after it)",
+              "make_source": "\ndef make(n):\n    # n pre‑release versions, then one final, then two more finals\n    items = [f\"1.0.{i}a1\" for i in range(n)] + [\"2.0.0\", \"2.0.1\", \"2.0.2\"]\n    # SpecifierSet.filter is called positionally: (iterable, prereleases=None, key=None)\n    return [[items, None, None]]",
+              "example_args": [
+                [
+                  [
+                    "1.0.0a1",
+                    "1.0.1a1",
+                    "2.0.0",
+                    "2.0.1"
+                  ],
+                  null,
+                  null
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9969435246717763,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "many arbitrary (non‑version) strings before any final version",
+              "why": "The new _pep440_filter_prereleases appends each arbitrary string to *two* lists (arbitrary_strings and all_nonfinal) before the first final, then later iterates over arbitrary_strings when the first final appears. The old code appended each arbitrary string to a single list only.",
+              "size_meaning": "n = number of arbitrary strings before the first final version",
+              "make_source": "def make(n):\n    # n arbitrary strings that only match an '===' specifier, then a final version\n    arbitrary = [f\"arb{i}\" for i in range(n)]\n    final = [\"1.0\"]\n    iterable = arbitrary + final\n    return [(iterable, None, None)]",
+              "example_args": [
+                [
+                  [
+                    "arb0",
+                    "arb1",
+                    "arb2",
+                    "1.0"
+                  ],
+                  null,
+                  null
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9971242691730097,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "many_finals_after_early_final",
+              "why": "After the first final release the new implementation yields each subsequent final release via a Python generator (`yield item`). The old implementation buffered all final releases in a list and returned `iter(list)`, which is iterated in C and is faster per element. For a very long tail of final releases this per‑yield overhead can make the new version slower.",
+              "size_meaning": "number of version strings after the first final release",
+              "make_source": "\ndef make(n):\n    # first element is a final release, followed by n more final releases\n    return [[\"1.0.0\"] + [f\"1.0.{i}\" for i in range(1, n+1)]]",
+              "example_args": [
+                [
+                  [
+                    "1.0.0",
+                    "1.0.1",
+                    "1.0.2",
+                    "1.0.3",
+                    "1.0.4"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "early_final_many_finals",
+              "why": "The first item is already a final release, so the new lazy generator yields every subsequent item via Python‑level `yield`, while the old implementation built a single list and returned a fast C‑level list iterator.",
+              "size_meaning": "n = number of final‑release items after the first one",
+              "make_source": "def make(n):\n    items = [\"1.0.0\"] + [f\"2.0.{i}\" for i in range(n)]\n    return [[items, None, None]]",
+              "example_args": [
+                [
+                  [
+                    "1.0.0",
+                    "2.0.0",
+                    "2.0.1",
+                    "2.0.2"
+                  ],
+                  null,
+                  null
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.997135103753457,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [],
+          "seconds": {
+            "plan": 20.38,
+            "screen": 144.21,
+            "full": 0.0,
+            "total": 164.59
+          }
+        }
+      }
+    }
+  ]
+}

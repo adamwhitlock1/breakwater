@@ -1,0 +1,316 @@
+{
+  "id": "#1081",
+  "pr": 1081,
+  "title": "perf: Skip `__replace__` in Specifier comparison if not needed",
+  "base": "481295f7161dcef25ac3626c7f56ea363b424b5c",
+  "head": "0e88c2d78a5ee6cfeb37eef93c75f2b0fc5361c4",
+  "merged": "2026-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:Specifier",
+      "run_id": "bt-1081-2ac9ac",
+      "image": "bw-pair:32c4ea16ee4f8abe",
+      "usd": 0.0743,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.4,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head eq-fresh|True|<exc:builtins.ValueError>"
+          ],
+          "known": [],
+          "seconds": 7.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head eq-fresh|True|<exc:builtins.ValueError>"
+          ],
+          "known": [],
+          "seconds": 58.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.9,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head eq-fresh|True|<exc:builtins.ValueError>",
+          "probe": "P4",
+          "detail": "base->head eq-fresh",
+          "args": [
+            [
+              "<10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"
+            ]
+          ],
+          "base": true,
+          "head": "<exc:builtins.ValueError>",
+          "found_by": [
+            "mutation:huge-number"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.955145117560978,
+        "report": {
+          "run_id": "bt-1081-2ac9ac",
+          "target": "packaging.specifiers:Specifier",
+          "image": "bw-pair:32c4ea16ee4f8abe",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "versions with a local segment",
+              "why": "The new `_public_version` early‑return adds an attribute access (`version.local`) and a branch on every call. When the prospective version *does* have a local segment (e.g. \"1.2.3+foo\"), the condition fails and the function falls through to `__replace__`, so the extra check is pure overhead.",
+              "size_meaning": "n = number of dot‑separated local identifiers (\"+a.b.c…\")",
+              "make_source": "\ndef make(n):\n    # n >= 1\n    base = \"1.0\"\n    # Build a local part with n identifiers: +a.b.c …\n    local = \".\".join(f\"loc{i}\" for i in range(n))\n    version = f\"{base}+{local}\"\n    # Use a simple specifier that triggers `_public_version` (>=, >, <=, <)\n    spec = \">=1.0\"\n    # The harness calls Specifier(spec) and then .contains(version)\n    # We return the arguments for the Specifier constructor; the benchmark\n    # will later feed the version to .contains.\n    return [[spec]]",
+              "example_args": [
+                []
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9755450054200733,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "Versions with many local version segments (and pre/post/dev segments) cause the new early‑return checks in `_public_version` and `_base_version` to evaluate several attribute accesses before falling back to `__replace__`. This extra attribute‑access overhead makes the new version slower for such inputs.",
+              "why": "The added `if version.local is None:` and `if version.pre is None and version.post is None and version.dev is None and version.local is None:` checks add four attribute loads for every call when the version carries local/pre/post/dev parts. Real‑world pre‑release, post‑release, dev‑release or local‑version strings (e.g. \"1.0.0a1.post2.dev3+local1.local2...\") trigger those extra checks.",
+              "size_meaning": "n = number of local segments (and optional pre/post/dev segments) in the version string; cost grows with n.",
+              "make_source": "def make(n):\n    \"\"\"Return a list of argument lists for Specifier; each specifier uses a version with 1..n local segments (and one pre/post/dev each).\"\"\"\n    specs = []\n    for i in range(1, n + 1):\n        # build a version like 1.0.0a1.post2.dev3+local1.local2....localN\n        local = \".\".join(f\"local{j}\" for j in range(1, i + 1))\n        version = f\"1.0.0a1.post2.dev3+{local}\"\n        spec = f\">={version}\"\n        specs.append([spec])\n    return specs",
+              "example_args": [
+                [
+                  ">=1.0.0a1.post2.dev3+local1"
+                ],
+                [
+                  ">=1.0.0a1.post2.dev3+local1.local2"
+                ],
+                [
+                  ">=1.0.0a1.post2.dev3+local1.local2.local3"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9774710893468213,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Specifier strings with a plain release version (no pre/post/dev/local parts).",
+              "why": "The new early‑return in `_base_version` returns the original Version object unchanged when `pre`, `post`, `dev` and `local` are all None, avoiding a `__replace__` call. Plain release versions hit this fast path.",
+              "size_meaning": "n = number of release segments (e.g. 1.0.0.0 …). Cost grows with n because the version string gets longer.",
+              "make_source": "def make(n):\n    return [[f\">=1.{'.0'*i}0\"] for i in range(1, n+1)]",
+              "example_args": [
+                [
+                  ">=1.0"
+                ],
+                [
+                  ">=1.0.0"
+                ],
+                [
+                  ">=1.0.0.0"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.009539418365021,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "versions with pre‑release, post‑release or dev segments",
+              "why": "`_base_version` now checks four attributes (`pre`, `post`, `dev`, `local`). When any of them is present the condition fails and the function proceeds to `__replace__`. The extra four attribute reads + boolean logic are overhead compared with the old unconditional `__replace__`.",
+              "size_meaning": "n = number of dot‑separated release components before the suffix (larger release tuple → more calls to `_base_version` in `_compare_less_than`/`_compare_greater_than`)",
+              "make_source": "\ndef make(n):\n    # n >= 2 (need at least two release components for ~= to split)\n    release = \".\".join(str(i) for i in range(1, n+1))  # e.g. \"1.2.3\"\n    # Add a pre‑release suffix so `_base_version` sees a non‑None `pre`\n    version = f\"{release}a1\"\n    spec = f\"<={release}\"\n    return [[spec]]",
+              "example_args": [
+                []
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.955464169554073,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "claimed_speedup",
+              "family": "Plain release versions without pre‑release, post‑release, dev or local parts (e.g. \"1.2.3\", \"1.2.3.4\"). For these versions the new early‑return checks succeed immediately and avoid the `__replace__` call, giving a measurable speed‑up.",
+              "why": "The added guards return early when `version.local is None` (and when all of pre/post/dev/local are None). Plain release versions satisfy both conditions, so the fast path is taken.",
+              "size_meaning": "n = number of release segments (e.g. \"1.2.3.4.5\"). Cost grows with the number of segments because parsing the version string is O(n), but the new fast‑path is exercised for every segment count.",
+              "make_source": "def make(n):\n    \"\"\"Return a list of argument lists for Specifier; each specifier uses a plain release version with 1..n dot‑separated segments.\"\"\"\n    specs = []\n    for i in range(1, n + 1):\n        version = \".\".join(str(j) for j in range(1, i + 1))\n        spec = f\">={version}\"\n        specs.append([spec])\n    return specs",
+              "example_args": [
+                [
+                  ">=1"
+                ],
+                [
+                  ">=1.2"
+                ],
+                [
+                  ">=1.2.3"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.955145117560978,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Specifier strings whose version part contains a local version segment (e.g. '+local').",
+              "why": "`_public_version` now checks `version.local is None` before calling `__replace__`. Versions with a local segment miss the fast‑path and pay the extra attribute access plus the original `__replace__` call.",
+              "size_meaning": "n = number of additional local sub‑segments (e.g. '+local.extra1.extra2…'). Cost grows with n because the version string lengthens.",
+              "make_source": "def make(n):\n    return [[f\">=1.0.0+local{'.extra'*i}\"] for i in range(1, n+1)]",
+              "example_args": [
+                [
+                  ">=1.0.0+local"
+                ],
+                [
+                  ">=1.0.0+local.extra"
+                ],
+                [
+                  ">=1.0.0+local.extra.extra"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9897947674486814,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "wildcard-many-segments",
+              "why": "The `==X.*` wildcard syntax allows many dot-separated numeric segments. The new parser strips the full string, slices off the two-char operator, then strips the version part — copying the long segment list three times. The old regex captured the version in a single slice.",
+              "size_meaning": "n = number of numeric segments before the .* wildcard",
+              "make_source": "def make(n):\n    # ==1.2.3....* with n segments\n    segs = \".\".join(str(i) for i in range(1, n + 1))\n    return [[f\"=={segs}.*\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9884631842128146,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "wildcard-one-fixed-length",
+              "why": "The `==X.*` wildcard syntax allows many dot-separated numeric segments. The new parser strips the full string, slices off the two-char operator, then strips the version part — copying the long segment list three times. The old regex captured the version in a single slice.",
+              "size_meaning": "n = number of numeric segments before the .* wildcard",
+              "make_source": "def make(n):\n    # ==N.N...* with fixed-length segment N repeated n times\n    segs = \".\".join([str(42)] * n)\n    return [[f\"=={segs}.*\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9886334622389196,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "wildcard-leading-zero-padded",
+              "why": "The `==X.*` wildcard syntax allows many dot-separated numeric segments. The new parser strips the full string, slices off the two-char operator, then strips the version part — copying the long segment list three times. The old regex captured the version in a single slice.",
+              "size_meaning": "n = number of numeric segments before the .* wildcard",
+              "make_source": "def make(n):\n    # ==001.002... with zero-padded segments before .*\n    segs = \".\".join(f\"{i:0>3}\" for i in range(1, n + 1))\n    return [[f\"=={segs}.*\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9889094178078885,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F5",
+              "kind": "claimed_speedup",
+              "family": "Plain release versions without pre‑release, post‑release, dev or local parts (e.g. \"1.2.3\", \"1.2.3.4\"). For these versions the new early‑return checks succeed immediately and avoid the `__replace__` call, giving a measurable speed‑up.",
+              "why": "The added guards return early when `version.local is None` (and when all of pre/post/dev/local are None). Plain release versions satisfy both conditions, so the fast path is taken.",
+              "origin": "plan",
+              "screen_ratio": 0.955145117560978,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 14251.195,
+                  "head_ir": 13895.195,
+                  "input_chars": 8.0,
+                  "ratio": 0.9750196387039823
+                },
+                {
+                  "n": 4,
+                  "base_ir": 14576.08875,
+                  "head_ir": 14219.08875,
+                  "input_chars": 10.0,
+                  "ratio": 0.9755078329912062
+                },
+                {
+                  "n": 16,
+                  "base_ir": 17580.3046875,
+                  "head_ir": 16791.7421875,
+                  "input_chars": 23.75,
+                  "ratio": 0.955145117560978
+                },
+                {
+                  "n": 64,
+                  "base_ir": 29940.546875,
+                  "head_ir": 29443.28125,
+                  "input_chars": 94.0625,
+                  "ratio": 0.9833915650547048
+                },
+                {
+                  "n": 256,
+                  "base_ir": 29940.546875,
+                  "head_ir": 29443.28125,
+                  "input_chars": 94.0625,
+                  "ratio": 0.9833915650547048
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 29940.546875,
+                  "head_ir": 29443.28125,
+                  "input_chars": 94.0625,
+                  "ratio": 0.9833915650547048
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 29940.546875,
+                  "head_ir": 29443.28125,
+                  "input_chars": 94.0625,
+                  "ratio": 0.9833915650547048
+                }
+              ],
+              "slope_base": 0.31693892766815324,
+              "slope_head": 0.3220613847896478,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 0.9833915650547048,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 17.27,
+            "screen": 427.59,
+            "full": 162.52,
+            "total": 607.38
+          }
+        }
+      }
+    }
+  ]
+}

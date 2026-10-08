@@ -32,8 +32,9 @@ def fake_runner(observe=("str",)):
 def test_worker_reports_exceptions_by_exact_type_and_timeouts():
     res = worker.run({"target": "decimal:Decimal", "ops": [{"op": "construct", "inputs": [["1.5"], ["x"]]}]})
     ok, bad = res["results"][0]["outcomes"]
-    assert ok == {"status": "ok", "obs": {"str": "1.5", "repr": "Decimal('1.5')"}}
-    assert bad == {"status": "exc", "exc": "decimal.InvalidOperation"}
+    assert ok["status"] == "ok" and ok["obs"] == {"str": "1.5", "repr": "Decimal('1.5')"}
+    assert (bad["status"], bad["exc"]) == ("exc", "decimal.InvalidOperation")
+    assert isinstance(ok["t_ns"], int)
     slow = worker.run({"target": "time:sleep", "observe": [], "timeout_s": 0.2,
                        "ops": [{"op": "construct", "inputs": [[2]]}]})
     assert slow["results"][0]["outcomes"][0]["status"] == "timeout"

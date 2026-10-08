@@ -9,6 +9,8 @@ Request:  {"target": "pkg.mod:Callable", "observe": ["str", "repr", "len", "attr
                     "warm": bool}, {"op": "pickle_load", "blobs": [...], "inputs": [...]}],
            "timeout_s": 5}
 Response: {"results": [<per-op result>], "python": "3.12.x"}
+
+`--serve` reads one request per line and answers one line each, for the Hypothesis search.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ import pickle
 import re
 import signal
 import sys
+import time
 
 # Default reprs embed memory addresses, which differ between processes and are not behavior.
 _ADDR = re.compile(r" at 0x[0-9a-fA-F]+")
@@ -88,10 +91,12 @@ def _observe(obj, observe, timeout_s):
 
 
 def _construct(target, args, observe, timeout_s):
+    t0 = time.process_time_ns()
     kind, val = _guard(lambda: target(*args), timeout_s)
+    t_ns = time.process_time_ns() - t0  # CPU time of the call itself; a cheap signal for perf search
     if kind == "ok":
-        return val, {"status": "ok", "obs": _observe(val, observe, timeout_s)}
-    return None, {"status": kind, "exc": val}
+        return val, {"status": "ok", "obs": _observe(val, observe, timeout_s), "t_ns": t_ns}
+    return None, {"status": kind, "exc": val, "t_ns": t_ns}
 
 
 def _warm(obj):
@@ -172,6 +177,17 @@ def run(req):
 
 
 def main():
+    if "--serve" in sys.argv:
+        # One JSON request per line, one JSON response per line. Used by diffrun.py so Hypothesis can
+        # query both sides per example without paying interpreter start-up each time.
+        for line in sys.stdin:
+            try:
+                resp = run(json.loads(line))
+            except Exception as e:  # noqa: BLE001
+                resp = {"error": f"{_exc_name(e)}: {e}"}
+            sys.stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
+            sys.stdout.flush()
+        return
     req = json.loads(sys.stdin.read())
     json.dump(run(req), sys.stdout, ensure_ascii=False)
 

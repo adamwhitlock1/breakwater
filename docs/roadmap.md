@@ -35,9 +35,10 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [ ] Finalist timing on a Serverless Job (week 2): fresh process per sample, ABAB interleaving, ≥30 pairs, frozen GC, bootstrap 95% CI, A/A floor.
 
 ### WS2: Nemotron adversary (critical path)
-- [ ] Ultra planner: white-box read of diff + module (+ recon) → ranked hypotheses (JSON).
-- [ ] Lightning strategy writer: per hypothesis, N Hypothesis strategies in a restricted DSL; each runs as a differential `@given` test in its own sandbox.
-- [ ] Shrink, dedupe by shrunk-example signature, archive keyed by (probe × hypothesis family).
+- [x] Ultra planner: white-box read of diff + module → ranked attacks (JSON schema, plain-JSON fallback). Tests/docs excluded from the diff. _(Not yet run against the live API.)_
+- [x] Lightning strategy writer: N strategies per attack, AST hygiene check, then a sandboxed `find()` search against persistent base/head workers (`harness/diffrun.py`).
+- [x] Shrink (Hypothesis), dedupe by signature keeping the smallest input, credit every strategy that hit a class.
+- [ ] Finer classes: "1. 0" and Arabic-Indic digits currently share one P2 class (exc → ok); split by input character class or by adjudication.
 - [ ] Perf attacks: `hypothesis.target()` on a cheap CPU-time ratio, confirmed by Ir.
 - [ ] Ultra adjudication: likely-bug / intended-change / needs-human, may abstain; never overrides deterministic facts.
 - [ ] Tavily recon (spec + bug-tracker facts) behind an ablation flag. Keep it only if the ablation shows it adds classes.

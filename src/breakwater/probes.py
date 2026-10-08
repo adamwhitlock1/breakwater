@@ -19,6 +19,8 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from breakwater.backends import Backend
+from breakwater.harness.compare import compare_outcomes
+from breakwater.harness.compare import signature as _signature
 from breakwater.images import PairImage
 
 ALL_PROBES = ("P1", "P2", "P3", "P4")
@@ -41,10 +43,7 @@ class Divergence:
     head: Any
 
     def signature(self) -> str:
-        """Dedup key: same probe, detail and outcome shapes are one finding class."""
-        if self.probe == "P1":  # the differing values themselves vary per input
-            return f"P1|{self.detail}|differs"
-        return f"{self.probe}|{self.detail}|{_shape(self.base)}|{_shape(self.head)}"
+        return _signature(self.probe, self.detail, self.base, self.head)
 
 
 @dataclass
@@ -69,15 +68,6 @@ class ProbeReport:
             "divergences": [asdict(d) for d in self.divergences],
             "classes": sorted(self.classes()),
         }
-
-
-def _shape(outcome: Any) -> str:
-    if isinstance(outcome, dict):
-        if outcome.get("status") in ("exc", "timeout"):
-            return f"{outcome['status']}:{outcome.get('exc')}"
-        if outcome.get("status") == "ok":
-            return "ok"
-    return type(outcome).__name__ if not isinstance(outcome, (str, bool, int)) else str(outcome)
 
 
 class Runner:
@@ -114,13 +104,8 @@ def run_probes(runner: Runner, inputs: list[list[Any]], probes: tuple[str, ...] 
 
     # P1 / P2: per-input outcomes
     for args, b, h in zip(inputs, base_res[0]["outcomes"], head_res[0]["outcomes"], strict=True):
-        if b["status"] == "ok" and h["status"] == "ok":
-            if "P1" in probes:
-                for key in runner.target.observe:
-                    if b["obs"].get(key) != h["obs"].get(key):
-                        divs.append(Divergence("P1", key, [args], b["obs"].get(key), h["obs"].get(key)))
-        elif "P2" in probes and (b["status"], b.get("exc")) != (h["status"], h.get("exc")):
-            divs.append(Divergence("P2", "outcome", [args], b, h))
+        for probe, detail, bv, hv in compare_outcomes(b, h, runner.target.observe, probes):
+            divs.append(Divergence(probe, detail, [args], bv, hv))
 
     # P3: relations between pairs of inputs
     if "P3" in probes:

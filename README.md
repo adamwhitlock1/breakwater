@@ -54,6 +54,13 @@ uv run breakwater probe --target packaging.version:Version \
   --input "1.0" --input "1. 0" --input "١.٠"
 ```
 
+Run the Nemotron adversary on the same change (needs `NEBIUS_API_KEY`; ~cents):
+
+```bash
+uv run breakwater audit --target packaging.version:Version \
+  --repo https://github.com/pypa/packaging --base 59f183fe90da --head 61967cca278d
+```
+
 Day-1 checks (see [docs/day1-checklist.md](docs/day1-checklist.md)):
 
 ```bash

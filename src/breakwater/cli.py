@@ -1,4 +1,4 @@
-"""`breakwater` command line: doctor, probe (deterministic differential probes) and bill."""
+"""`breakwater` command line: doctor, probe (deterministic), audit (Nemotron adversary) and bill."""
 
 from __future__ import annotations
 
@@ -76,6 +76,35 @@ def probe(args: argparse.Namespace) -> int:
     return 1 if classes else 0
 
 
+def audit(args: argparse.Namespace) -> int:
+    import uuid
+    from pathlib import Path
+
+    from breakwater.adversary import audit as run_audit
+    from breakwater.adversary import render_markdown
+    from breakwater.backends import get_backend
+    from breakwater.images import build_pair, git_req
+    from breakwater.llm import Nemotron
+    from breakwater.probes import Target
+    from breakwater.repo import gather
+
+    run_id = uuid.uuid4().hex[:12]
+    llm = Nemotron(run_id=run_id)
+    ctx = gather(args.repo, args.base, args.head, args.target)
+    image = build_pair(git_req(args.repo, args.base), git_req(args.repo, args.head))
+    target = Target(args.target, tuple(args.observe.split(",")))
+    report = run_audit(ctx, image, llm, get_backend(args.backend), target, n_attacks=args.attacks,
+                       strategies_per_attack=args.strategies, max_examples=args.max_examples,
+                       seed=args.seed, run_id=run_id)
+    out = Path(args.out or f"artifacts/runs/{run_id}")
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "report.json").write_text(json.dumps(report.to_json(), indent=2, ensure_ascii=False))
+    md = render_markdown(report)
+    (out / "report.md").write_text(md)
+    print("\n" + md + f"\n\nwrote {out}/report.json and report.md")
+    return 1 if report.findings else 0
+
+
 def bill(args: argparse.Namespace) -> int:
     totals = ledger.summarize(run_id=args.run_id)
     if not totals:
@@ -109,6 +138,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     p.add_argument("--json", help="write the full report here")
     p.set_defaults(fn=probe)
+    a = sub.add_parser("audit", help="Nemotron adversary: plan attacks, write strategies, search, probe")
+    a.add_argument("--repo", required=True)
+    a.add_argument("--base", required=True)
+    a.add_argument("--head", required=True)
+    a.add_argument("--target", required=True)
+    a.add_argument("--observe", default="str,repr")
+    a.add_argument("--attacks", type=int, default=5)
+    a.add_argument("--strategies", type=int, default=4, help="strategies per attack")
+    a.add_argument("--max-examples", type=int, default=300)
+    a.add_argument("--seed", type=int, default=0)
+    a.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    a.add_argument("--out", help="output dir (default artifacts/runs/<run_id>)")
+    a.set_defaults(fn=audit)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")
     b.set_defaults(fn=bill)

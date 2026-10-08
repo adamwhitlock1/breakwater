@@ -57,6 +57,10 @@ def _jsonable(v):
         return v
     if isinstance(v, (list, tuple)):
         return [_jsonable(x) for x in v]
+    if isinstance(v, (set, frozenset)):  # iteration order is not behavior
+        return sorted((_jsonable(x) for x in v), key=lambda x: json.dumps(x, sort_keys=True, default=str))
+    if isinstance(v, dict):
+        return {str(k): _jsonable(x) for k, x in sorted(v.items(), key=lambda kv: str(kv[0]))}
     return _norm_repr(v)
 
 
@@ -82,6 +86,8 @@ def _observe(obj, observe, timeout_s):
             fn = lambda: str(obj)  # noqa: E731
         elif spec == "repr":
             fn = lambda: _norm_repr(obj)  # noqa: E731
+        elif spec == "value":  # structural, order-independent for sets; best for function results
+            fn = lambda: _jsonable(obj)  # noqa: E731
         elif spec == "len":
             fn = lambda: len(obj)  # noqa: E731
         elif spec.startswith("attr:"):
@@ -174,12 +180,30 @@ def _relations(objs, timeout_s):
     return rel
 
 
+def resolve(spec):
+    """"pkg.mod:Callable" calls Callable(*args). "pkg.mod:Class#method" builds Class(args[0]) and
+    calls .method(*args[1:]); iterator results are listed so they can be observed and compared."""
+    mod_name, _, attr = spec.partition(":")
+    attr, _, method = attr.partition("#")
+    obj = importlib.import_module(mod_name)
+    for part in attr.split("."):
+        obj = getattr(obj, part)
+    if not method:
+        return obj
+    cls = obj
+
+    def call(first, *rest):
+        result = getattr(cls(first), method)(*rest)
+        if hasattr(result, "__next__") and not isinstance(result, (str, bytes)):
+            result = list(result)
+        return result
+
+    return call
+
+
 def run(req):
     signal.signal(signal.SIGALRM, _on_alarm)
-    mod_name, _, attr = req["target"].partition(":")
-    target = importlib.import_module(mod_name)
-    for part in attr.split("."):
-        target = getattr(target, part)
+    target = resolve(req["target"])
     observe = req.get("observe", ["str", "repr"])
     timeout_s = float(req.get("timeout_s", 5))
     results = []

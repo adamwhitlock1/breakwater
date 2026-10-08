@@ -110,3 +110,23 @@ def test_unescape_code_only_when_double_escaped():
     assert unescape_code("def make(n):\\n    return [[\\\"1\\\" * n]]") == 'def make(n):\n    return [["1" * n]]'
     one_liner = "def make(n):\n    return [['a\\nb']]"
     assert unescape_code(one_liner) == one_liner
+
+
+def test_backtest_matching_and_literal_args():
+    from breakwater.backtest import generic_strategy, literal_args, matches
+
+    sig = "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii+whitespace"
+    assert matches(sig, {"probe": "P2", "traits": "non-ascii"})
+    assert not matches(sig, {"probe": "P2", "traits": "long-digits"})
+    assert matches("P3|eq|True|False", {"probe": "P3", "detail": "eq"})
+    assert not matches("P3|lt|True|False", {"probe": "P3", "detail": "eq"})
+    args = literal_args(["a", "b", "c"], ["str", "list[str]"])
+    assert len(args) == 3 and isinstance(args[0][1], list)
+    assert generic_strategy(["str"]) == "strategy = st.text(max_size=30)"
+
+
+def test_equivalents_keep_numeric_value():
+    from breakwater.mutate import equivalents
+
+    assert equivalents("1.2") == ["1.2.0", "01.2"]
+    assert equivalents(">=1.0,!=2.0") == [">=1.0,!=2.0,>=1.0", ">=1.0.0,!=2.0", ">=01.0,!=2.0"]

@@ -29,7 +29,7 @@ from breakwater import ledger
 from breakwater.backends import Backend
 from breakwater.images import PairImage
 from breakwater.models import Tier
-from breakwater.mutate import mutate_args
+from breakwater.mutate import equivalents, mutate_args
 from breakwater.probes import ALL_PROBES, Runner, Target, run_probes
 from breakwater.repo import Context
 
@@ -136,6 +136,7 @@ Relevant diff:
 
 MUTATION_LIMIT = 150
 BATCH_LIMIT = 320
+FOCUS_LIMIT = 60
 
 # ---------------------------------------------------------------------------------------------------
 # Data
@@ -401,6 +402,26 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
         for d in report.divergences:
             by = next((origin[key(x)] for x in d.inputs if key(x) in origin), "batch")
             record(d.signature(), d.probe, d.detail, d.inputs, d.base, d.head, by)
+    # Focused relations pass: inputs already involved in a divergence, paired with the seeds. Relation
+    # bugs (== / hash / ordering) need a specific partner, which the capped batch pass can miss.
+    focus: list[list[Any]] = []
+    focus_keys: set[str] = set()
+    for f in list(classes.values()):
+        for args in f.args:
+            if isinstance(args, list) and key(args) not in focus_keys:
+                focus_keys.add(key(args))
+                focus.append(args)
+    for args in seeds:
+        for variant in [args] + [args[:i] + [e] + args[i + 1:] for i, a in enumerate(args) if isinstance(a, str)
+                                 for e in equivalents(a)]:
+            if key(variant) not in focus_keys:
+                focus_keys.add(key(variant))
+                focus.append(variant)
+    focus = focus[:FOCUS_LIMIT]
+    if len(focus) > 1:
+        report = run_probes(Runner(backend, image, target), focus, ("P3",))
+        for d in report.divergences:
+            record(d.signature(), d.probe, d.detail, d.inputs, d.base, d.head, "focus")
     timings["batch"] = time.perf_counter() - t3
     timings["total"] = time.perf_counter() - t0
     log(f"batch probes: {len(batch)} inputs incl. {len(mutants)} mutations ({timings['batch']:.1f}s); "

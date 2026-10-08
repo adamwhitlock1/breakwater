@@ -124,6 +124,23 @@ def audit(args: argparse.Namespace) -> int:
     return 1 if found else 0
 
 
+def backtest(args: argparse.Namespace) -> int:
+    import time as _time
+    from pathlib import Path
+
+    from breakwater import backtest as bt
+    from breakwater.backends import get_backend
+
+    arms = tuple(args.arms.split(",")) if args.arms else bt.ARMS
+    out = Path(args.out or f"artifacts/backtest/{_time.strftime('%Y%m%d-%H%M%S')}")
+    only = args.only.split(",") if args.only else None
+    summary = bt.run(args.corpus, get_backend(args.backend), only=only, arms=arms, do_perf=args.perf,
+                     seed=args.seed, workers=args.workers, out_dir=out)
+    print(json.dumps(summary, indent=2))
+    print(f"wrote {out}/results.json and {out}/table.md")
+    return 0
+
+
 def bill(args: argparse.Namespace) -> int:
     totals = ledger.summarize(run_id=args.run_id)
     if not totals:
@@ -173,6 +190,16 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     a.add_argument("--out", help="output dir (default artifacts/runs/<run_id>)")
     a.set_defaults(fn=audit)
+    t = sub.add_parser("backtest", help="run arms (baselines + Breakwater) over a corpus of merged perf PRs")
+    t.add_argument("corpus")
+    t.add_argument("--only", help="comma list of item ids or PR numbers")
+    t.add_argument("--arms", help="comma list, default hypothesis,mutations,llm-plan,breakwater")
+    t.add_argument("--perf", action="store_true", help="also run the perf audit per target")
+    t.add_argument("--workers", type=int, default=3, help="items in parallel")
+    t.add_argument("--seed", type=int, default=0)
+    t.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    t.add_argument("--out")
+    t.set_defaults(fn=backtest)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")
     b.set_defaults(fn=bill)

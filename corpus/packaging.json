@@ -1,0 +1,757 @@
+{
+  "repo": "https://github.com/pypa/packaging",
+  "items": [
+    {
+      "id": "1082@61967cca",
+      "pr": 1082,
+      "title": "perf: fast path for simple versions (intermediate commit 61967cca)",
+      "base": "59f183fe90da403e41eef339ce9088bda0fe4cd3",
+      "head": "61967cca278dc51389b8973ba65bbbf23eaa3eda",
+      "merged": "2026-02-11",
+      "targets": [
+        {
+          "callable": "packaging.version:Version",
+          "observe": [
+            "str",
+            "repr",
+            "attr:release",
+            "attr:public"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [
+        {
+          "id": "unicode-digits",
+          "match": {
+            "probe": "P2",
+            "traits": "non-ascii"
+          },
+          "fixed_by": "review",
+          "status": "verified"
+        },
+        {
+          "id": "inner-whitespace",
+          "match": {
+            "probe": "P2",
+            "traits": "whitespace"
+          },
+          "fixed_by": "review",
+          "status": "verified"
+        },
+        {
+          "id": "oversized-int-exception",
+          "match": {
+            "probe": "P2",
+            "traits": "long-digits"
+          },
+          "fixed_by": 1155,
+          "status": "verified"
+        }
+      ],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#997",
+      "pr": 997,
+      "title": "perf: better string building",
+      "base": "1c4e8056b1c0b2efc9c68a71c7f2a1a1920db8f3",
+      "head": "65092ce350ac2cc73e61d770f5d16a0957bf6e45",
+      "merged": "2026-01-06",
+      "targets": [
+        {
+          "callable": "packaging.version:Version",
+          "observe": [
+            "str",
+            "repr",
+            "attr:release",
+            "attr:public"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1028",
+      "pr": 1028,
+      "title": "perf: don't renormalize extras",
+      "base": "65092ce350ac2cc73e61d770f5d16a0957bf6e45",
+      "head": "b20096ccce1ca389fa1d3c4290065ab4ede370cc",
+      "merged": "2026-01-06",
+      "targets": [
+        {
+          "callable": "packaging.requirements:Requirement",
+          "observe": [
+            "str",
+            "attr:extras",
+            "attr:specifier"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1029",
+      "pr": 1029,
+      "title": "perf: use fullmatch for markers too",
+      "base": "c39b6da9ab11f649f5497a11628f9dfc98380bb2",
+      "head": "8a805e3baac2d71958ec0d0beffbe4d51fd5795f",
+      "merged": "2026-01-04",
+      "targets": [
+        {
+          "callable": "packaging.markers:Marker",
+          "observe": [
+            "str",
+            "repr"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1030",
+      "pr": 1030,
+      "title": "perf: translate for canonicalize_name",
+      "base": "52e57f20037ff6fc40c72fffbd7905ed81c7d390",
+      "head": "3803ce341b59a24c598eb7b8100d5f8d6773f63e",
+      "merged": "2026-01-05",
+      "targets": [
+        {
+          "callable": "packaging.utils:canonicalize_name",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1032",
+      "pr": 1032,
+      "title": "perf: add __slots__ to Nodes",
+      "base": "842c16cef598bf80178b3894b7039b69cca3621c",
+      "head": "c39b6da9ab11f649f5497a11628f9dfc98380bb2",
+      "merged": "2026-01-02",
+      "targets": [
+        {
+          "callable": "packaging.markers:Marker",
+          "observe": [
+            "str",
+            "repr"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1058",
+      "pr": 1058,
+      "title": "perf:  10% faster stripping zeros",
+      "base": "350a2306700b738f487f251efa278f532b263dee",
+      "head": "716beb1c0a5d7a398bf57fbd80bc2501811e616b",
+      "merged": "2026-01-14",
+      "targets": [
+        {
+          "callable": "packaging.version:Version",
+          "observe": [
+            "str",
+            "repr",
+            "attr:release",
+            "attr:public"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1064",
+      "pr": 1064,
+      "title": "perf: dual replace",
+      "base": "d5398b8bc19f3fad7b035ceb83023caf06d6e2da",
+      "head": "9627a8821f09e4c55cd6e9daadb617b67c4741c2",
+      "merged": "2026-01-19",
+      "targets": [
+        {
+          "callable": "packaging.utils:canonicalize_name",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1076",
+      "pr": 1076,
+      "title": "perf: Stream PEP440 filtering in `SpecifierSet.filter`",
+      "base": "120ce2561585cb7e857078c0a15b36780a9760fd",
+      "head": "39ad033eac63d81834fef48a7d0c88f59eddf158",
+      "merged": "2026-01-30",
+      "targets": [
+        {
+          "callable": "packaging.specifiers:SpecifierSet#filter",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str",
+            "list[str]"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1081",
+      "pr": 1081,
+      "title": "perf: Skip `__replace__` in Specifier comparison if not needed",
+      "base": "481295f7161dcef25ac3626c7f56ea363b424b5c",
+      "head": "0e88c2d78a5ee6cfeb37eef93c75f2b0fc5361c4",
+      "merged": "2026-02-09",
+      "targets": [
+        {
+          "callable": "packaging.specifiers:Specifier",
+          "observe": [
+            "str",
+            "repr"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1082",
+      "pr": 1082,
+      "title": "perf: Add fast path for parsing simple versions (digits and dots only)",
+      "base": "59f183fe90da403e41eef339ce9088bda0fe4cd3",
+      "head": "ee13ba2c1c9a01c97a08ca9d98ff9fa6f0a0a67b",
+      "merged": "2026-02-11",
+      "targets": [
+        {
+          "callable": "packaging.version:Version",
+          "observe": [
+            "str",
+            "repr",
+            "attr:release",
+            "attr:public"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [
+        {
+          "id": "oversized-int-exception",
+          "match": {
+            "probe": "P2",
+            "traits": "long-digits"
+          },
+          "fixed_by": 1155,
+          "status": "verified"
+        }
+      ],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1083",
+      "pr": 1083,
+      "title": "perf: Add fast path for `Version` to `Version` comparison by skipping `_key` property",
+      "base": "cd1520c475213d45df1cfe0e7b9d27e3166ef660",
+      "head": "659955c8a0f6025b4dd27dd0a4bce7e640b40bfe",
+      "merged": "2026-03-06",
+      "targets": [
+        {
+          "callable": "packaging.version:Version",
+          "observe": [
+            "str",
+            "repr",
+            "attr:release",
+            "attr:public"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1105",
+      "pr": 1105,
+      "title": "perf: Speed up complex SpecifierSet filtering by implementing cost based ordering",
+      "base": "9b972011a53185a3c9be97dc1f86c042307e0e5a",
+      "head": "8810e9e66e2a137af5b16072c1ceb17427a2b21c",
+      "merged": "2026-03-08",
+      "targets": [
+        {
+          "callable": "packaging.specifiers:SpecifierSet#filter",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str",
+            "list[str]"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1106",
+      "pr": 1106,
+      "title": "perf: simply Specifier regex",
+      "base": "e3af78f17a5230ffdc846e0b08f3e6e47b3edcfe",
+      "head": "e839d73030b410d4156e6a496249fbdb1e498fab",
+      "merged": "2026-03-09",
+      "targets": [
+        {
+          "callable": "packaging.specifiers:Specifier",
+          "observe": [
+            "str",
+            "repr"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1108",
+      "pr": 1108,
+      "title": "perf: SpecifierSet use tuple instead of frozenset for `_specs`",
+      "base": "20f1523cf37dc5a0e85e7c7dc0070dfc4a09653a",
+      "head": "f59d6ee9afe2330cc9524f825417ee1c31e5e684",
+      "merged": "2026-03-07",
+      "targets": [
+        {
+          "callable": "packaging.specifiers:SpecifierSet",
+          "observe": [
+            "str",
+            "len"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [
+        {
+          "id": "dedup-equality",
+          "match": {
+            "probe": "P3",
+            "detail": "eq"
+          },
+          "fixed_by": 1109,
+          "status": "verified"
+        },
+        {
+          "id": "dedup-str-len",
+          "match": {
+            "probe": "P1"
+          },
+          "fixed_by": 1109,
+          "status": "verified"
+        },
+        {
+          "id": "old-pickles-break-comparison",
+          "match": {
+            "probe": "P4"
+          },
+          "fixed_by": "26.2",
+          "status": "verified"
+        }
+      ],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1111",
+      "pr": 1111,
+      "title": "perf: Speed up wildcard comparison",
+      "base": "210d878577f7f5d95b50904063c889139654813a",
+      "head": "e3af78f17a5230ffdc846e0b08f3e6e47b3edcfe",
+      "merged": "2026-03-09",
+      "targets": [
+        {
+          "callable": "packaging.specifiers:Specifier#contains",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str",
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1115",
+      "pr": 1115,
+      "title": "perf: skip hash property",
+      "base": "e839d73030b410d4156e6a496249fbdb1e498fab",
+      "head": "baa9ea8c7fa773fc4039d090bc7ec6452b860ec6",
+      "merged": "2026-03-11",
+      "targets": [
+        {
+          "callable": "packaging.version:Version",
+          "observe": [
+            "str",
+            "repr",
+            "attr:release",
+            "attr:public"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1116",
+      "pr": 1116,
+      "title": "perf: Overhaul `_cmpkey` to remove use of custom objects",
+      "base": "baa9ea8c7fa773fc4039d090bc7ec6452b860ec6",
+      "head": "f2bbd4f578644865bc5cb2534768e46563ee7f66",
+      "merged": "2026-03-11",
+      "targets": [
+        {
+          "callable": "packaging.version:Version",
+          "observe": [
+            "str",
+            "repr",
+            "attr:release",
+            "attr:public"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [
+        {
+          "id": "old-pickles-fail-to-load",
+          "match": {
+            "probe": "P4"
+          },
+          "fixed_by": 1163,
+          "status": "verified"
+        }
+      ],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1118",
+      "pr": 1118,
+      "title": "perf: Cache `Version` hash value in dedicated slot",
+      "base": "f2bbd4f578644865bc5cb2534768e46563ee7f66",
+      "head": "1676a10cdad3f6183dc7f738d3a30950c67199a4",
+      "merged": "2026-03-13",
+      "targets": [
+        {
+          "callable": "packaging.version:Version",
+          "observe": [
+            "str",
+            "repr",
+            "attr:release",
+            "attr:public"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [
+        {
+          "id": "hash-cache-copy",
+          "match": {
+            "probe": "P3"
+          },
+          "fixed_by": 1242,
+          "status": "candidate"
+        }
+      ],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1147",
+      "pr": 1147,
+      "title": "perf: add __slots__ to Marker",
+      "base": "04a7600a21febca084022d88c6684f1aedf81c8a",
+      "head": "76cc6298254887e17d6b39df0425a4b6c2f1714a",
+      "merged": "2026-04-05",
+      "targets": [
+        {
+          "callable": "packaging.markers:Marker",
+          "observe": [
+            "str",
+            "repr"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [
+        {
+          "id": "marker-pickle",
+          "match": {
+            "probe": "P4"
+          },
+          "fixed_by": 1171,
+          "status": "candidate"
+        }
+      ],
+      "after_ultra_release": false
+    },
+    {
+      "id": "#1236",
+      "pr": 1236,
+      "title": "perf: simply work done in parse_tag a bit",
+      "base": "e6cd4be75370b9730d70c7397ca2f873dae18f54",
+      "head": "1529771b80cf6a327afdf33a8a0e7a96ac3f428f",
+      "merged": "2026-06-09",
+      "targets": [
+        {
+          "callable": "packaging.tags:parse_tag",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": true
+    },
+    {
+      "id": "#1250",
+      "pr": 1250,
+      "title": "perf(markers): cache the default environment",
+      "base": "4c663c9ef5e1ec4f64b01ea9a61c981890a56407",
+      "head": "cf100d20e09c270cb6e19e72edbd0d40728de501",
+      "merged": "2026-07-10",
+      "targets": [
+        {
+          "callable": "packaging.markers:Marker#evaluate",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": true
+    },
+    {
+      "id": "#1253",
+      "pr": 1253,
+      "title": "perf(specifiers): keep range caches across canonicalization",
+      "base": "26b89a05f6f404dbfd808f6ac60d744e8a5e0386",
+      "head": "e64c20eb7a854c72710d4c962bc8a95f343230e6",
+      "merged": "2026-06-16",
+      "targets": [
+        {
+          "callable": "packaging.specifiers:SpecifierSet#contains",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str",
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": true
+    },
+    {
+      "id": "#1256",
+      "pr": 1256,
+      "title": "perf(utils): precompile the wheel project-name pattern",
+      "base": "54c697714e19da8659b67b5e96eb12a1f8250f9d",
+      "head": "d2ac6ba3f819cb5c81d79f4820db205d6f8bc126",
+      "merged": "2026-06-13",
+      "targets": [
+        {
+          "callable": "packaging.utils:parse_wheel_filename",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": true
+    },
+    {
+      "id": "#1258",
+      "pr": 1258,
+      "title": "perf: add __slots__ to token classes",
+      "base": "e7f0351352783a8a2f17f8fe15d8504f604468eb",
+      "head": "bce44a178e0033b51200880de3a1cb9bfadfb849",
+      "merged": "2026-06-13",
+      "targets": [
+        {
+          "callable": "packaging.requirements:Requirement",
+          "observe": [
+            "str",
+            "attr:extras",
+            "attr:specifier"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": true
+    },
+    {
+      "id": "#1259",
+      "pr": 1259,
+      "title": "perf(specifiers): push PEP 440 logic into the range engine",
+      "base": "155760e37acbe24bf82444f21e805006ef0b58c8",
+      "head": "664f049980f1873c458de72a449003b83173f445",
+      "merged": "2026-06-15",
+      "targets": [
+        {
+          "callable": "packaging.specifiers:SpecifierSet#contains",
+          "observe": [
+            "value"
+          ],
+          "arg_kinds": [
+            "str",
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": true
+    },
+    {
+      "id": "#1320",
+      "pr": 1320,
+      "title": "perf: add __slots__ to Requirement",
+      "base": "2b6726cec7bd55fd3adda07054d0a41288d44eba",
+      "head": "d5fedc90bba333ed0962ba5dfb7072d38f2c1d84",
+      "merged": "2026-07-07",
+      "targets": [
+        {
+          "callable": "packaging.requirements:Requirement",
+          "observe": [
+            "str",
+            "attr:extras",
+            "attr:specifier"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [
+        {
+          "id": "requirement-pickle",
+          "match": {
+            "probe": "P4"
+          },
+          "fixed_by": 1171,
+          "status": "candidate"
+        }
+      ],
+      "after_ultra_release": true
+    },
+    {
+      "id": "#1371",
+      "pr": 1371,
+      "title": "perf(markers): speed up _format_marker and benchmark str(Marker)",
+      "base": "46980084996620ed1606765f7c5946c99d3c0618",
+      "head": "9483cb8a744606bdbad0438f01d3026a1ce4826f",
+      "merged": "2026-09-25",
+      "targets": [
+        {
+          "callable": "packaging.markers:Marker",
+          "observe": [
+            "str",
+            "repr"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": true
+    },
+    {
+      "id": "#1429",
+      "pr": 1429,
+      "title": "perf(parser): avoid literal_eval for plain marker strings",
+      "base": "f7c930eb18b556930564c1131fde78e576352ddc",
+      "head": "d17cfaf0b77a5690f03087359e7c8d665a3c728d",
+      "merged": "2026-10-05",
+      "targets": [
+        {
+          "callable": "packaging.markers:Marker",
+          "observe": [
+            "str",
+            "repr"
+          ],
+          "arg_kinds": [
+            "str"
+          ]
+        }
+      ],
+      "known": [],
+      "after_ultra_release": true
+    }
+  ]
+}

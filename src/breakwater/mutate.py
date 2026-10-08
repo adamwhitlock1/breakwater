@@ -23,6 +23,7 @@ DIGIT_SYSTEMS = {
 WHITESPACE = (" ", "\t", "\n", " ", " ", "\x0c")
 _DIGITS = re.compile(r"\d+", re.ASCII)
 _SEP = re.compile(r"[^0-9A-Za-z]")
+_DOTTED = re.compile(r"\d+(?:\.\d+)*", re.ASCII)
 
 
 def _digits(s: str, base: int, first_only: bool) -> str:
@@ -50,7 +51,25 @@ MUTATORS: dict[str, Callable[[str], Iterable[str]]] = {
     "underscores": lambda s: [_DIGITS.sub(lambda m: "_".join(m.group(0)), s, count=1)],
     "signs": lambda s: ["+" + s, "-" + s],
     "edges": lambda s: ["", s[:1], s + "\x00"],
+    "equivalents": lambda s: equivalents(s),
 }
+
+
+def equivalents(s: str) -> list[str]:
+    """Variants that a normalizing parser would likely treat as EQUAL to s: a repeated separated
+    component, a redundant trailing ".0", a leading zero. Paired with s, they test ==, hash and
+    de-duplication (classic fuzzing operators, nothing library-specific)."""
+    out = []
+    for sep in (",", ";", "|", " "):
+        if sep in s.strip():
+            parts = s.split(sep)
+            out.append(sep.join(parts + [parts[0]]))
+            break
+    m = _DOTTED.search(s)
+    if m:
+        out.append(s[: m.end()] + ".0" + s[m.end():])  # 1.2 -> 1.2.0
+        out.append(s[: m.start()] + "0" + s[m.start():])  # 1.2 -> 01.2
+    return [x for x in out if x != s]
 
 
 def mutate_args(examples: list[list[Any]], limit: int = 120) -> list[tuple[str, list[Any]]]:

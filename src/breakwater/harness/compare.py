@@ -46,7 +46,9 @@ def traits(args) -> str:
 
 def signature(probe: str, detail: str, base, head, args=None) -> str:
     """Dedup key: same probe, detail, outcome shapes and input traits are one finding class."""
-    suffix = f"|{traits(args)}" if args is not None else ""
+    # Traits separate root causes for input-driven findings (P1/P2). Relation and pickle findings
+    # (P3/P4) share one cause regardless of the input's characters, so no suffix there.
+    suffix = f"|{traits(args)}" if args is not None and probe in ("P1", "P2") else ""
     if probe == "P1":  # the differing values themselves vary per input
         return f"P1|{detail}|differs{suffix}"
     return f"{probe}|{detail}|{shape(base)}|{shape(head)}{suffix}"

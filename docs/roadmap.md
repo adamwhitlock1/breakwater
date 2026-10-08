@@ -50,10 +50,12 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [ ] Each finding becomes a ready-to-commit pytest regression test.
 
 ### WS3: Corpus and experiments
-- [ ] Packaging 2026 perf PR list with refs (start from #1082, #1108, #1116; ~14 total). Post-cutoff controls: #1371, #1429.
+- [x] Packaging corpus (`corpus/packaging.json`, built by `scripts/backtest/build_packaging_corpus.py`): 28 merged 2026 library perf PRs + #1082's intermediate commit; base = merge commit's parent; a callable target per PR (incl. `Class#method` targets); 6 verified + 3 candidate known issues; 9 items merged after Nemotron 3 Ultra's release.
+- [x] Backtest runner (`breakwater backtest`): arms `hypothesis` (st.text, no LLM), `mutations` (PR's own test literals + mutations, no LLM), `llm-plan` (Ultra examples only), `breakwater` (full); perf per target; `results.json` + `table.md`.
 - [ ] Codeflash sample: 8–10 pure-Python PRs from `artifacts/corpus/codeflash_prs.json`.
 - [ ] Sealed real-version corpus (~1M PyPI versions/specifiers); no agent ever sees it.
-- [ ] Baselines: PR's own tests + benchmarks; `hypothesis write --equivalent` ghostwriter; Ultra-reads-the-diff with no execution; ablations (Lightning-only, Ultra-only, no Tavily).
+- [x] Baselines in the backtest: PR's own tests (0 by construction), plain Hypothesis, no-LLM mutations of test literals, Ultra's plan alone. Dry run on 2 items: 1 / 2 / 3 / **5 of 6** verified issues (hypothesis / mutations / llm-plan / breakwater).
+- [ ] Remaining ablations: Lightning-only vs Ultra planner; no Tavily (Tavily not yet integrated).
 - [ ] Headline table: known regressions caught, extra divergences (labelled), speedup reversals per family, $ per divergence class by tier.
 
 ### WS4: Product, story and submission

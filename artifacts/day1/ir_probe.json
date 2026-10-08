@@ -1,0 +1,40 @@
+{
+  "n": 3000,
+  "repeats": 5,
+  "refs": {
+    "base": "59f183fe90da",
+    "pr1082": "ee13ba2c1c9a"
+  },
+  "families": {
+    "simple": {
+      "base": {
+        "ir_median": 85863860,
+        "ir_cv": 0.0,
+        "wall_cv": 0.02247745677744086,
+        "cachegrind_secs_per_run": 3.42
+      },
+      "pr1082": {
+        "ir_median": 41764290,
+        "ir_cv": 0.0,
+        "wall_cv": 0.018106442258256483,
+        "cachegrind_secs_per_run": 3.37
+      },
+      "speedup_base_over_pr1082": 2.056
+    },
+    "nonsimple": {
+      "base": {
+        "ir_median": 102930937,
+        "ir_cv": 0.0,
+        "wall_cv": 0.037971132535886735,
+        "cachegrind_secs_per_run": 3.66
+      },
+      "pr1082": {
+        "ir_median": 105928819,
+        "ir_cv": 0.0,
+        "wall_cv": 0.04520562413362776,
+        "cachegrind_secs_per_run": 3.95
+      },
+      "speedup_base_over_pr1082": 0.972
+    }
+  }
+}

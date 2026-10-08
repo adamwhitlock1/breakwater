@@ -1,0 +1,37 @@
+[project]
+name = "breakwater"
+version = "0.1.0"
+description = "A red team for performance pull requests: a Nemotron adversary on Nebius Token Factory tries to make 'faster' code slower or wrong."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "openai>=1.60",
+    "hypothesis>=6.168",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+sandboxes = ["contree-sdk>=0.3.6"]
+tavily = ["tavily-python>=0.5"]
+
+[project.scripts]
+breakwater = "breakwater.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

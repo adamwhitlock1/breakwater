@@ -1,0 +1,15 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+dist/
+# Run outputs. Day-1 results and the corpus are small and committed on purpose;
+# bulky per-run artifacts are not.
+artifacts/runs/
+artifacts/ledger.jsonl
+cachegrind.out.*
+
+# Private idea-selection research (competitor analysis); not for the public repo
+research/

@@ -1,0 +1,78 @@
+{
+  "pr1082_version": {
+    "base 59f183fe": {
+      "1.0": "OK 1.0",
+      "1. 0": "RAISE packaging.version.InvalidVersion",
+      "١.٠": "RAISE packaging.version.InvalidVersion",
+      "1.0 ": "OK 1.0",
+      " 1.0 ": "OK 1.0",
+      "v1.0": "OK 1.0",
+      "111111111111...(5002 chars)": "RAISE builtins.ValueError"
+    },
+    "c33a5218 (add fast path)": {
+      "1.0": "OK 1.0",
+      "1. 0": "RAISE packaging.version.InvalidVersion",
+      "١.٠": "RAISE packaging.version.InvalidVersion",
+      "1.0 ": "OK 1.0",
+      " 1.0 ": "OK 1.0",
+      "v1.0": "OK 1.0",
+      "111111111111...(5002 chars)": "RAISE builtins.ValueError"
+    },
+    "61967cca (drop fastpath regex)": {
+      "1.0": "OK 1.0",
+      "1. 0": "OK 1.0",
+      "١.٠": "OK 1.0",
+      "1.0 ": "OK 1.0",
+      " 1.0 ": "OK 1.0",
+      "v1.0": "OK 1.0",
+      "111111111111...(5002 chars)": "RAISE packaging.version.InvalidVersion"
+    },
+    "4ecd2734 (simple version indicators)": {
+      "1.0": "OK 1.0",
+      "1. 0": "RAISE packaging.version.InvalidVersion",
+      "١.٠": "RAISE packaging.version.InvalidVersion",
+      "1.0 ": "OK 1.0",
+      " 1.0 ": "OK 1.0",
+      "v1.0": "OK 1.0",
+      "111111111111...(5002 chars)": "RAISE packaging.version.InvalidVersion"
+    },
+    "merge ee13ba2c": {
+      "1.0": "OK 1.0",
+      "1. 0": "RAISE packaging.version.InvalidVersion",
+      "١.٠": "RAISE packaging.version.InvalidVersion",
+      "1.0 ": "OK 1.0",
+      " 1.0 ": "OK 1.0",
+      "v1.0": "OK 1.0",
+      "111111111111...(5002 chars)": "RAISE packaging.version.InvalidVersion"
+    }
+  },
+  "pr1155_bigint": {
+    "base 905c90c1": {
+      "111111111111...(5002 chars)": "RAISE packaging.version.InvalidVersion",
+      "1.9999999999...(5002 chars)": "RAISE packaging.version.InvalidVersion"
+    },
+    "merge 06c6555f": {
+      "111111111111...(5002 chars)": "RAISE builtins.ValueError",
+      "1.9999999999...(5002 chars)": "RAISE builtins.ValueError"
+    }
+  },
+  "pr1108_specset": {
+    "base 20f1523c": {
+      "SpecifierSet('>1.0.0,>1.0') == SpecifierSet('>1.0')": true,
+      "len(SpecifierSet('>1.0.0,>1.0'))": 1
+    },
+    "#1108 merge f59d6ee9": {
+      "SpecifierSet('>1.0.0,>1.0') == SpecifierSet('>1.0')": false,
+      "len(SpecifierSet('>1.0.0,>1.0'))": 2
+    },
+    "#1109 fix 9b972011": {
+      "SpecifierSet('>1.0.0,>1.0') == SpecifierSet('>1.0')": true,
+      "len(SpecifierSet('>1.0.0,>1.0'))": 1
+    }
+  },
+  "pr1116_pickle": {
+    "load with packaging==26.0": "OK {'fresh': '1.2.3', 'compared': '1.2.3'}",
+    "load with packaging==26.1": "RAISE ModuleNotFoundError No module named 'packaging._structures'",
+    "load with packaging==26.2": "OK {'fresh': '1.2.3', 'compared': '1.2.3'}"
+  }
+}

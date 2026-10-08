@@ -51,7 +51,7 @@ def test_probes_find_each_planted_bug_class():
     inputs = [["1.2"], ["01.2"], ["١.٢"], ["x"]]
     report = run_probes(fake_runner(), inputs, ("P1", "P2", "P3"))
     classes = report.classes()
-    assert "P1|str|differs" in classes  # "01.2" prints differently
+    assert "P1|str|differs|plain" in classes  # "01.2" prints differently
     p2 = [d for d in report.divergences if d.probe == "P2"]
     assert [d.inputs for d in p2] == [[["١.٢"]]]  # head accepts Arabic-Indic digits; "x" fails on both
     p3 = {(d.detail, d.base, d.head) for d in report.divergences if d.probe == "P3"}
@@ -110,3 +110,15 @@ def test_packaging_26_1_breaks_old_pickles_and_26_2_fixes_it():
     broken = _probe("packaging==26.0", "packaging==26.1", target, [["1.2.3"]], ("P4",))
     assert any(d.detail == "base->head load" and "ModuleNotFoundError" in d.head["exc"] for d in broken.divergences)
     assert _probe("packaging==26.0", "packaging==26.2", target, [["1.2.3"]], ("P4",)).divergences == []
+
+
+def test_traits_split_distinct_root_causes():
+    from breakwater.harness.compare import signature, traits
+
+    assert traits(["١.٠"]) == "non-ascii"
+    assert traits(["1. 0"]) == "whitespace"
+    assert traits(["1" * 5000]) == "long-digits"
+    assert traits([["."]]) == "nested"
+    exc = {"status": "exc", "exc": "x.InvalidVersion"}
+    ok = {"status": "ok", "obs": {}}
+    assert signature("P2", "outcome", exc, ok, ["١.٠"]) != signature("P2", "outcome", exc, ok, ["1. 0"])

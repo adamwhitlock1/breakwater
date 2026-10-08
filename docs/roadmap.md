@@ -10,7 +10,7 @@
 |---|---|---|---|
 | Thu Oct 8 | Day 1 | [Checklist](day1-checklist.md) sections A–B done; C done once a key exists | — |
 | **Sun Oct 11** | **G0: first automatic finding** ✅ met Oct 8: 3/3 cold runs found a #1082 bug, ~$0.027 each | Day-1 C done (D too if access arrived). `breakwater audit` prototype on #1082's intermediate commit finds ≥1 known class with no hint about which bug exists | Debug the adversary prompts and probes before building anything else |
-| **Wed Oct 14** | **G1: hero works** | ≥2 of 3 known #1082-era classes found automatically, **and** ≥1 performance reversal family (e.g. non-simple versions) found by the adversary and confirmed by Ir | Lean on deterministic probes plus Hypothesis and make the Nemotron delta a measured ablation; or change the hero PR |
+| **Wed Oct 14** | **G1: hero works** ✅ met Oct 8: 3/3 known #1082 classes as separate classes in 2/2 runs; valid slower families found by the adversary and confirmed by Ir (post-release 1.14x, long epochs up to 2.9x) | ≥2 of 3 known #1082-era classes found automatically, **and** ≥1 performance reversal family (e.g. non-simple versions) found by the adversary and confirmed by Ir | Lean on deterministic probes plus Hypothesis and make the Nemotron delta a measured ablation; or change the hero PR |
 | **Wed Oct 21** | **G2: evidence + product v1** | Backtest done over packaging 2026 perf PRs + ≥8 Codeflash PRs, with baselines; report page v1; GitHub Action posts a check | Shrink the Codeflash set; keep packaging |
 | **Sat Oct 24 23:59 PT** | **Feature freeze** | — | Cut from the bottom of the cut list |
 | Sun Oct 25 – Tue Oct 27 | Rerun from clean images; fill numbers; README; record video | — | — |
@@ -41,8 +41,10 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Shrink (Hypothesis), dedupe by signature keeping the smallest input, credit every strategy that hit a class.
 - [ ] Finer classes: "1. 0" and Arabic-Indic digits currently share one P2 class (exc → ok); split by input character class or by adjudication.
 - [x] Perf attacks: Ultra plans slowdown families with `make(n)` generators (sandboxed, memory/time-limited); Lightning strategies drive `hypothesis.target()` on CPU ratio; ladders and top inputs confirmed by Ir. `breakwater audit --mode perf|semantic|both`.
-- [ ] **Plan variance is the main risk now.** Across 5 live perf runs on merged #1082, the strong dev/post-release slowdown (1.2–1.5x Ir) appeared in 1 clean run; others proposed weaker or mislabelled families. Next: more plan samples per audit, persist families that measured slower across runs, and a cheap deterministic 'family expansion' step (vary the tag on any family that measured slower).
-- [ ] Semantic planner on the *merged* #1082 has never found the oversized-int exception change (ValueError → InvalidVersion); with "only list expected differences" it sometimes lists nothing.
+- [x] Plan stabilisation (perf): 3 plan samples merged → screen every family by Ir at one size (plus validity: share of inputs the base accepts) → Super writes one-aspect variants of the slowest realistic families → full ladders for the top 4 + the main speedup family. Families that measured slower are archived per target and re-screened every run.
+- [x] Plan stabilisation (semantic): 3 plan samples; deterministic hostile-string mutations of planner examples and search samples (`mutate.py`); input traits in finding signatures so distinct root causes are distinct classes.
+- [ ] **Ablation for honesty:** mutations alone on the PR's own test/benchmark inputs (no LLM) vs planner examples + mutations vs planner + search. On #1082 most class hits come via mutations of planner examples; the backtest must show what Nemotron adds.
+- [ ] Merge near-duplicate classes (e.g. `long-digits` vs `long-digits+whitespace`) in the report.
 - [ ] Ultra adjudication: likely-bug / intended-change / needs-human, may abstain; never overrides deterministic facts.
 - [ ] Tavily recon (spec + bug-tracker facts) behind an ablation flag. Keep it only if the ablation shows it adds classes.
 - [ ] Each finding becomes a ready-to-commit pytest regression test.

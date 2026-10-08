@@ -72,7 +72,7 @@ def test_audit_pipeline_finds_pr1082_bug_with_scripted_llm():
                    n_attacks=1, strategies_per_attack=2, max_examples=200, log=lambda *_: None)
 
     assert [s.valid for s in report.strategies] == [True, False]
-    accepts = [f for f in report.findings if f.signature == "P2|outcome|exc:packaging.version.InvalidVersion|ok"]
+    accepts = [f for f in report.findings if f.signature == "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii"]
     assert accepts, render_markdown(report)
     assert "A1/s1" in accepts[0].found_by or "seed" in accepts[0].found_by
     assert (Tier.REASONING, "plan") in llm.calls
@@ -102,3 +102,11 @@ def test_perf_verdicts():
     assert finding([0.4, 0.6, 0.8, 0.9], slopes=(0.5, 0.9)).verdict == "faster"  # shrinking speedup is not a regression
     assert finding([0.8, 0.95, 1.1, 1.3], slopes=(1.0, 1.4)).verdict == "complexity-regression"
     assert finding([0.99, 1.0, 1.01, 1.02]).verdict == "neutral"
+
+
+def test_unescape_code_only_when_double_escaped():
+    from breakwater.perf import unescape_code
+
+    assert unescape_code("def make(n):\\n    return [[\\\"1\\\" * n]]") == 'def make(n):\n    return [["1" * n]]'
+    one_liner = "def make(n):\n    return [['a\\nb']]"
+    assert unescape_code(one_liner) == one_liner

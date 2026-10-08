@@ -14,3 +14,4 @@ cachegrind.out.*
 # Private idea-selection research (competitor analysis); not for the public repo
 research/
 artifacts/cache/
+artifacts/archive/

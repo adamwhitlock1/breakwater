@@ -108,7 +108,7 @@ def audit(args: argparse.Namespace) -> int:
         found = found or bool(sem.findings)
     if args.mode in ("perf", "both"):
         pr = perf.perf_audit(ctx, image, llm, backend, target, run_id=run_id, n_families=args.families,
-                             seed=args.seed)
+                             seed=args.seed, use_archive=not args.no_archive)
         report["perf"] = pr.to_json()
         sections.append(perf.render_markdown(pr))
         found = found or any(f.verdict in ("slower", "complexity-regression") for f in pr.findings)
@@ -168,7 +168,8 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--max-examples", type=int, default=300)
     a.add_argument("--seed", type=int, default=0)
     a.add_argument("--mode", choices=("semantic", "perf", "both"), default="both")
-    a.add_argument("--families", type=int, default=4, help="perf families to plan")
+    a.add_argument("--families", type=int, default=6, help="perf families to plan")
+    a.add_argument("--no-archive", action="store_true", help="ignore and do not update the perf family archive")
     a.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     a.add_argument("--out", help="output dir (default artifacts/runs/<run_id>)")
     a.set_defaults(fn=audit)

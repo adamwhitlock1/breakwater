@@ -16,11 +16,40 @@ def shape(outcome) -> str:
     return type(outcome).__name__ if not isinstance(outcome, (str, bool, int)) else str(outcome)
 
 
-def signature(probe: str, detail: str, base, head) -> str:
-    """Dedup key: same probe, detail and outcome shapes are one finding class."""
+def traits(args) -> str:
+    """Generic input traits that tend to separate distinct root causes with the same outcome shape
+    (e.g. "accepts non-ASCII digits" vs "accepts inner whitespace"). Library-agnostic on purpose."""
+    tags = set()
+    for a in args if isinstance(args, list) else [args]:
+        if isinstance(a, list):
+            tags.add("nested")
+            continue
+        if not isinstance(a, str):
+            tags.add(type(a).__name__)
+            continue
+        if a == "":
+            tags.add("empty")
+        if any(ord(c) > 127 for c in a):
+            tags.add("non-ascii")
+        if any(c.isspace() for c in a):
+            tags.add("whitespace")
+        if any(ord(c) < 32 and not c.isspace() for c in a):
+            tags.add("control")
+        run = longest = 0
+        for c in a:
+            run = run + 1 if c.isdigit() else 0
+            longest = max(longest, run)
+        if longest > 1000:
+            tags.add("long-digits")
+    return "+".join(sorted(tags)) or "plain"
+
+
+def signature(probe: str, detail: str, base, head, args=None) -> str:
+    """Dedup key: same probe, detail, outcome shapes and input traits are one finding class."""
+    suffix = f"|{traits(args)}" if args is not None else ""
     if probe == "P1":  # the differing values themselves vary per input
-        return f"P1|{detail}|differs"
-    return f"{probe}|{detail}|{shape(base)}|{shape(head)}"
+        return f"P1|{detail}|differs{suffix}"
+    return f"{probe}|{detail}|{shape(base)}|{shape(head)}{suffix}"
 
 
 def compare_outcomes(base: dict, head: dict, observe, probes=("P1", "P2")) -> list[tuple[str, str, object, object]]:

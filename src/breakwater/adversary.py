@@ -5,8 +5,9 @@
   2. Generate   Lightning (reasoning off) writes several Hypothesis strategies per attack.
   3. Search     each strategy runs in the sandbox (harness/diffrun.py): Hypothesis looks for inputs
                 where base and head disagree, then shrinks them to minimal counterexamples.
-  4. Batch      the planner's example args plus inputs sampled during search go through all probes
-                (P1-P4), which covers relations and pickling that per-example search does not.
+  4. Batch      the planner's example args, deterministic hostile mutations of them (mutate.py) and
+                inputs sampled during search go through all probes (P1-P4). Mutations give a floor of
+                coverage when a plan is weak; probes cover relations and pickling.
   5. Dedupe     findings are grouped by signature; each class keeps its smallest input.
 
 The planner never sees tests, PR discussion or which bug (if any) is known to exist.
@@ -28,6 +29,7 @@ from breakwater import ledger
 from breakwater.backends import Backend
 from breakwater.images import PairImage
 from breakwater.models import Tier
+from breakwater.mutate import mutate_args
 from breakwater.probes import ALL_PROBES, Runner, Target, run_probes
 from breakwater.repo import Context
 
@@ -54,8 +56,10 @@ Work from the diff. Only inputs that reach changed code can behave differently, 
 3. Invalid inputs count: raising a different exception, or accepting what was rejected, is a \
    behavior change.
 
-Only list hypotheses where you expect base and head to DIFFER; if you find fewer, list fewer. Do \
-not report slowness or resource exhaustion; that is analysed separately. Be concrete and brief."""
+Every hypothesis must predict a concrete difference (what base does vs what head does); never \
+include one where you expect identical behavior. Always return at least two: when unsure, include \
+lower-likelihood differences rather than nothing. Do not report slowness or resource exhaustion; \
+that is analysed separately. Be concrete and brief."""
 
 PLAN_USER = """\
 Target under test: `{target}` (called with positional arguments).
@@ -129,6 +133,9 @@ Relevant diff:
 ```diff
 {diff}
 ```"""
+
+MUTATION_LIMIT = 150
+BATCH_LIMIT = 320
 
 # ---------------------------------------------------------------------------------------------------
 # Data
@@ -253,7 +260,7 @@ def _size(args: Any) -> int:
 # Steps
 
 
-PLAN_SAMPLES = 2  # independent plans per call; their attacks are interleaved
+PLAN_SAMPLES = 3  # independent plans per call (the serverless n cap); attacks are interleaved
 PLAN_REASONING = {"medium_effort": True}  # day 1: ~2.3k reasoning tokens vs ~4.7k regular, and it found the bug
 
 
@@ -373,24 +380,31 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
     log(f"search: {sum(j.examples for j in valid)} examples, {len(classes)} classes ({timings['search']:.1f}s)")
 
     t3 = time.perf_counter()
+
+    def key(args: Any) -> str:
+        return json.dumps(args, ensure_ascii=False, sort_keys=True)
+
     seeds = [args for a in attacks for args in a.example_args]
-    seen: set[str] = set()
+    origin: dict[str, str] = {key(a): "seed" for a in seeds}
+    mutants = mutate_args(seeds + samples[:20], limit=MUTATION_LIMIT)
+    for name, args in mutants:
+        origin.setdefault(key(args), f"mutation:{name}")
     batch: list[list[Any]] = []
-    for args in seeds + samples:
-        key = json.dumps(args, ensure_ascii=False, sort_keys=True)
-        if key not in seen:
-            seen.add(key)
+    batch_keys: set[str] = set()
+    for args in seeds + [a for _, a in mutants] + samples:
+        if key(args) not in batch_keys:
+            batch_keys.add(key(args))
             batch.append(args)
-    batch = batch[:200]
-    seed_keys = {json.dumps(a, ensure_ascii=False, sort_keys=True) for a in seeds}
+    batch = batch[:BATCH_LIMIT]
     if batch:
         report = run_probes(Runner(backend, image, target), batch, ALL_PROBES)
         for d in report.divergences:
-            by = "seed" if any(json.dumps(x, ensure_ascii=False, sort_keys=True) in seed_keys for x in d.inputs) else "batch"
+            by = next((origin[key(x)] for x in d.inputs if key(x) in origin), "batch")
             record(d.signature(), d.probe, d.detail, d.inputs, d.base, d.head, by)
     timings["batch"] = time.perf_counter() - t3
     timings["total"] = time.perf_counter() - t0
-    log(f"batch probes: {len(batch)} inputs ({timings['batch']:.1f}s); total {len(classes)} classes")
+    log(f"batch probes: {len(batch)} inputs incl. {len(mutants)} mutations ({timings['batch']:.1f}s); "
+        f"total {len(classes)} classes")
 
     usd = {tier: t["usd"] for tier, t in ledger.summarize(run_id=run_id).items()}
     findings = sorted(classes.values(), key=lambda f: (f.probe, f.detail))

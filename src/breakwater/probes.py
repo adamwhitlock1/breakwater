@@ -43,7 +43,9 @@ class Divergence:
     head: Any
 
     def signature(self) -> str:
-        return _signature(self.probe, self.detail, self.base, self.head)
+        # P3 inputs are a pair; traits of the pair combined still separate root causes usefully.
+        args = self.inputs[0] if len(self.inputs) == 1 else [x for pair in self.inputs for x in pair]
+        return _signature(self.probe, self.detail, self.base, self.head, args)
 
 
 @dataclass

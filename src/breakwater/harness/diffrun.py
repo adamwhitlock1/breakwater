@@ -204,7 +204,7 @@ def main():
             out["samples"].append(args)
         b, h = base.construct(worker_req, args), head.construct(worker_req, args)
         for probe, detail, bv, hv in compare_outcomes(b, h, req["observe"]):
-            sig = signature(probe, detail, bv, hv)
+            sig = signature(probe, detail, bv, hv, args)
             if sig not in found:
                 return {"args": args, "signature": sig, "probe": probe, "detail": detail, "base": bv, "head": hv}
         return None

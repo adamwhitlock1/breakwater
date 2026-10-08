@@ -16,11 +16,13 @@ imports and JSON parsing cancel exactly.
 from __future__ import annotations
 
 import concurrent.futures as cf
+import hashlib
 import json
 import math
 import re
 import time
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Any
 
 from breakwater.adversary import LLM, PLAN_REASONING, extract_code, extract_json, validate_strategy
@@ -46,7 +48,10 @@ Work from the diff:
 worst case of new data structures or algorithms (tuple or list membership instead of set, sorting, \
 repeated scans or concatenation, regex backtracking, recursion); large or many-part inputs; inputs \
 that defeat new caches or fast paths.
-3. Prefer families real users produce. For each family write a generator.
+3. Families must be VALID inputs that the old version accepts and real users produce (for a parser: \
+well-formed values of each syntax variant, e.g. each optional component or marker). Slowness on \
+invalid inputs matters much less; include at most one such family and say "invalid" in its \
+description. For each family write a generator.
 
 The generator is Python source defining `make(n)`, which returns a list of 1 to 8 argument lists \
 for the target, whose cost should grow with n (for example a string with n segments, or n \
@@ -134,6 +139,14 @@ class Family:
     size_meaning: str
     make_source: str
     example_args: list[list[Any]]
+    origin: str = "plan"  # "plan", "expand:<parent id>" or "archive"
+    screen_ratio: float | None = None  # head/base Ir per call at the screening size
+    valid_fraction: float | None = None  # share of screening inputs the base version accepts
+    error: str | None = None
+
+    @property
+    def realistic(self) -> bool:
+        return (self.valid_fraction or 0) >= 0.5
 
 
 @dataclass
@@ -156,6 +169,9 @@ class PerfFinding:
     kind: str
     family: str
     why: str
+    origin: str = "plan"
+    screen_ratio: float | None = None
+    valid_fraction: float | None = None
     ladder: list[LadderPoint] = field(default_factory=list)
     slope_base: float | None = None
     slope_head: float | None = None
@@ -277,7 +293,8 @@ def _families_from(data: dict, n: int) -> list[Family]:
             except (json.JSONDecodeError, TypeError):
                 pass
         fams.append(Family(f"F{i + 1}", f.get("kind", "suspected_slowdown"), f.get("family", ""), f.get("why", ""),
-                           f.get("size_meaning", ""), strip_provided_imports(f.get("make_source", "")), examples))
+                           f.get("size_meaning", ""), strip_provided_imports(unescape_code(f.get("make_source", ""))),
+                           examples))
     return fams
 
 
@@ -287,7 +304,7 @@ def repair_make(llm: LLM, ctx: Context, fam: Family) -> str:
            f"n controls: {fam.size_meaning}\nExamples: {json.dumps(fam.example_args, ensure_ascii=False)}")
     texts = llm.complete(Tier.VOLUME, [{"role": "system", "content": MAKE_SYSTEM}, {"role": "user", "content": msg}],
                          purpose=f"perf-make:{fam.id}", thinking=False, max_tokens=800).texts
-    return strip_provided_imports(extract_code(texts[0])) if texts else ""
+    return strip_provided_imports(unescape_code(extract_code(texts[0]))) if texts else ""
 
 
 def plan_families(llm: LLM, ctx: Context, n: int = 4) -> list[Family]:
@@ -300,7 +317,7 @@ def plan_families(llm: LLM, ctx: Context, n: int = 4) -> list[Family]:
                                                      source=ctx.module_source, diff=ctx.diff, n=n)},
     ]
     texts = llm.complete(Tier.REASONING, messages, purpose="perf-plan", thinking=True, template_kwargs=PLAN_REASONING,
-                         max_tokens=32000, n=2, response_format=PERF_SCHEMA, fallback_no_think=False).texts
+                         max_tokens=32000, n=3, response_format=PERF_SCHEMA, fallback_no_think=False).texts
     plans = []
     for text in texts:
         try:
@@ -353,6 +370,14 @@ _IMPORT = re.compile(r"^(\s*)import\s+([\w, ]+?)\s*$")
 _FROM = re.compile(r"^(\s*)from\s+(\w+)\s+import\s+(.+?)\s*$")
 
 
+def unescape_code(src: str) -> str:
+    """Code inside JSON is sometimes double-escaped: literal backslash-n instead of newlines. Only
+    unescape when the source has no real newline, so legitimate escapes in one-liners survive."""
+    if "\n" not in src and "\\n" in src:
+        src = src.replace("\\n", "\n").replace("\\t", "\t").replace('\\"', '"').replace("\\'", "'")
+    return src
+
+
 def strip_provided_imports(src: str) -> str:
     """Models often write `import random` despite instructions. Those modules are already in scope
     (random is a seeded instance), so `import m` lines are dropped and `from m import x [as y]`
@@ -380,20 +405,130 @@ def _validate_make(src: str) -> str | None:
     return None if "def make" in src else "source must define make(n)"
 
 
-def measure_family(backend: Backend, image: PairImage, target: Target, fam: Family, llm: LLM, ctx: Context, *,
-                   strategies: int, max_examples: int, seed: int, top_k: int = 2) -> PerfFinding:
-    finding = PerfFinding(fam.id, fam.kind, fam.family, fam.why)
+SCREEN_SIZE = 16  # one mid size per family is enough to rank families before full ladders
+SCREEN_SLOWER = 1.02  # screened head/base ratio above this counts as "slower" for expansion / archive
+EXPAND_TOP = 2  # expand this many of the slowest families
+EXPAND_VARIANTS = 3
+FULL_SLOWER = 4  # full ladders + search for at most this many slower families (plus one speedup family)
+ARCHIVE = Path("artifacts/archive")
 
-    # Ladder from the planner's generator (run in the sandbox: it is LLM-written code).
+EXPAND_SYSTEM = """\
+You refine performance attacks. A family of inputs measured slower on the new version of a \
+function. Write variants that each change ONE meaningful aspect of the family to find where the \
+slowdown is largest: if the family uses one syntax feature (a marker, suffix, separator or optional \
+component), each variant uses a DIFFERENT one; or move it, repeat it, or combine it with another. \
+Variants must be valid inputs that the old version accepts and that real users produce, and must \
+not be copies of the original. Describe each variant in one sentence. Each variant needs its own \
+`make(n)` generator: Python source defining make(n) that returns a list of 1 \
+to 8 argument lists whose cost grows with n, using only builtins and the provided `string`, \
+`random` (already seeded), `math` and `itertools` modules. No imports."""
+
+EXPAND_SCHEMA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "variants",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {"variants": {"type": "array", "items": {
+                "type": "object",
+                "properties": {"family": {"type": "string", "description": "one sentence: what changed"},
+                               "make_source": {"type": "string", "description": "Python source defining make(n)"}},
+                "required": ["family", "make_source"], "additionalProperties": False}}},
+            "required": ["variants"], "additionalProperties": False,
+        },
+    },
+}
+
+
+def _archive_path(ctx: Context) -> Path:
+    return ARCHIVE / (hashlib.sha256(f"{ctx.repo}|{ctx.target}".encode()).hexdigest()[:12] + ".json")
+
+
+def load_archive(ctx: Context, limit: int = 4) -> list[Family]:
+    """Families that measured slower in earlier runs on this target are re-screened every run, so a
+    good find is not lost to an unlucky plan."""
+    path = _archive_path(ctx)
+    if not path.exists():
+        return []
+    entries = sorted(json.loads(path.read_text()).get("families", []), key=lambda e: -e.get("best_ratio", 0))
+    return [Family(f"R{i + 1}", e["kind"], e["family"], e.get("why", ""), e.get("size_meaning", ""), e["make_source"],
+                   e.get("example_args", []), origin="archive") for i, e in enumerate(entries[:limit])]
+
+
+def save_archive(ctx: Context, families: list[Family], run_id: str) -> None:
+    path = _archive_path(ctx)
+    data = json.loads(path.read_text()) if path.exists() else {"repo": ctx.repo, "target": ctx.target, "families": []}
+    by_src = {hashlib.sha256(e["make_source"].encode()).hexdigest(): e for e in data["families"]}
+    for f in families:
+        if f.screen_ratio is None or f.screen_ratio <= SCREEN_SLOWER:
+            continue
+        key = hashlib.sha256(f.make_source.encode()).hexdigest()
+        e = by_src.setdefault(key, {"kind": f.kind, "family": f.family, "why": f.why, "size_meaning": f.size_meaning,
+                                    "make_source": f.make_source, "example_args": f.example_args, "best_ratio": 0,
+                                    "seen_in": []})
+        e["best_ratio"] = max(e["best_ratio"], f.screen_ratio)
+        e["last_ratio"] = f.screen_ratio
+        e["seen_in"] = (e["seen_in"] + [f"{run_id}:{ctx.base[:10]}..{ctx.head[:10]}"])[-10:]
+    data["families"] = list(by_src.values())
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def make_ladder(backend: Backend, image: PairImage, fam: Family, seed: int) -> dict[str, list]:
+    """Run the family's LLM-written generator in the sandbox. Records any error on the family."""
     err = _validate_make(fam.make_source)
-    ladder: dict[str, list] = {}
     if err:
-        finding.error = f"make(n) rejected: {err}"
-    else:
-        made = _sandbox(backend, image, {"mode": "make", "make": fam.make_source, "sizes": list(LADDER_SIZES),
-                                         "seed": seed})
-        finding.error = made.get("error")
-        ladder = made.get("ladder", {})
+        fam.error = f"make(n) rejected: {err}"
+        return {}
+    made = _sandbox(backend, image, {"mode": "make", "make": fam.make_source, "sizes": list(LADDER_SIZES), "seed": seed})
+    fam.error = made.get("error")
+    return {n: v for n, v in made.get("ladder", {}).items() if v}
+
+
+def screen(backend: Backend, image: PairImage, target: Target, fam: Family, ladder: dict[str, list]) -> None:
+    """head/base Ir per call at one size (SCREEN_SIZE, or the closest smaller size the generator reached)."""
+    sizes = sorted((int(n) for n in ladder), key=lambda n: (n > SCREEN_SIZE, abs(n - SCREEN_SIZE)))
+    if not sizes:
+        return
+    inputs = ladder[str(sizes[0])]
+    try:
+        res = backend.run(image.ref, [image.BASE_PY, image.WORKER], timeout_s=120, stdin=json.dumps(
+            {"target": target.callable, "observe": [], "ops": [{"op": "construct", "inputs": inputs}]}))
+        outcomes = json.loads(res.stdout)["results"][0]["outcomes"] if res.exit_code == 0 else []
+        fam.valid_fraction = sum(o["status"] == "ok" for o in outcomes) / len(outcomes) if outcomes else None
+        b = ir_per_call(backend, image, "base", target, inputs, _reps_for(inputs))
+        h = ir_per_call(backend, image, "head", target, inputs, _reps_for(inputs))
+        fam.screen_ratio = h / b if b > 0 else None
+    except Exception as e:  # noqa: BLE001
+        fam.error = fam.error or f"screen failed: {str(e)[:200]}"
+
+
+def expand(llm: LLM, ctx: Context, fam: Family, k: int = EXPAND_VARIANTS) -> list[Family]:
+    msg = (f"Target: `{ctx.target}`. Call it like: {_examples(fam)}\n"
+           f"Family ({fam.screen_ratio:.2f}x head/base instructions per call): {fam.family}\n"
+           f"Why it is slower: {fam.why}\nn controls: {fam.size_meaning}\n"
+           f"Its generator:\n```python\n{fam.make_source}\n```\nWrite {k} variants.")
+    try:
+        # Super: better at code than Lightning, far cheaper than Ultra; variants need real code edits.
+        texts = llm.complete(Tier.PROPOSER, [{"role": "system", "content": EXPAND_SYSTEM}, {"role": "user", "content": msg}],
+                             purpose=f"perf-expand:{fam.id}", thinking=False, max_tokens=4000,
+                             response_format=EXPAND_SCHEMA).texts
+        variants = extract_json(texts[0]).get("variants", []) if texts else []
+    except (json.JSONDecodeError, AttributeError, IndexError):
+        return []
+    out = []
+    for i, v in enumerate(variants[:k]):
+        out.append(Family(f"{fam.id}.{i + 1}", fam.kind, v.get("family", ""), fam.why, fam.size_meaning,
+                          strip_provided_imports(unescape_code(v.get("make_source", ""))), fam.example_args,
+                          origin=f"expand:{fam.id}"))
+    return out
+
+
+def full_measure(backend: Backend, image: PairImage, target: Target, fam: Family, ladder: dict[str, list], llm: LLM,
+                 ctx: Context, *, strategies: int, max_examples: int, seed: int, top_k: int = 2) -> PerfFinding:
+    finding = PerfFinding(fam.id, fam.kind, fam.family, fam.why, origin=fam.origin, screen_ratio=fam.screen_ratio,
+                          valid_fraction=fam.valid_fraction, error=fam.error)
 
     # Targeted search with Lightning-written strategies.
     tops: list[dict] = []
@@ -406,11 +541,8 @@ def measure_family(backend: Backend, image: PairImage, target: Target, fam: Fami
         tops += res.get("top", [])
     tops = sorted(tops, key=lambda t: -t["ratio"])[:top_k]
 
-    # Confirm with Ir: ladder sizes and top inputs, base and head, in parallel.
-    jobs: dict[tuple[str, str], tuple[list, int]] = {}
-    for n, inputs in ladder.items():
-        if inputs:
-            jobs[("ladder", n)] = (inputs, _reps_for(inputs))
+    # Confirm with Ir: every ladder size and the top search inputs, base and head, in parallel.
+    jobs: dict[tuple[str, str], tuple[list, int]] = {("ladder", n): (inputs, _reps_for(inputs)) for n, inputs in ladder.items()}
     for i, t in enumerate(tops):
         jobs[("top", str(i))] = ([t["args"]], _reps_for([t["args"]]))
     results: dict[tuple[str, str, str], float | None] = {}
@@ -425,10 +557,8 @@ def measure_family(backend: Backend, image: PairImage, target: Target, fam: Fami
                 finding.error = finding.error or str(e)[:300]
 
     for n in sorted(ladder, key=int):
-        if ladder[n]:
-            chars = sum(len(json.dumps(a, ensure_ascii=False)) for a in ladder[n]) / len(ladder[n])
-            finding.ladder.append(LadderPoint(int(n), results.get(("ladder", n, "base")),
-                                              results.get(("ladder", n, "head")), chars))
+        chars = sum(len(json.dumps(a, ensure_ascii=False)) for a in ladder[n]) / len(ladder[n])
+        finding.ladder.append(LadderPoint(int(n), results.get(("ladder", n, "base")), results.get(("ladder", n, "head")), chars))
     finding.slope_base = slope([(p.input_chars, p.base_ir) for p in finding.ladder])
     finding.slope_head = slope([(p.input_chars, p.head_ir) for p in finding.ladder])
     for i, t in enumerate(tops):
@@ -439,30 +569,61 @@ def measure_family(backend: Backend, image: PairImage, target: Target, fam: Fami
 
 
 def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Target, *, run_id: str,
-               n_families: int = 4, strategies_per_family: int = 2, max_examples: int = 120, seed: int = 0,
-               log=print) -> PerfReport:
+               n_families: int = 6, strategies_per_family: int = 2, max_examples: int = 120, seed: int = 0,
+               use_archive: bool = True, log=print) -> PerfReport:
+    """plan (3 samples merged) + archive -> screen every family at one size -> expand the slowest ->
+    screen the variants -> full ladders and search for the slowest few plus the main speedup family."""
     t0 = time.perf_counter()
     families = plan_families(llm, ctx, n_families)
-    t_plan = time.perf_counter() - t0
-    log(f"perf plan: {len(families)} families ({t_plan:.1f}s)")
-    for f in families:
-        log(f"  {f.id} [{f.kind}] {f.family[:100]}")
+    archived = load_archive(ctx) if use_archive else []
+    known = {f.make_source for f in families}
+    families += [f for f in archived if f.make_source not in known]
+    timings = {"plan": time.perf_counter() - t0}
+    log(f"perf plan: {len(families) - len(archived)} planned + {len(archived)} from archive ({timings['plan']:.1f}s)")
+
+    ladders: dict[str, dict[str, list]] = {}
+
+    def prepare(f: Family) -> None:
+        ladders[f.id] = make_ladder(backend, image, f, seed)
+        screen(backend, image, target, f, ladders[f.id])
 
     t1 = time.perf_counter()
+    with cf.ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(prepare, families))
+    def rank(fams: list[Family]) -> list[Family]:
+        """Slower families, realistic (mostly valid inputs) before error-path ones, then by ratio."""
+        return sorted((f for f in fams if f.screen_ratio and f.screen_ratio > SCREEN_SLOWER),
+                      key=lambda f: (not f.realistic, -f.screen_ratio))
+
+    variants = [v for f in rank(families)[:EXPAND_TOP] for v in expand(llm, ctx, f)]
+    with cf.ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(prepare, variants))
+    families += variants
+    timings["screen"] = time.perf_counter() - t1
+    for f in families:
+        ratio = f"{f.screen_ratio:.2f}x" if f.screen_ratio else "n/a"
+        valid = f"{f.valid_fraction:.0%}" if f.valid_fraction is not None else "?"
+        log(f"  {f.id:6s} {ratio:>6s} valid {valid:>4s} [{f.kind}] ({f.origin}) {f.family[:80]}"
+            f"{'  ERROR ' + f.error[:80] if f.error else ''}")
+
+    slower = rank(families)[:FULL_SLOWER]
+    speedups = sorted((f for f in families if f.kind == "claimed_speedup" and f.screen_ratio and f.realistic),
+                      key=lambda f: f.screen_ratio)[:1]
+    selected = slower + [f for f in speedups if f not in slower]
+    t2 = time.perf_counter()
     with cf.ThreadPoolExecutor(max_workers=2) as pool:
-        findings = list(pool.map(lambda f: measure_family(backend, image, target, f, llm, ctx,
-                                                          strategies=strategies_per_family,
-                                                          max_examples=max_examples, seed=seed), families))
-    t_measure = time.perf_counter() - t1
+        findings = list(pool.map(lambda f: full_measure(backend, image, target, f, ladders[f.id], llm, ctx,
+                                                        strategies=strategies_per_family,
+                                                        max_examples=max_examples, seed=seed), selected))
+    timings["full"] = time.perf_counter() - t2
+    if use_archive:
+        save_archive(ctx, families, run_id)
     for f in findings:
         ladder = ", ".join(f"{r:.2f}" for r in f.ladder_ratios) or "n/a"
-        ws = f.worst_search
-        search = f"{ws['ir_ratio']:.2f}x" if ws else "n/a"
-        log(f"  {f.family_id}: {f.verdict} (ladder head/base Ir {ladder}; slopes {_fmt(f.slope_base)} -> "
-            f"{_fmt(f.slope_head)}; worst search input {search}){' ERROR ' + f.error if f.error else ''}")
+        log(f"  {f.family_id}: {f.verdict} (ladder head/base Ir {ladder}; slopes {_fmt(f.slope_base)} -> {_fmt(f.slope_head)})")
+    timings["total"] = time.perf_counter() - t0
     return PerfReport(run_id, ctx.target, image.ref, backend.name, families, findings,
-                      {"plan": round(t_plan, 2), "measure": round(t_measure, 2),
-                       "total": round(time.perf_counter() - t0, 2)})
+                      {k: round(v, 2) for k, v in timings.items()})
 
 
 def _fmt(x: float | None) -> str:
@@ -470,11 +631,17 @@ def _fmt(x: float | None) -> str:
 
 
 def render_markdown(r: PerfReport) -> str:
-    lines = ["### Performance", ""]
+    lines = ["### Performance", "", "Screened families (head/base Ir per call at one size; >1 means the change is slower):", ""]
+    for f in sorted(r.families, key=lambda f: (not f.realistic, -(f.screen_ratio or 0))):
+        ratio = f"{f.screen_ratio:.2f}x" if f.screen_ratio else "n/a"
+        valid = f"{f.valid_fraction:.0%} valid" if f.valid_fraction is not None else "validity ?"
+        lines.append(f"- `{ratio}` {f.id} [{f.kind}, {f.origin}, {valid}] {f.family[:110]}")
+    lines += ["", "Measured in full:", ""]
     for f in r.findings:
         ratios = f.ladder_ratios
         span = f"{min(ratios):.2f}x–{max(ratios):.2f}x" if ratios else "n/a"
-        lines.append(f"- **{f.family_id} [{f.kind}] {f.verdict}**: head/base Ir per call {span} across sizes; "
+        valid = "" if (f.valid_fraction or 0) >= 0.5 else " (error path: inputs mostly invalid)"
+        lines.append(f"- **{f.family_id} [{f.kind}, {f.origin}] {f.verdict}{valid}**: head/base Ir per call {span} across sizes; "
                      f"slope {_fmt(f.slope_base)} → {_fmt(f.slope_head)}. {f.family}")
         if f.ladder:
             cells = ", ".join(f"n={p.n} (~{p.input_chars:.0f} chars): {p.ratio:.2f}x" if p.ratio else f"n={p.n}: n/a"

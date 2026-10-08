@@ -27,7 +27,7 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Differential runner: base and candidate in separate processes, identical serialized inputs, results compared outside both (`probes.py`, `harness/worker.py`).
 - [x] Probes P1 output parity, P2 exception-type parity, P3 dunder parity, P4 cross-version pickle (with warmed state); P4down opt-in. All three packaging ground-truth regressions are caught (Docker tests).
 - [ ] P7 hash-seed determinism.
-- [ ] Ir measurement: whole-process Ir minus a null run, size ladders and log-log slope per family.
+- [x] Ir measurement: (Ir at 2R − Ir at R) / (R × inputs), so start-up and parsing cancel; size ladders n=2…4096 with a log-log slope against actual input size (`perf.py`).
 - [ ] Two clocks (P8): in-process timer total vs out-of-process CPU (Sandbox resources or Docker rusage); flag large residuals.
 - [ ] P5 input non-mutation, P6 peak RSS.
 - [x] Image builder (Docker): one image per base/head pair, a venv per side, content-addressed tag (`images.py`).
@@ -40,7 +40,9 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Lightning strategy writer: N strategies per attack, AST hygiene check, then a sandboxed `find()` search against persistent base/head workers (`harness/diffrun.py`).
 - [x] Shrink (Hypothesis), dedupe by signature keeping the smallest input, credit every strategy that hit a class.
 - [ ] Finer classes: "1. 0" and Arabic-Indic digits currently share one P2 class (exc → ok); split by input character class or by adjudication.
-- [ ] Perf attacks: `hypothesis.target()` on a cheap CPU-time ratio, confirmed by Ir.
+- [x] Perf attacks: Ultra plans slowdown families with `make(n)` generators (sandboxed, memory/time-limited); Lightning strategies drive `hypothesis.target()` on CPU ratio; ladders and top inputs confirmed by Ir. `breakwater audit --mode perf|semantic|both`.
+- [ ] **Plan variance is the main risk now.** Across 5 live perf runs on merged #1082, the strong dev/post-release slowdown (1.2–1.5x Ir) appeared in 1 clean run; others proposed weaker or mislabelled families. Next: more plan samples per audit, persist families that measured slower across runs, and a cheap deterministic 'family expansion' step (vary the tag on any family that measured slower).
+- [ ] Semantic planner on the *merged* #1082 has never found the oversized-int exception change (ValueError → InvalidVersion); with "only list expected differences" it sometimes lists nothing.
 - [ ] Ultra adjudication: likely-bug / intended-change / needs-human, may abstain; never overrides deterministic facts.
 - [ ] Tavily recon (spec + bug-tracker facts) behind an ablation flag. Keep it only if the ablation shows it adds classes.
 - [ ] Each finding becomes a ready-to-commit pytest regression test.

@@ -80,8 +80,7 @@ def audit(args: argparse.Namespace) -> int:
     import uuid
     from pathlib import Path
 
-    from breakwater.adversary import audit as run_audit
-    from breakwater.adversary import render_markdown
+    from breakwater import adversary, ledger, perf
     from breakwater.backends import get_backend
     from breakwater.images import build_pair, git_req
     from breakwater.llm import Nemotron
@@ -90,19 +89,39 @@ def audit(args: argparse.Namespace) -> int:
 
     run_id = uuid.uuid4().hex[:12]
     llm = Nemotron(run_id=run_id)
+    backend = get_backend(args.backend)
     ctx = gather(args.repo, args.base, args.head, args.target)
     image = build_pair(git_req(args.repo, args.base), git_req(args.repo, args.head))
     target = Target(args.target, tuple(args.observe.split(",")))
-    report = run_audit(ctx, image, llm, get_backend(args.backend), target, n_attacks=args.attacks,
-                       strategies_per_attack=args.strategies, max_examples=args.max_examples,
-                       seed=args.seed, run_id=run_id)
     out = Path(args.out or f"artifacts/runs/{run_id}")
     out.mkdir(parents=True, exist_ok=True)
-    (out / "report.json").write_text(json.dumps(report.to_json(), indent=2, ensure_ascii=False))
-    md = render_markdown(report)
+    report: dict = {"run_id": run_id, "repo": args.repo, "base": args.base, "head": args.head, "target": args.target}
+    sections: list[str] = []
+    found = False
+
+    if args.mode in ("semantic", "both"):
+        sem = adversary.audit(ctx, image, llm, backend, target, n_attacks=args.attacks,
+                              strategies_per_attack=args.strategies, max_examples=args.max_examples,
+                              seed=args.seed, run_id=run_id)
+        report["semantic"] = sem.to_json()
+        sections.append(adversary.render_markdown(sem))
+        found = found or bool(sem.findings)
+    if args.mode in ("perf", "both"):
+        pr = perf.perf_audit(ctx, image, llm, backend, target, run_id=run_id, n_families=args.families,
+                             seed=args.seed)
+        report["perf"] = pr.to_json()
+        sections.append(perf.render_markdown(pr))
+        found = found or any(f.verdict in ("slower", "complexity-regression") for f in pr.findings)
+
+    usd = {tier: t["usd"] for tier, t in ledger.summarize(run_id=run_id).items()}
+    report["usd_by_tier"] = usd
+    sections.append(f"**Total Nemotron cost:** ${sum(usd.values()):.4f} "
+                    f"({', '.join(f'{k} ${v:.4f}' for k, v in sorted(usd.items()))})")
+    md = "\n\n".join(sections)
+    (out / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False, default=str))
     (out / "report.md").write_text(md)
     print("\n" + md + f"\n\nwrote {out}/report.json and report.md")
-    return 1 if report.findings else 0
+    return 1 if found else 0
 
 
 def bill(args: argparse.Namespace) -> int:
@@ -148,6 +167,8 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--strategies", type=int, default=4, help="strategies per attack")
     a.add_argument("--max-examples", type=int, default=300)
     a.add_argument("--seed", type=int, default=0)
+    a.add_argument("--mode", choices=("semantic", "perf", "both"), default="both")
+    a.add_argument("--families", type=int, default=4, help="perf families to plan")
     a.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     a.add_argument("--out", help="output dir (default artifacts/runs/<run_id>)")
     a.set_defaults(fn=audit)

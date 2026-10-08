@@ -6,8 +6,12 @@ code itself. Each input gets a per-call timeout so a pathological input cannot h
 
 Request:  {"target": "pkg.mod:Callable", "observe": ["str", "repr", "len", "attr:release"],
            "ops": [{"op": "construct" | "relations" | "pickle_dump", "inputs": [[arg, ...], ...],
-                    "warm": bool}, {"op": "pickle_load", "blobs": [...], "inputs": [...]}],
+                    "warm": bool}, {"op": "pickle_load", "blobs": [...], "inputs": [...]},
+                   {"op": "time", "inputs": [...]}, {"op": "loop", "inputs": [...], "reps": R}],
            "timeout_s": 5}
+
+`time` reports calibrated CPU ns per call (for the perf search). `loop` just calls the target
+reps x len(inputs) times and reports nothing, so cachegrind can count instructions for that work.
 Response: {"results": [<per-op result>], "python": "3.12.x"}
 
 `--serve` reads one request per line and answers one line each, for the Hypothesis search.
@@ -99,6 +103,53 @@ def _construct(target, args, observe, timeout_s):
     return None, {"status": kind, "exc": val, "t_ns": t_ns}
 
 
+TIME_MIN_NS = 2_000_000  # measure at least 2 ms of calls per round
+TIME_MAX_REPS = 20_000
+TIME_ROUNDS = 3
+
+
+def _time_call(target, args, timeout_s):
+    """Min-of-rounds CPU ns per call, with reps calibrated so each round lasts >= TIME_MIN_NS."""
+    kind, val = _guard(lambda: target(*args), timeout_s)
+    status = {"status": kind} if kind == "ok" else {"status": kind, "exc": val}
+    if kind == "timeout":
+        return dict(status, ns=None, reps=0)
+
+    def once():
+        try:
+            target(*args)
+        except Exception:  # noqa: BLE001 - failing calls still cost time; same on both sides
+            pass
+
+    once()  # warm-up: first calls pay for lazy imports, regex compilation and cache fills
+    once()
+    reps = 1
+    while True:  # calibrate: double reps until one round lasts at least TIME_MIN_NS
+        t0 = time.process_time_ns()
+        for _ in range(reps):
+            once()
+        if time.process_time_ns() - t0 >= TIME_MIN_NS or reps >= TIME_MAX_REPS:
+            break
+        reps *= 2
+    best = None
+    for _ in range(TIME_ROUNDS):
+        t0 = time.process_time_ns()
+        for _ in range(reps):
+            once()
+        per = (time.process_time_ns() - t0) / reps
+        best = per if best is None else min(best, per)
+    return dict(status, ns=best, reps=reps)
+
+
+def _loop(target, inputs, reps):
+    for _ in range(reps):
+        for args in inputs:
+            try:
+                target(*args)
+            except Exception:  # noqa: BLE001
+                pass
+
+
 def _warm(obj):
     """Exercise lazy state (caches populated by comparison/hashing) before pickling."""
     for fn in (lambda: obj == obj, lambda: hash(obj), lambda: obj < obj):
@@ -152,6 +203,11 @@ def run(req):
                     blobs.append(v if k == "ok" else None)
                 res["blobs"] = blobs
             results.append(res)
+        elif kind == "time":
+            results.append({"timings": [_time_call(target, args, timeout_s) for args in op["inputs"]]})
+        elif kind == "loop":
+            _loop(target, op["inputs"], int(op["reps"]))
+            results.append({"done": True})
         elif kind == "pickle_load":
             loads = []
             for blob, args in zip(op["blobs"], op["inputs"], strict=True):

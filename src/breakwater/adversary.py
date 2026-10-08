@@ -47,13 +47,15 @@ Work from the diff. Only inputs that reach changed code can behave differently, 
 2. For inputs that satisfy it, compare what the new code does with what the old code (the unchanged \
    path elsewhere in the module) did for the same input. Look for every input the new path accepts, \
    rejects or transforms differently: character classes the guard lets through (Unicode digits, \
-   whitespace, signs, underscores), Python builtins that are more permissive than the old parser \
-   (int(), float(), str.split, str.strip), numeric limits, normalization, cached or lazily computed \
-   state, container types, ordering and de-duplication.
+   whitespace, signs, underscores), Python builtins that behave differently from the old parser \
+   (int() and float() accept Unicode digits, surrounding whitespace and underscores; int() raises \
+   ValueError for strings over 4,300 digits; str.split, str.strip), normalization, cached or \
+   lazily computed state, container types, ordering and de-duplication.
 3. Invalid inputs count: raising a different exception, or accepting what was rejected, is a \
    behavior change.
 
-Do not report slowness or resource exhaustion; that is analysed separately. Be concrete and brief."""
+Only list hypotheses where you expect base and head to DIFFER; if you find fewer, list fewer. Do \
+not report slowness or resource exhaustion; that is analysed separately. Be concrete and brief."""
 
 PLAN_USER = """\
 Target under test: `{target}` (called with positional arguments).

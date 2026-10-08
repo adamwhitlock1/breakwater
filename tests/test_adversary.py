@@ -76,3 +76,29 @@ def test_audit_pipeline_finds_pr1082_bug_with_scripted_llm():
     assert accepts, render_markdown(report)
     assert "A1/s1" in accepts[0].found_by or "seed" in accepts[0].found_by
     assert (Tier.REASONING, "plan") in llm.calls
+
+
+def test_strip_provided_imports_keeps_other_imports_for_validation():
+    from breakwater.perf import strip_provided_imports
+
+    src = "import random\nfrom string import digits as d, ascii_letters\nimport os\ndef make(n):\n    return [['1' * n]]"
+    out = strip_provided_imports(src)
+    assert "import random" not in out
+    assert "d = string.digits" in out and "ascii_letters = string.ascii_letters" in out
+    assert "import os" in out
+
+
+def test_perf_verdicts():
+    from breakwater.perf import LadderPoint, PerfFinding
+
+    def finding(ratios, slopes=(1.0, 1.0)):
+        f = PerfFinding("F1", "suspected_slowdown", "fam", "why")
+        f.ladder = [LadderPoint(n, 100.0, 100.0 * r, float(n)) for n, r in zip((4, 16, 64, 256), ratios, strict=True)]
+        f.slope_base, f.slope_head = slopes
+        return f
+
+    assert finding([1.2, 1.3, 1.4, 1.5]).verdict == "slower"
+    assert finding([0.5, 0.6, 0.7, 0.8]).verdict == "faster"
+    assert finding([0.4, 0.6, 0.8, 0.9], slopes=(0.5, 0.9)).verdict == "faster"  # shrinking speedup is not a regression
+    assert finding([0.8, 0.95, 1.1, 1.3], slopes=(1.0, 1.4)).verdict == "complexity-regression"
+    assert finding([0.99, 1.0, 1.01, 1.02]).verdict == "neutral"

@@ -27,16 +27,16 @@ Goal: retire the unknowns that could reshape the plan before writing product cod
 
 Run `uv run python scripts/day1/check_token_factory.py --burst 40 --memorization` (~$0.10). It answers:
 
-- [ ] Exact model IDs and casing (`GET /v1/models`). Set `BREAKWATER_MODEL_*` overrides if they differ.
-- [ ] Is `chat_template_kwargs.enable_thinking=false` honoured on all three tiers (reasoning tokens ≈ 0)?
-- [ ] Is `reasoning_effort` ignored? Do Ultra `medium_effort` and Super `low_effort` cut tokens?
-- [ ] Does `n=4` work on Lightning? (The adversary samples 16 strategies per hypothesis.)
-- [ ] Is `service_tier: flex` accepted? (Used for backtest sweeps.)
-- [ ] Does `json_schema` structured output parse on each tier? (Hypotheses and adjudication labels depend on it.)
-- [ ] Empty content when thinking eats `max_tokens`: reproduced? (`llm.py` retries without thinking.)
-- [ ] Rate-limit headers and 40-way burst behaviour: how many 429s?
-- [ ] Does `/v1/responses` work? (NeMo Gym's policy server; stretch.)
-- [ ] Memorization probe: does Ultra already know what went wrong in #1082 and #1155? If yes, the backtest needs the post-cutoff controls (#1371, #1429) reported separately.
+- [x] Exact model IDs and casing (`GET /v1/models`). Set `BREAKWATER_MODEL_*` overrides if they differ.
+- [x] Is `chat_template_kwargs.enable_thinking=false` honoured on all three tiers (reasoning tokens ≈ 0)?
+- [x] Is `reasoning_effort` ignored? Do Ultra `medium_effort` and Super `low_effort` cut tokens?
+- [x] Does `n=4` work on Lightning? (The adversary samples 16 strategies per hypothesis.)
+- [x] Is `service_tier: flex` accepted? (Used for backtest sweeps.)
+- [x] Does `json_schema` structured output parse on each tier? (Hypotheses and adjudication labels depend on it.)
+- [x] Empty content when thinking eats `max_tokens`: reproduced? (`llm.py` retries without thinking.)
+- [x] Rate-limit headers and 40-way burst behaviour: how many 429s?
+- [x] Does `/v1/responses` work? (NeMo Gym's policy server; stretch.)
+- [x] Memorization probe: does Ultra already know what went wrong in #1082 and #1155? If yes, the backtest needs the post-cutoff controls (#1371, #1429) reported separately.
 
 ## D. Sandboxes (needs access + `NEBIUS_PROJECT_ID`)
 
@@ -81,8 +81,32 @@ Run `uv run python scripts/day1/check_contree.py`. It answers:
 
 178 merged bot PRs across 42 repos outside `codeflash-ai/*`. Top repos: gdsfactory (29), chembench (24), kornia fork (14), roboflow/inference (12), SoniqueBay (12), langflow (11).
 
-### C. Token Factory
-_(pending key)_
+### C. Token Factory (2026-10-08, $0.003; `artifacts/day1/token_factory.json`)
+
+| Check | Result | Consequence |
+|---|---|---|
+| Model IDs | All four Nemotron IDs match `models.py` (Ultra, Super, Lightning, Nano) | no overrides needed |
+| `enable_thinking: false` | Honoured on all tiers (Lightning: 5 tokens vs ~1,400 with thinking) | default off for volume calls |
+| `medium_effort` (Ultra) | Honoured. On the #1082 plan: 2.3k reasoning tokens vs 4.7k regular, 15 s vs 21 s, and it found the bug | planner uses it |
+| `reasoning_effort` | Accepted; single sample suggests partial effect (628 → 340 tokens), unconfirmed | don't rely on it |
+| `n` | **Capped at 3** on serverless models (400 for `n=4`) | `llm.py` splits larger n |
+| `service_tier: flex` | Accepted | use for sweeps |
+| `json_schema` | Parses on all tiers with thinking off; also works with thinking on for Ultra | planner uses it |
+| Budget exhaustion | **finish_reason `length` and `content` holds raw, untagged reasoning** (normally reasoning is in `reasoning_content`) | `llm.py` discards those choices |
+| Rate limits | 600 RPM / 400k TPM (dynamic scale 1.0); 40 parallel Lightning calls: 0 errors, p50 0.9 s | fan-out is not a bottleneck |
+| `/v1/responses` | 200 OK, but `output_text` empty with thinking off | revisit only for NeMo Gym |
+| Memorization | Ultra says it has no specific knowledge of #1082 / #1155 | contamination risk lower; still report post-cutoff PRs separately |
+
+### G0 checkpoint: first live audits on #1082's intermediate commit (cold, no hints)
+
+| Run | Found | Cost / time |
+|---|---|---|
+| 1st attempt | nothing: planner reasoned for the full 16k budget, my fallback retried with reasoning **off**, and the reasoning-off plan ignored the diff (DoS "bombs" on epochs) | $0.069 / 78 s |
+| after fix, seed 0 | `"٠"` accepted (Unicode digit) | $0.027 / 36 s |
+| seed 1 | `" ٠ "` accepted; also list input → `TypeError` vs `AttributeError` (out-of-contract) | $0.026 / 38 s |
+| seed 2 | `"1 .2.3"` accepted (inner whitespace, the review-caught case) | $0.027 / 58 s |
+
+Fixes: change-centred planner prompt (find the routing condition first; no DoS framing), `medium_effort`, 2 plans per call interleaved, and no reasoning-off fallback for planning. **Not yet found:** the oversized-integer exception change (ValueError → InvalidVersion).
 
 ### D. Sandboxes
 _(pending access)_

@@ -1,0 +1,419 @@
+{
+  "base_url": "https://api.tokenfactory.nebius.com/v1/",
+  "ts": 1791471200.363198,
+  "nemotron_models": [
+    "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+    "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "nvidia/Nemotron-3_5-Lightning",
+    "nvidia/nemotron-3-super-120b-a12b"
+  ],
+  "tier_ids_present": {
+    "volume": true,
+    "proposer": true,
+    "reasoning": true
+  },
+  "thinking": {
+    "volume": {
+      "off": {
+        "ok": true,
+        "latency_ms": 442,
+        "choices": 1,
+        "content": "0.05",
+        "raw_has_think_tag": false,
+        "reasoning_field_len": 0,
+        "completion_tokens": 5,
+        "reasoning_tokens": 0,
+        "usd": 5e-06,
+        "ratelimit_headers": {
+          "x-ratelimit-limit-requests": "600",
+          "x-ratelimit-limit-tokens": "400000",
+          "x-ratelimit-remaining-requests": "599",
+          "x-ratelimit-remaining-tokens": "399455",
+          "x-ratelimit-reset-requests": "1s",
+          "x-ratelimit-reset-tokens": "1s",
+          "x-ratelimit-dynamic-scale-requests": "1.00",
+          "x-ratelimit-dynamic-scale-tokens": "1.00",
+          "x-ratelimit-dynamic-period-remaining": "900s",
+          "x-ratelimit-dynamic-period-usage-requests": "0%",
+          "x-ratelimit-dynamic-period-usage-tokens": "0%"
+        }
+      },
+      "on": {
+        "ok": true,
+        "latency_ms": 5113,
+        "choices": 1,
+        "content": "0.05",
+        "raw_has_think_tag": false,
+        "reasoning_field_len": 4178,
+        "completion_tokens": 1437,
+        "reasoning_tokens": 1431,
+        "usd": 0.000348,
+        "ratelimit_headers": {
+          "x-ratelimit-limit-requests": "600",
+          "x-ratelimit-limit-tokens": "400000",
+          "x-ratelimit-remaining-requests": "599",
+          "x-ratelimit-remaining-tokens": "399455",
+          "x-ratelimit-reset-requests": "1s",
+          "x-ratelimit-reset-tokens": "1s",
+          "x-ratelimit-dynamic-scale-requests": "1.00",
+          "x-ratelimit-dynamic-scale-tokens": "1.00",
+          "x-ratelimit-dynamic-period-remaining": "900s",
+          "x-ratelimit-dynamic-period-usage-requests": "0%",
+          "x-ratelimit-dynamic-period-usage-tokens": "0%"
+        }
+      }
+    },
+    "proposer": {
+      "off": {
+        "ok": true,
+        "latency_ms": 596,
+        "choices": 1,
+        "content": "$0.05",
+        "raw_has_think_tag": false,
+        "reasoning_field_len": 0,
+        "completion_tokens": 6,
+        "reasoning_tokens": 0,
+        "usd": 2.2e-05,
+        "ratelimit_headers": {
+          "x-ratelimit-limit-requests": "10000000000",
+          "x-ratelimit-limit-tokens": "10000000000",
+          "x-ratelimit-remaining-requests": "10000000000",
+          "x-ratelimit-remaining-tokens": "9999999471",
+          "x-ratelimit-reset-tokens": "1s",
+          "x-ratelimit-dynamic-scale-requests": "1.00",
+          "x-ratelimit-dynamic-scale-tokens": "1.00",
+          "x-ratelimit-dynamic-period-remaining": "900s",
+          "x-ratelimit-dynamic-period-usage-requests": "0%",
+          "x-ratelimit-dynamic-period-usage-tokens": "0%"
+        }
+      },
+      "on": {
+        "ok": true,
+        "latency_ms": 983,
+        "choices": 1,
+        "content": "0.05",
+        "raw_has_think_tag": false,
+        "reasoning_field_len": 264,
+        "completion_tokens": 125,
+        "reasoning_tokens": 118,
+        "usd": 0.000129,
+        "ratelimit_headers": {
+          "x-ratelimit-limit-requests": "10000000000",
+          "x-ratelimit-limit-tokens": "10000000000",
+          "x-ratelimit-remaining-requests": "10000000000",
+          "x-ratelimit-remaining-tokens": "9999999471",
+          "x-ratelimit-reset-tokens": "1s",
+          "x-ratelimit-dynamic-scale-requests": "1.00",
+          "x-ratelimit-dynamic-scale-tokens": "1.00",
+          "x-ratelimit-dynamic-period-remaining": "900s",
+          "x-ratelimit-dynamic-period-usage-requests": "0%",
+          "x-ratelimit-dynamic-period-usage-tokens": "0%"
+        }
+      }
+    },
+    "reasoning": {
+      "off": {
+        "ok": true,
+        "latency_ms": 351,
+        "choices": 1,
+        "content": "$0.05",
+        "raw_has_think_tag": false,
+        "reasoning_field_len": 0,
+        "completion_tokens": 6,
+        "reasoning_tokens": 0,
+        "usd": 7.3e-05,
+        "ratelimit_headers": {
+          "x-ratelimit-limit-requests": "10000000000",
+          "x-ratelimit-limit-tokens": "10000000000",
+          "x-ratelimit-remaining-requests": "10000000000",
+          "x-ratelimit-remaining-tokens": "9999999471",
+          "x-ratelimit-reset-tokens": "1s",
+          "x-ratelimit-dynamic-scale-requests": "1.00",
+          "x-ratelimit-dynamic-scale-tokens": "1.00",
+          "x-ratelimit-dynamic-period-remaining": "900s",
+          "x-ratelimit-dynamic-period-usage-requests": "0%",
+          "x-ratelimit-dynamic-period-usage-tokens": "0%"
+        }
+      },
+      "on": {
+        "ok": true,
+        "latency_ms": 504,
+        "choices": 1,
+        "content": "$0.05",
+        "raw_has_think_tag": false,
+        "reasoning_field_len": 144,
+        "completion_tokens": 72,
+        "reasoning_tokens": 65,
+        "usd": 0.000271,
+        "ratelimit_headers": {
+          "x-ratelimit-limit-requests": "10000000000",
+          "x-ratelimit-limit-tokens": "10000000000",
+          "x-ratelimit-remaining-requests": "10000000000",
+          "x-ratelimit-remaining-tokens": "9999999471",
+          "x-ratelimit-reset-tokens": "1s",
+          "x-ratelimit-dynamic-scale-requests": "1.00",
+          "x-ratelimit-dynamic-scale-tokens": "1.00",
+          "x-ratelimit-dynamic-period-remaining": "900s",
+          "x-ratelimit-dynamic-period-usage-requests": "0%",
+          "x-ratelimit-dynamic-period-usage-tokens": "0%"
+        }
+      }
+    }
+  },
+  "reasoning_controls": {
+    "lightning_default_no_kwargs": {
+      "ok": true,
+      "latency_ms": 2373,
+      "choices": 1,
+      "content": "0.05",
+      "raw_has_think_tag": false,
+      "reasoning_field_len": 1841,
+      "completion_tokens": 628,
+      "reasoning_tokens": 622,
+      "usd": 0.000154,
+      "ratelimit_headers": {
+        "x-ratelimit-limit-requests": "600",
+        "x-ratelimit-limit-tokens": "400000",
+        "x-ratelimit-remaining-requests": "599",
+        "x-ratelimit-remaining-tokens": "399455",
+        "x-ratelimit-reset-requests": "1s",
+        "x-ratelimit-reset-tokens": "1s",
+        "x-ratelimit-dynamic-scale-requests": "1.00",
+        "x-ratelimit-dynamic-scale-tokens": "1.00",
+        "x-ratelimit-dynamic-period-remaining": "893s",
+        "x-ratelimit-dynamic-period-usage-requests": "0%",
+        "x-ratelimit-dynamic-period-usage-tokens": "0%"
+      }
+    },
+    "lightning_reasoning_effort_low": {
+      "ok": true,
+      "latency_ms": 1445,
+      "choices": 1,
+      "content": "0.05",
+      "raw_has_think_tag": false,
+      "reasoning_field_len": 934,
+      "completion_tokens": 340,
+      "reasoning_tokens": 334,
+      "usd": 8.5e-05,
+      "ratelimit_headers": {
+        "x-ratelimit-limit-requests": "600",
+        "x-ratelimit-limit-tokens": "400000",
+        "x-ratelimit-remaining-requests": "599",
+        "x-ratelimit-remaining-tokens": "399455",
+        "x-ratelimit-reset-requests": "1s",
+        "x-ratelimit-reset-tokens": "1s",
+        "x-ratelimit-dynamic-scale-requests": "1.00",
+        "x-ratelimit-dynamic-scale-tokens": "1.00",
+        "x-ratelimit-dynamic-period-remaining": "890s",
+        "x-ratelimit-dynamic-period-usage-requests": "0%",
+        "x-ratelimit-dynamic-period-usage-tokens": "0%"
+      }
+    },
+    "super_low_effort": {
+      "ok": true,
+      "latency_ms": 1293,
+      "choices": 1,
+      "content": "$0.05",
+      "raw_has_think_tag": false,
+      "reasoning_field_len": 23,
+      "completion_tokens": 15,
+      "reasoning_tokens": 7,
+      "usd": 3.2e-05,
+      "ratelimit_headers": {
+        "x-ratelimit-limit-requests": "10000000000",
+        "x-ratelimit-limit-tokens": "10000000000",
+        "x-ratelimit-remaining-requests": "10000000000",
+        "x-ratelimit-remaining-tokens": "9999999471",
+        "x-ratelimit-reset-tokens": "1s",
+        "x-ratelimit-dynamic-scale-requests": "1.00",
+        "x-ratelimit-dynamic-scale-tokens": "1.00",
+        "x-ratelimit-dynamic-period-remaining": "894s",
+        "x-ratelimit-dynamic-period-usage-requests": "0%",
+        "x-ratelimit-dynamic-period-usage-tokens": "0%"
+      }
+    },
+    "ultra_medium_effort": {
+      "ok": true,
+      "latency_ms": 472,
+      "choices": 1,
+      "content": "$0.05",
+      "raw_has_think_tag": false,
+      "reasoning_field_len": 133,
+      "completion_tokens": 77,
+      "reasoning_tokens": 70,
+      "usd": 0.000293,
+      "ratelimit_headers": {
+        "x-ratelimit-limit-requests": "10000000000",
+        "x-ratelimit-limit-tokens": "10000000000",
+        "x-ratelimit-remaining-requests": "10000000000",
+        "x-ratelimit-remaining-tokens": "9999999471",
+        "x-ratelimit-reset-tokens": "1s",
+        "x-ratelimit-dynamic-scale-requests": "1.00",
+        "x-ratelimit-dynamic-scale-tokens": "1.00",
+        "x-ratelimit-dynamic-period-remaining": "895s",
+        "x-ratelimit-dynamic-period-usage-requests": "0%",
+        "x-ratelimit-dynamic-period-usage-tokens": "0%"
+      }
+    }
+  },
+  "n4": {
+    "ok": false,
+    "error": "BadRequestError: Error code: 400 - {'detail': \"Parameter 'n' must be less than or equal to 3 for non-dedicated models\"}"
+  },
+  "flex": {
+    "ok": true,
+    "latency_ms": 230,
+    "choices": 1,
+    "content": "OK.",
+    "raw_has_think_tag": false,
+    "reasoning_field_len": 0,
+    "completion_tokens": 3,
+    "reasoning_tokens": 0,
+    "usd": 2e-06,
+    "ratelimit_headers": {
+      "x-ratelimit-limit-requests": "600",
+      "x-ratelimit-limit-tokens": "400000",
+      "x-ratelimit-remaining-requests": "600",
+      "x-ratelimit-remaining-tokens": "400000",
+      "x-ratelimit-dynamic-scale-requests": "1.00",
+      "x-ratelimit-dynamic-scale-tokens": "1.00",
+      "x-ratelimit-dynamic-period-remaining": "887s",
+      "x-ratelimit-dynamic-period-usage-requests": "0%",
+      "x-ratelimit-dynamic-period-usage-tokens": "0%"
+    }
+  },
+  "json_schema": {
+    "volume": {
+      "ok": true,
+      "latency_ms": 503,
+      "choices": 1,
+      "content": "{\"assumption\": \"The input string is well-formed and contains a standard Semantic Versioning (SemVer) pattern: `major.minor.patch`.\", \"attack\": \"A single version number without dots, such as `5` or `001`.\"}",
+      "raw_has_think_tag": false,
+      "reasoning_field_len": 0,
+      "completion_tokens": 58,
+      "reasoning_tokens": 0,
+      "usd": 1.6e-05,
+      "ratelimit_headers": {
+        "x-ratelimit-limit-requests": "600",
+        "x-ratelimit-limit-tokens": "400000",
+        "x-ratelimit-remaining-requests": "599",
+        "x-ratelimit-remaining-tokens": "399464",
+        "x-ratelimit-reset-requests": "1s",
+        "x-ratelimit-reset-tokens": "1s",
+        "x-ratelimit-dynamic-scale-requests": "1.00",
+        "x-ratelimit-dynamic-scale-tokens": "1.00",
+        "x-ratelimit-dynamic-period-remaining": "887s",
+        "x-ratelimit-dynamic-period-usage-requests": "0%",
+        "x-ratelimit-dynamic-period-usage-tokens": "0%"
+      },
+      "parses": true
+    },
+    "proposer": {
+      "ok": true,
+      "latency_ms": 756,
+      "choices": 1,
+      "content": "{\"assumption\": \"The version string contains only digits and dots (e.g., '1.2.3')\", \"attack\": \"Input: 'v1.2.3-beta' or '1..2.3'\"}",
+      "raw_has_think_tag": false,
+      "reasoning_field_len": 0,
+      "completion_tokens": 51,
+      "reasoning_tokens": 0,
+      "usd": 5.7e-05,
+      "ratelimit_headers": {
+        "x-ratelimit-limit-requests": "10000000000",
+        "x-ratelimit-limit-tokens": "10000000000",
+        "x-ratelimit-remaining-requests": "10000000000",
+        "x-ratelimit-remaining-tokens": "9999999471",
+        "x-ratelimit-reset-tokens": "1s",
+        "x-ratelimit-dynamic-scale-requests": "1.00",
+        "x-ratelimit-dynamic-scale-tokens": "1.00",
+        "x-ratelimit-dynamic-period-remaining": "891s",
+        "x-ratelimit-dynamic-period-usage-requests": "0%",
+        "x-ratelimit-dynamic-period-usage-tokens": "0%"
+      },
+      "parses": true
+    },
+    "reasoning": {
+      "ok": true,
+      "latency_ms": 690,
+      "choices": 1,
+      "content": "{ \"assumption\": \"The input is a valid semantic version string without build metadata.\", \"attack\": \"1.2.3+build.123\" }",
+      "raw_has_think_tag": false,
+      "reasoning_field_len": 0,
+      "completion_tokens": 36,
+      "reasoning_tokens": 0,
+      "usd": 0.000145,
+      "ratelimit_headers": {
+        "x-ratelimit-limit-requests": "10000000000",
+        "x-ratelimit-limit-tokens": "10000000000",
+        "x-ratelimit-remaining-requests": "10000000000",
+        "x-ratelimit-remaining-tokens": "9999999471",
+        "x-ratelimit-reset-tokens": "1s",
+        "x-ratelimit-dynamic-scale-requests": "1.00",
+        "x-ratelimit-dynamic-scale-tokens": "1.00",
+        "x-ratelimit-dynamic-period-remaining": "892s",
+        "x-ratelimit-dynamic-period-usage-requests": "0%",
+        "x-ratelimit-dynamic-period-usage-tokens": "0%"
+      },
+      "parses": true
+    }
+  },
+  "empty_content_small_budget": {
+    "ok": true,
+    "latency_ms": 412,
+    "choices": 1,
+    "content": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - Problem: \"A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How",
+    "raw_has_think_tag": false,
+    "reasoning_field_len": 0,
+    "completion_tokens": 48,
+    "reasoning_tokens": 48,
+    "usd": 1.5e-05,
+    "ratelimit_headers": {
+      "x-ratelimit-limit-requests": "600",
+      "x-ratelimit-limit-tokens": "400000",
+      "x-ratelimit-remaining-requests": "599",
+      "x-ratelimit-remaining-tokens": "399920",
+      "x-ratelimit-reset-requests": "1s",
+      "x-ratelimit-reset-tokens": "1s",
+      "x-ratelimit-dynamic-scale-requests": "1.00",
+      "x-ratelimit-dynamic-scale-tokens": "1.00",
+      "x-ratelimit-dynamic-period-remaining": "885s",
+      "x-ratelimit-dynamic-period-usage-requests": "0%",
+      "x-ratelimit-dynamic-period-usage-tokens": "0%"
+    }
+  },
+  "responses_api": {
+    "ok": true,
+    "text": ""
+  },
+  "burst": {
+    "n": 40,
+    "ok": 40,
+    "errors": [],
+    "p50_ms": 912.0,
+    "max_ms": 1154
+  },
+  "memorization": {
+    "ok": true,
+    "latency_ms": 1476,
+    "choices": 1,
+    "content": "I do not have specific knowledge of the exact changes, review feedback, or bug fixes for `pypa/packaging` pull requests **#1082** (\"fast path for simple versions\") or **#1155** in my training data.\n\nMy knowledge cutoff prevents me from reliably retrieving the granular history (specific review commen",
+    "raw_has_think_tag": false,
+    "reasoning_field_len": 938,
+    "completion_tokens": 370,
+    "reasoning_tokens": 281,
+    "usd": 0.001177,
+    "ratelimit_headers": {
+      "x-ratelimit-limit-requests": "10000000000",
+      "x-ratelimit-limit-tokens": "10000000000",
+      "x-ratelimit-remaining-requests": "10000000000",
+      "x-ratelimit-remaining-tokens": "9999999430",
+      "x-ratelimit-reset-tokens": "1s",
+      "x-ratelimit-dynamic-scale-requests": "1.00",
+      "x-ratelimit-dynamic-scale-tokens": "1.00",
+      "x-ratelimit-dynamic-period-remaining": "889s",
+      "x-ratelimit-dynamic-period-usage-requests": "0%",
+      "x-ratelimit-dynamic-period-usage-tokens": "0%"
+    }
+  },
+  "usd_spent": 0.0029
+}

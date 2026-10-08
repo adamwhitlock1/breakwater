@@ -9,7 +9,7 @@
 | Date | Milestone | Gate: must be true to continue as planned | If it fails |
 |---|---|---|---|
 | Thu Oct 8 | Day 1 | [Checklist](day1-checklist.md) sections A–B done; C done once a key exists | — |
-| **Sun Oct 11** | **G0: first automatic finding** | Day-1 C done (D too if access arrived). `breakwater audit` prototype on #1082's intermediate commit finds ≥1 known class with no hint about which bug exists | Debug the adversary prompts and probes before building anything else |
+| **Sun Oct 11** | **G0: first automatic finding** ✅ met Oct 8: 3/3 cold runs found a #1082 bug, ~$0.027 each | Day-1 C done (D too if access arrived). `breakwater audit` prototype on #1082's intermediate commit finds ≥1 known class with no hint about which bug exists | Debug the adversary prompts and probes before building anything else |
 | **Wed Oct 14** | **G1: hero works** | ≥2 of 3 known #1082-era classes found automatically, **and** ≥1 performance reversal family (e.g. non-simple versions) found by the adversary and confirmed by Ir | Lean on deterministic probes plus Hypothesis and make the Nemotron delta a measured ablation; or change the hero PR |
 | **Wed Oct 21** | **G2: evidence + product v1** | Backtest done over packaging 2026 perf PRs + ≥8 Codeflash PRs, with baselines; report page v1; GitHub Action posts a check | Shrink the Codeflash set; keep packaging |
 | **Sat Oct 24 23:59 PT** | **Feature freeze** | — | Cut from the bottom of the cut list |
@@ -35,7 +35,8 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [ ] Finalist timing on a Serverless Job (week 2): fresh process per sample, ABAB interleaving, ≥30 pairs, frozen GC, bootstrap 95% CI, A/A floor.
 
 ### WS2: Nemotron adversary (critical path)
-- [x] Ultra planner: white-box read of diff + module → ranked attacks (JSON schema, plain-JSON fallback). Tests/docs excluded from the diff. _(Not yet run against the live API.)_
+- [x] Ultra planner: change-centred prompt (routing condition first), `medium_effort`, 2 plans per call, JSON schema. Live: 3/3 cold runs on #1082 found a known class.
+- [ ] Planner still proposes "no divergence expected" hypotheses (wasted slots) and missed the oversized-int class in 3 runs; nudge toward builtin limits (`sys.int_info`, `int()` digit cap).
 - [x] Lightning strategy writer: N strategies per attack, AST hygiene check, then a sandboxed `find()` search against persistent base/head workers (`harness/diffrun.py`).
 - [x] Shrink (Hypothesis), dedupe by signature keeping the smallest input, credit every strategy that hit a class.
 - [ ] Finer classes: "1. 0" and Arabic-Indic digits currently share one P2 class (exc → ok); split by input character class or by adjudication.

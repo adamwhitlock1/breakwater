@@ -2,6 +2,10 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-08: Planner = Ultra, `medium_effort`, structured output, 2 plans per call, never reasoning-off
+- **Why:** the first live audit failed because Ultra used the full 16k budget and the generic fallback retried with reasoning off, which ignored the diff. With a change-centred prompt, `medium_effort` + `json_schema` finished in ~2.3k reasoning tokens, found the bug, and cost ~$0.02. Plans vary per sample, so two per call are interleaved.
+- **Reverse if:** a held-out PR shows regular effort finding classes that medium misses.
+
 ## 2026-10-08: Search metric is cachegrind Ir; wall clock only for finalists
 - **Why:** day-1 A/A in Docker gave Ir CV 0.0000% vs wall CV 1.8–4.5%, at ~3.5 s per cachegrind run. It also reproduces the #1082 trade-off (2.06x simple / 0.97x non-simple).
 - **Reverse if:** cachegrind won't run inside Sandboxes microVMs. Then search on Sandbox user-CPU time with repeats and keep Ir in the Docker backend.

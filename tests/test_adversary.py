@@ -28,6 +28,7 @@ class ScriptedLLM:
 
     PLAN = {"attacks": [{
         "id": "A1",
+        "routing_condition": "no letters, '!' or '+' in the string",
         "assumption": "the fast path trusts int() to see only ASCII digits",
         "why_it_breaks": "int() accepts any Unicode decimal digit and surrounding whitespace",
         "input_family": "dotted versions with non-ASCII digits or spaces",

@@ -35,38 +35,44 @@ from breakwater.repo import Context
 # Prompts
 
 PLAN_SYSTEM = """\
-You are Breakwater's attack planner: an adversarial reviewer of performance-motivated code changes.
+You review performance-motivated code changes for unintended behavior changes.
 
-The change under review claims to make code faster WITHOUT changing behavior. Find inputs where the \
-new version (head) behaves differently from the old version (base): different return values or \
-string forms, different exception types, different equality / ordering / hashing between objects, \
-or objects that no longer survive pickling across versions.
+The change claims to make code faster WITHOUT changing behavior. Your job is to find inputs for \
+which the new version (head) and the old version (base) give different results: a different return \
+value or string form, a different exception type, different equality / ordering / hashing between \
+objects, or objects that no longer survive pickling from the old version.
 
-Think like a reviewer who knows how fast paths go wrong: assumptions about character classes \
-(Unicode vs ASCII digits, whitespace), separators, numeric limits, normalization rules, caches and \
-lazily computed state, container types, ordering and de-duplication. Compare the new code against \
-the rest of the module, since the fast path must agree with the slow path it bypasses.
+Work from the diff. Only inputs that reach changed code can behave differently, so:
+1. Find the condition that routes an input into the new or changed code (e.g. a fast-path guard).
+2. For inputs that satisfy it, compare what the new code does with what the old code (the unchanged \
+   path elsewhere in the module) did for the same input. Look for every input the new path accepts, \
+   rejects or transforms differently: character classes the guard lets through (Unicode digits, \
+   whitespace, signs, underscores), Python builtins that are more permissive than the old parser \
+   (int(), float(), str.split, str.strip), numeric limits, normalization, cached or lazily computed \
+   state, container types, ordering and de-duplication.
+3. Invalid inputs count: raising a different exception, or accepting what was rejected, is a \
+   behavior change.
 
-The whole input domain is in scope: raising a different exception for an invalid input is a \
-behavior change too. Be concrete. Each attack must name the specific assumption in the new code \
-and an input family that violates it."""
+Do not report slowness or resource exhaustion; that is analysed separately. Be concrete and brief."""
 
 PLAN_USER = """\
 Target under test: `{target}` (called with positional arguments).
 Observed for each result: {observe}.
 
-## Diff (base -> head, tests and docs excluded)
-```diff
-{diff}
-```
-
-## Head version of {module_path}
+## Full head version of {module_path} (context)
 ```python
 {source}
 ```
 
-Return JSON with up to {n} attacks, most likely first. `example_args_json` holds 2-5 strings; each \
-is a JSON array of positional arguments for `{target}`, for example "[\\"1.0\\"]"."""
+## The change under review (base -> head, tests and docs excluded)
+```diff
+{diff}
+```
+
+Return JSON with up to {n} hypotheses, most likely first. For each: the routing condition that \
+sends inputs into the changed code, the base behavior and head behavior you expect, the input \
+family, and `example_args_json`: 2-5 strings, each a JSON array of positional arguments for \
+`{target}`, for example "[\\"1.0\\"]"."""
 
 PLAN_SCHEMA = {
     "type": "json_schema",
@@ -82,12 +88,14 @@ PLAN_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "id": {"type": "string"},
+                            "routing_condition": {"type": "string"},
                             "assumption": {"type": "string"},
-                            "why_it_breaks": {"type": "string"},
+                            "why_it_breaks": {"type": "string", "description": "base behavior vs head behavior"},
                             "input_family": {"type": "string"},
                             "example_args_json": {"type": "array", "items": {"type": "string"}},
                         },
-                        "required": ["id", "assumption", "why_it_breaks", "input_family", "example_args_json"],
+                        "required": ["id", "routing_condition", "assumption", "why_it_breaks", "input_family",
+                                         "example_args_json"],
                         "additionalProperties": False,
                     },
                 }
@@ -127,6 +135,7 @@ Relevant diff:
 @dataclass
 class Attack:
     id: str
+    routing_condition: str
     assumption: str
     why_it_breaks: str
     input_family: str
@@ -242,25 +251,44 @@ def _size(args: Any) -> int:
 # Steps
 
 
+PLAN_SAMPLES = 2  # independent plans per call; their attacks are interleaved
+PLAN_REASONING = {"medium_effort": True}  # day 1: ~2.3k reasoning tokens vs ~4.7k regular, and it found the bug
+
+
 def plan_attacks(llm: LLM, ctx: Context, observe: tuple[str, ...], n: int = 5) -> list[Attack]:
+    """Ultra, reasoning on (medium effort), structured output. Never falls back to reasoning off:
+    on 2026-10-08 that fallback produced a plan that ignored the diff entirely."""
     messages = [
         {"role": "system", "content": PLAN_SYSTEM},
         {"role": "user", "content": PLAN_USER.format(
             target=ctx.target, observe=", ".join(observe), diff=ctx.diff, module_path=ctx.module_path,
             source=ctx.module_source, n=n)},
     ]
-    try:
-        resp = llm.complete(Tier.REASONING, messages, purpose="plan", thinking=True, max_tokens=16384,
-                            response_format=PLAN_SCHEMA)
-        data = extract_json(resp.text)
-    except Exception:  # noqa: BLE001 - structured output unsupported or malformed: retry as plain JSON
-        resp = llm.complete(Tier.REASONING, messages + [{"role": "user", "content": "Reply with the JSON only."}],
-                            purpose="plan:retry", thinking=True, max_tokens=16384)
-        data = extract_json(resp.text)
+    common = dict(thinking=True, template_kwargs=PLAN_REASONING, max_tokens=32000, fallback_no_think=False)
+    plans: list[list[dict]] = []
+    for text in llm.complete(Tier.REASONING, messages, purpose="plan", n=PLAN_SAMPLES,
+                             response_format=PLAN_SCHEMA, **common).texts:
+        try:
+            plans.append(extract_json(text).get("attacks", []))
+        except (json.JSONDecodeError, AttributeError):
+            continue
+    if not plans:  # structured output failed or reasoning truncated: one plain-JSON retry, reasoning still on
+        retry = messages + [{"role": "user", "content": 'Reply with only a JSON object {"attacks": [...]}.'}]
+        for text in llm.complete(Tier.REASONING, retry, purpose="plan:retry", **common).texts:
+            try:
+                plans.append(extract_json(text).get("attacks", []))
+            except (json.JSONDecodeError, AttributeError):
+                continue
+
+    # Interleave: first attack of each plan, then the second of each, and so on.
+    merged: list[dict] = []
+    for rank in range(max((len(p) for p in plans), default=0)):
+        merged += [p[rank] for p in plans if rank < len(p)]
     attacks = []
-    for i, a in enumerate(data.get("attacks", [])[:n]):
-        attacks.append(Attack(a.get("id") or f"A{i + 1}", a.get("assumption", ""), a.get("why_it_breaks", ""),
-                              a.get("input_family", ""), _parse_args(a.get("example_args_json", []))))
+    for i, a in enumerate(merged[:n]):
+        attacks.append(Attack(f"A{i + 1}", a.get("routing_condition", ""), a.get("assumption", ""),
+                              a.get("why_it_breaks", ""), a.get("input_family", ""),
+                              _parse_args(a.get("example_args_json", []))))
     return attacks
 
 
@@ -272,14 +300,8 @@ def write_strategies(llm: LLM, ctx: Context, attack: Attack, n: int) -> list[str
             family=attack.input_family, examples=json.dumps(attack.example_args, ensure_ascii=False),
             diff=ctx.diff[:6000])},
     ]
-    try:
-        texts = llm.complete(Tier.VOLUME, messages, purpose=f"strategy:{attack.id}", thinking=False,
-                             max_tokens=1200, n=n).texts
-    except Exception:  # noqa: BLE001 - n>1 unsupported: fall back to separate calls
-        texts = []
-    while len(texts) < n:
-        texts += llm.complete(Tier.VOLUME, messages, purpose=f"strategy:{attack.id}", thinking=False,
-                              max_tokens=1200).texts
+    texts = llm.complete(Tier.VOLUME, messages, purpose=f"strategy:{attack.id}", thinking=False,
+                         max_tokens=1200, n=n).texts
     return [extract_code(t) for t in texts[:n]]
 
 

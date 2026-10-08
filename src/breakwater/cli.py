@@ -1,9 +1,10 @@
-"""`breakwater` command line. `audit` lands in week 1; for now: environment doctor and the bill."""
+"""`breakwater` command line: doctor, probe (deterministic differential probes) and bill."""
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import os
 import shutil
 import subprocess
@@ -31,6 +32,50 @@ def doctor(_: argparse.Namespace) -> int:
     return 0 if all(ok for name, ok, _ in checks if name != "TAVILY_API_KEY") else 1
 
 
+def _short(v, n: int = 70) -> str:
+    s = json.dumps(v, ensure_ascii=False) if not isinstance(v, str) else v
+    return s if len(s) <= n else s[: n - 15] + f"...({len(s)} chars)"
+
+
+def probe(args: argparse.Namespace) -> int:
+    from breakwater.backends import get_backend
+    from breakwater.images import build_pair, git_req
+    from breakwater.probes import ALL_PROBES, Runner, Target, run_probes
+
+    if args.repo:
+        base_req, head_req = git_req(args.repo, args.base), git_req(args.repo, args.head)
+    elif args.base_req and args.head_req:
+        base_req, head_req = args.base_req, args.head_req
+    else:
+        print("give --repo/--base/--head or --base-req/--head-req")
+        return 2
+    inputs: list[list] = [[s] for s in args.input or []]
+    if args.inputs_file:
+        inputs += json.loads(open(args.inputs_file).read())
+    if not inputs:
+        print("no inputs: use --input or --inputs-file")
+        return 2
+
+    image = build_pair(base_req, head_req)
+    target = Target(args.target, tuple(args.observe.split(",")))
+    probes = tuple(args.probes.split(",")) if args.probes else ALL_PROBES
+    report = run_probes(Runner(get_backend(args.backend), image, target), inputs, probes)
+
+    classes = report.classes()
+    print(f"{args.target}: {len(inputs)} inputs, {len(report.divergences)} divergences in {len(classes)} classes "
+          f"(backend={report.backend}, image={report.image})")
+    for ds in classes.values():
+        d = ds[0]
+        print(f"  [{d.probe}] {d.detail} x{len(ds)}")
+        print(f"      input: {_short(d.inputs)}")
+        print(f"      base:  {_short(d.base)}")
+        print(f"      head:  {_short(d.head)}")
+    if args.json:
+        with open(args.json, "w") as f:
+            json.dump(report.to_json(), f, indent=2, ensure_ascii=False)
+    return 1 if classes else 0
+
+
 def bill(args: argparse.Namespace) -> int:
     totals = ledger.summarize(run_id=args.run_id)
     if not totals:
@@ -50,6 +95,20 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="breakwater", description=__doc__)
     sub = ap.add_subparsers(required=True)
     sub.add_parser("doctor", help="check keys, Docker and Sandboxes SDK").set_defaults(fn=doctor)
+    p = sub.add_parser("probe", help="run deterministic differential probes on base vs head")
+    p.add_argument("--target", required=True, help="callable under test, e.g. packaging.version:Version")
+    p.add_argument("--repo", help="git URL; use with --base and --head commit/ref")
+    p.add_argument("--base")
+    p.add_argument("--head")
+    p.add_argument("--base-req", help="pip requirement for base, e.g. packaging==26.0")
+    p.add_argument("--head-req")
+    p.add_argument("--input", action="append", help="single string argument; repeatable")
+    p.add_argument("--inputs-file", help="JSON list of argument lists")
+    p.add_argument("--observe", default="str,repr", help="comma list: str,repr,len,attr:<name>")
+    p.add_argument("--probes", help="comma list, default P1,P2,P3,P4 (P4down is opt-in)")
+    p.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    p.add_argument("--json", help="write the full report here")
+    p.set_defaults(fn=probe)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")
     b.set_defaults(fn=bill)

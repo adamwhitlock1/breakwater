@@ -46,6 +46,14 @@ docker build -f docker/harness.Dockerfile -t breakwater-harness .
 uv run breakwater doctor
 ```
 
+Run the deterministic probes on a real regression (pypa/packaging #1082's intermediate commit):
+
+```bash
+uv run breakwater probe --target packaging.version:Version \
+  --repo https://github.com/pypa/packaging --base 59f183fe90da --head 61967cca278d \
+  --input "1.0" --input "1. 0" --input "١.٠"
+```
+
 Day-1 checks (see [docs/day1-checklist.md](docs/day1-checklist.md)):
 
 ```bash

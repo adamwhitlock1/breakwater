@@ -24,12 +24,14 @@ Also watch the GTC Berlin keynote (Oct 21) for Sandboxes or Nemotron news. Menti
 The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. WS4 is what newcomers should pick up first.
 
 ### WS1: Harness and measurement (critical path)
-- [ ] Differential runner: base and candidate in separate processes, identical serialized inputs, results compared outside both.
-- [ ] Probes P1 output parity, P2 exception-type parity, P3 dunder parity, P4 cross-version pickle (with state set-up), P7 hash-seed determinism.
+- [x] Differential runner: base and candidate in separate processes, identical serialized inputs, results compared outside both (`probes.py`, `harness/worker.py`).
+- [x] Probes P1 output parity, P2 exception-type parity, P3 dunder parity, P4 cross-version pickle (with warmed state); P4down opt-in. All three packaging ground-truth regressions are caught (Docker tests).
+- [ ] P7 hash-seed determinism.
 - [ ] Ir measurement: whole-process Ir minus a null run, size ladders and log-log slope per family.
 - [ ] Two clocks (P8): in-process timer total vs out-of-process CPU (Sandbox resources or Docker rusage); flag large residuals.
 - [ ] P5 input non-mutation, P6 peak RSS.
-- [ ] Image builder: one image per ref (repo at ref + deps + harness), cached by ref; ConTree when access arrives, Docker otherwise.
+- [x] Image builder (Docker): one image per base/head pair, a venv per side, content-addressed tag (`images.py`).
+- [ ] Image builder (ConTree): same layout as a kept, tagged Sandboxes image.
 - [ ] Finalist timing on a Serverless Job (week 2): fresh process per sample, ABAB interleaving, ≥30 pairs, frozen GC, bootstrap 95% CI, A/A floor.
 
 ### WS2: Nemotron adversary (critical path)

@@ -27,10 +27,19 @@ class ScriptedLLM:
     """Stands in for Nemotron: a fixed plan and fixed strategies, so the pipeline is testable offline."""
 
     PLAN = {"attacks": [{
+        "id": "A0",
+        "routing_condition": "simple versions take the fast path",
+        "assumption": "simple versions parse the same either way",
+        "base_behavior": "returns Version", "head_behavior": "returns Version",
+        "difference": "no difference expected",
+        "input_family": "ordinary versions",
+        "example_args_json": ['["1.0"]'],
+    }, {
         "id": "A1",
         "routing_condition": "no letters, '!' or '+' in the string",
         "assumption": "the fast path trusts int() to see only ASCII digits",
-        "why_it_breaks": "int() accepts any Unicode decimal digit and surrounding whitespace",
+        "base_behavior": "raises InvalidVersion", "head_behavior": "accepts: int() takes any Unicode digit",
+        "difference": "accepts what base rejects",
         "input_family": "dotted versions with non-ASCII digits or spaces",
         "example_args_json": ['["1.0"]', '["1. 0"]'],
     }]}
@@ -171,3 +180,20 @@ def test_archive_only_offers_token_factory_families_to_token_factory_runs(tmp_pa
     next(tmp_path.glob("*.json")).write_text(json.dumps(data))
     assert [f.family for f in load_archive(ctx, providers={"tokenfactory"})] == ["tf"]
     assert [f.family for f in load_archive(ctx)] == ["legacy", "dev", "tf"]  # dev runs may use anything
+
+
+def test_planner_drops_attacks_that_predict_no_difference():
+    from breakwater.adversary import plan_attacks
+    from breakwater.repo import Context
+
+    ctx = Context("r", "b", "h", "pkg:Version", "diff", "pkg.py", "src", "")
+    same_text = {**ScriptedLLM.PLAN["attacks"][1], "id": "A2", "difference": "different value or string form",
+                 "base_behavior": "Returns  Version(1.0)", "head_behavior": "returns version(1.0)"}
+
+    class LLM(ScriptedLLM):
+        PLAN = {"attacks": ScriptedLLM.PLAN["attacks"] + [same_text]}
+
+    attacks = plan_attacks(LLM(), ctx, ("str",), n=5)
+    assert [a.assumption for a in attacks] == ["the fast path trusts int() to see only ASCII digits"]
+    assert attacks[0].id == "A1" and attacks[0].difference == "accepts what base rejects"
+    assert attacks[0].why_it_breaks.startswith("base: raises InvalidVersion; head: accepts")

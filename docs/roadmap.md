@@ -36,7 +36,8 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 
 ### WS2: Nemotron adversary (critical path)
 - [x] Ultra planner: change-centred prompt (routing condition first), `medium_effort`, 2 plans per call, JSON schema. Live: 3/3 cold runs on #1082 found a known class.
-- [ ] Planner still proposes "no divergence expected" hypotheses (wasted slots) and missed the oversized-int class in 3 runs; nudge toward builtin limits (`sys.int_info`, `int()` digit cap).
+- [x] Planner v3 (2026-10-09): attacks must predict a difference (schema: base/head behaviour + difference kind; no-difference attacks dropped) and trace the old code first. Plan-only productivity on #1082 intermediate: 0/15 → 7/15 attacks (`scripts/eval/planner_eval.py`, Token Factory).
+- [ ] Re-run the backtest's breakwater and llm-plan arms with planner v3 (the published 5/9 llm-plan number is v1).
 - [x] Lightning strategy writer: N strategies per attack, AST hygiene check, then a sandboxed `find()` search against persistent base/head workers (`harness/diffrun.py`).
 - [x] Shrink (Hypothesis), dedupe by signature keeping the smallest input, credit every strategy that hit a class.
 - [ ] Finer classes: "1. 0" and Arabic-Indic digits currently share one P2 class (exc → ok); split by input character class or by adjudication.
@@ -64,7 +65,7 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [ ] `breakwater audit <repo> --base <ref> --head <ref> --target <symbol>` → JSON + Markdown report.
 - [x] Static web report v1 (`breakwater site`, `src/breakwater/site/`): overview with arms vs known regressions, a page per PR with verdict, counterexample cards (adjudication label, votes, quoted evidence, reproduce command), perf ladder charts (inline SVG), receipts and image tags; source JSON under `data/`. Stdlib only, no network requests, deterministic. GitHub Pages workflow (manual trigger; publish only at submission) builds it from committed artifacts.
 - [x] Audit-run pages for the demo: `breakwater audit` writes `events.jsonl` (`events.py`), `live.html` (attack feed, phase stepper, "thinking" indicator, cost meter by tier, sandbox gauge, cards landing, perf families) and `report.html` at the end (plan, cards, perf, receipt by tier). `--live` serves it on localhost; `breakwater replay <run> --speed 4` replays a recorded run, labelled as a replay; `breakwater site --run <dir>` adds runs to the site.
-- [x] Demo run recorded on Token Factory: `artifacts/demo/pr1082-61967cca` (run 2026-10-09, BLOCK, $0.29; replay with `breakwater replay`).
+- [x] Demo run recorded on Token Factory with planner v3: `artifacts/demo/pr1082-61967cca` (replay with `breakwater replay`).
 - [ ] Perf: measure validity per ladder point and exclude invalid-dominated points from the verdict. In the demo run, the claimed-speedup family F2 (head ~0.36x on simple versions) is labelled `slower` because its generator emitted one invalid input (`1 + n % 8` inputs) at n=1024, where head's fast-path `int()` failure costs 2.2x.
 - [ ] Report v2: wall-clock CIs once finalist timing exists, generated pytest per card, merge near-duplicate classes.
 - [ ] Judge box: in-browser Pyodide "try your own version string" against base / PR / merged.

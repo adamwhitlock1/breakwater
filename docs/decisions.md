@@ -2,6 +2,25 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-09: Planner v3: attacks must predict a difference, checked against the old code
+- **What:**
+  - The plan schema leads with the false assumption, then base behaviour, head behaviour and a required `difference` kind (with an explicit "no difference expected" option).
+  - Attacks marked "no difference expected", or with identical base/head behaviour, are dropped before they take a slot.
+  - The prompt says path-mapping is not an attack, and asks Ultra to trace the old code on each example before claiming a difference.
+- **Why:** on Token Factory, Ultra's plans for #1082's intermediate commit mostly described which code path an input takes. `scripts/eval/planner_eval.py` probes each attack's own examples, with no search and no mutations. Results, 3 runs each:
+
+  | Prompt | Productive attacks | Runs whose plan alone exposes a class | Cost |
+  |---|---|---|---|
+  | v1 (original) | 0/15 | 0/3 | $0.11 |
+  | v2 (schema + drop) | 4/13 | 2/3 | $0.08 |
+  | v3 (+ trace the old code) | 7/15 | 3/3 | $0.14 |
+
+  Earlier "planner finds the bug" results came from the full pipeline (search and mutations), not the plan alone.
+- **Caveats:**
+  - n=3 per version on one PR, so these are directional numbers.
+  - The backtest ran with v1, so its llm-plan arm (5/9) measures v1.
+- **Reverse if:** a backtest re-run with v3 shows fewer known issues caught than v1.
+
 ## 2026-10-09: The perf archive records who proposed each family
 - **What:** archive entries carry `proposed_by` (provider of the run that first proposed the family; existing entries backfilled from the ledger: 67 Token Factory, 8 OpenRouter). Token Factory runs re-screen only Token Factory-proposed families; dev runs may use any.
 - **Why:** the archive is what keeps good finds across runs (the demo run's 2.76x family came from it), but a publishable run must not contain inputs a non-Token-Factory model proposed. Turning the archive off for publishable runs threw away 67 legitimate families and gave a weak demo plan.

@@ -1,617 +1,530 @@
-{"seq": 1, "t": 0.09, "kind": "run", "run_id": "16dbaa098b06", "repo": "https://github.com/pypa/packaging", "base": "59f183fe90da403e41eef339ce9088bda0fe4cd3", "head": "61967cca278dc51389b8973ba65bbbf23eaa3eda", "target": "packaging.version:Version", "title": "perf: fast path for simple versions (intermediate commit 61967cca)", "provider": "tokenfactory"}
-{"seq": 2, "t": 0.09, "kind": "phase", "name": "build"}
-{"seq": 3, "t": 0.28, "kind": "phase", "name": "plan"}
-{"seq": 4, "t": 0.28, "kind": "llm-start", "tier": "reasoning", "purpose": "plan", "requests": 1}
-{"seq": 5, "t": 61.51, "kind": "llm", "tier": "reasoning", "model": "nvidia/Nemotron-3-Ultra-550b-a55b", "purpose": "plan", "tokens_in": 7891, "tokens_out": 36922, "reasoning_tokens": 3092, "usd": 0.118657, "latency_ms": 61219, "ok": true}
-{"seq": 6, "t": 61.51, "kind": "plan", "attacks": [{"id": "A1", "assumption": "Base version (before change) parses the string via the full PEP‑440 regex (_Version._regex) and builds a Version object. Head version (after change) takes the fast‑path branch because the indicator set is disjoint, splits on '.' and converts each component to int, then returns early.", "why_it_breaks": "Both paths should produce an identical Version object (epoch=0, release tuple of ints, no pre/post/dev/local parts). The only observable difference is performance; observable behaviour (public API, __str__, comparisons) should be identical.", "input_family": "Simple numeric dot‑only versions (PEP‑440 release segments) containing only digits and '.' characters.", "examples": [["1"], ["1.0"], ["1.2.3"], ["0.0.0"]]}, {"id": "A2", "assumption": "Fast‑path branch executes because `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)` is True.", "why_it_breaks": "The new fast‑path parses the version by `tuple(map(int, version.strip().split('.')))`, sets epoch=0, pre/post/dev/local=None and returns early. The original code took the full PEP‑440 regex path. Both paths produce the same public attributes (epoch=0, release tuple of ints, pre/post/dev/local = None), so observable behavior is identical but the fast‑path is faster.", "input_family": "Simple numeric dotted versions, possibly with leading zeros or surrounding whitespace.", "examples": [["1.2.3"], ["001.02"], ["  2.3.4  "], ["10"], ["0.0.0"]]}, {"id": "A3", "assumption": "Both base and head versions take the original regex‑based parsing path because the fast‑path guard `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)` evaluates to False.", "why_it_breaks": "Behaviour should be identical to the pre‑change implementation: full PEP‑440 parsing, same Version object, same public API, same ordering semantics.", "input_family": "PEP‑440 versions containing any non‑numeric/dot indicator (pre‑release, post‑release, dev, epoch, local version, separators '-', '_', '+', letters, etc.).", "examples": [["1.2.3a1"], ["1!2.3.4"], ["1.2.3+local"], ["1.0.dev1"], ["1.2.3.post1"]]}, {"id": "A4", "assumption": "Fast‑path condition fails, execution falls through to the original regex‑based parser (the pre‑change code path).", "why_it_breaks": "Behavior is unchanged from the original implementation – all PEP‑440 features (epoch, pre, post, dev, local, etc.) are parsed by the regex path exactly as before. The fast‑path is simply bypassed.", "input_family": "All non‑simple PEP 440 versions (pre‑release, post‑release, dev, epoch, local, leading ‘v’, separators).", "examples": [["1.2.3a1"], ["1!2.3.4"], ["1.2.3+local"], ["v1.2.3"], ["1.2-rc1"]]}, {"id": "A5", "assumption": "Base version runs the full regex; the pattern fails to match, the constructor raises `InvalidVersion`. Head version takes the fast‑path because the indicator set is disjoint, attempts `tuple(map(int, version.strip().split('.')))`. Converting a component like \"3f\" to `int` raises `ValueError`, which the fast‑path catches and re‑raises as `InvalidVersion`.", "why_it_breaks": "Both paths raise `InvalidVersion`, but the exception originates from a `ValueError` in the fast path instead of a regex‑match failure. If user code catches `ValueError` separately, behaviour changes. Also the error message differs (`\"invalid literal for int()\"` vs the original `\"Invalid version\"`).", "input_family": "Invalid version strings composed only of digits, dots, and letters outside the indicator set (letters not used by PEP‑440).", "examples": [["1.2.3f"], ["2.0g"], ["3.4.5XYZ"]]}]}
-{"seq": 7, "t": 61.51, "kind": "phase", "name": "generate"}
-{"seq": 8, "t": 61.51, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A1", "requests": 2}
-{"seq": 9, "t": 64.25, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A1", "tokens_in": 832, "tokens_out": 314, "reasoning_tokens": 0, "usd": 0.00012528, "latency_ms": 2741, "ok": true}
-{"seq": 10, "t": 64.95, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A1", "tokens_in": 832, "tokens_out": 123, "reasoning_tokens": 0, "usd": 7.944e-05, "latency_ms": 3443, "ok": true}
-{"seq": 11, "t": 64.96, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A2", "requests": 2}
-{"seq": 12, "t": 67.3, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A2", "tokens_in": 841, "tokens_out": 141, "reasoning_tokens": 0, "usd": 8.43e-05, "latency_ms": 2347, "ok": true}
-{"seq": 13, "t": 73.62, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A2", "tokens_in": 841, "tokens_out": 616, "reasoning_tokens": 0, "usd": 0.00019830000000000002, "latency_ms": 8665, "ok": true}
-{"seq": 14, "t": 73.62, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A3", "requests": 2}
-{"seq": 15, "t": 74.94, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A3", "tokens_in": 834, "tokens_out": 72, "reasoning_tokens": 0, "usd": 6.732e-05, "latency_ms": 1310, "ok": true}
-{"seq": 16, "t": 82.15, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A3", "tokens_in": 834, "tokens_out": 601, "reasoning_tokens": 0, "usd": 0.00019427999999999996, "latency_ms": 8526, "ok": true}
-{"seq": 17, "t": 82.16, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A4", "requests": 2}
-{"seq": 18, "t": 84.39, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A4", "tokens_in": 823, "tokens_out": 331, "reasoning_tokens": 0, "usd": 0.00012882, "latency_ms": 2231, "ok": true}
-{"seq": 19, "t": 84.77, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A4", "tokens_in": 823, "tokens_out": 418, "reasoning_tokens": 0, "usd": 0.00014969999999999998, "latency_ms": 2607, "ok": true}
-{"seq": 20, "t": 84.77, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A5", "requests": 2}
-{"seq": 21, "t": 86.77, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A5", "tokens_in": 870, "tokens_out": 294, "reasoning_tokens": 0, "usd": 0.00012276, "latency_ms": 2001, "ok": true}
-{"seq": 22, "t": 87.13, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A5", "tokens_in": 870, "tokens_out": 199, "reasoning_tokens": 0, "usd": 9.996e-05, "latency_ms": 2356, "ok": true}
-{"seq": 23, "t": 87.13, "kind": "strategies", "jobs": [{"id": "A1/s1", "attack": "A1", "valid": false, "error": "imports are not allowed", "source": "import st\nstrategy = st.tuples(\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",),\n            blacklist_characters=\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\"\n        ),\n        min_size=1,\n        max_size=4\n    ),\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",),\n            blacklist_characters=\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\"\n        ),\n        min_size=0,\n        max_size=1\n    )\n).filter(lambda args: all(c.isdigit() or c == '.' for c in args[0] + '.' + args[1]))"}, {"id": "A1/s2", "attack": "A1", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.integers(min_value=0, max_value=999),\n    st.lists(\n        st.integers(min_value=0, max_value=999),\n        min_size=1,\n        max_size=4\n    )\n).map(lambda parts: \".\".join(str(p) for p in parts))"}, {"id": "A1/s3", "attack": "A1", "valid": false, "error": "syntax error: invalid syntax (line 2)", "source": "# Generate simple dot-separated numeric version strings.\n// No letters, no special indicators => triggers the fast-path.\nst.text(\n    alphabet=string.digits + \".\",\n    min_size=1,\n    max_size=3,\n).filter(lambda s: s[0] not in \".-\").map(lambda s: [s])"}, {"id": "A1/s4", "attack": "A1", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.integers(min_value=0, max_value=999),\n    st.lists(\n        st.integers(min_value=0, max_value=999),\n        min_size=1,\n        max_size=3,\n    ),\n    st.just(\".\"),\n).map(lambda args: \".\".join(str(c) for c in args[1:]) if args[0] == 0 else f\"{args[0]}.{'.'.join(str(c) for c in args[1:])}\")"}, {"id": "A2/s1", "attack": "A2", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=st.characters(whitelist_categories=(\"Nd\",)),\n        min_size=1,\n        max_size=3,\n    ).map(lambda s: s.strip()),\n    st.integers(min_value=0, max_value=999),\n    st.integers(min_value=0, max_value=999),\n    st.integers(min_value=0, max_value=999),\n).map(lambda args: (\".\".join(str(x) for x in args[:3]) if len(args) >= 3 else \".\".join(str(x) for x in args)))"}, {"id": "A2/s2", "attack": "A2", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.digits + \".\",\n        min_size=1,\n max_size=3,\n    ).map(lambda s: s.strip()),\n    st.integers(min_value=0, max_value=999),\n).map(lambda args: (args[0],) if len(args) == 1 else args)"}, {"id": "A2/s3", "attack": "A2", "valid": false, "error": "syntax error: invalid syntax (line 32)", "source": "st.one_of(\n    st.text(st.integers(min_value=0, max_value=9999), min_size=1, max_size=1),\n    st.text(st.integers(min_value=0, max_value=9999), min_size=1, max_size=1).map(lambda s: s.lstrip('0') or '0').example(\"with zero strip\"),\n    st.text(st.just('.').map(st.none), st.just('.').map(st.none))  # not used directly but shows tuple structure\n)\n# Simpler and more direct:\nstrategy = st.lists(\n    st.integers(min_value=0, max_value=9999),\n    min_size=1,\n    max_size=4\n).map(lambda parts: \".\".join(str(p) for p in parts))\n# Allow leading zeros by using text for the whole version string\nstrategy = st.text(\n    st.characters(\n        blacklist_categories=('Cs',),\n        blacklist_characters='!+-ABCDEHILOPRSTVW_abcdehiloprstvw'\n    ),\n    min_size=1\n).map(lambda s: s.strip())\n# Refined to exactly match the input family generation needs:\nstrategy = st.text(\n    st.integers(min_value=0, max_value=99999),\n    min_size=1,\n    max_size=5\n).map(lambda n: str(n)).example(\"1.2.3\")  # placeholder, not valid hypothesis\n# Correct final strategy:\nstrategy = st.text(\n    alphabet=st.characters(blacklist_categories=('Cs',)),\n    min_size=1,\n    max_size=30\n).filter(lambda s: s.strip() and all(c.isdigit() or c == '.' for c in s.strip()))\n---"}, {"id": "A2/s4", "attack": "A2", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=st.characters(blacklist_characters=\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\", mode=\"string\"),\n        min_size=1,\n        max_size=4,\n    ).map(lambda s: s.strip()),\n    st.integers(min_value=0, max_value=999),\n    st.integers(min_value=0, max_value=999),\n    st.integers(min_value=0, max_value=999),\n).map(lambda args: (\".\".join(str(n) for n in args),))"}, {"id": "A3/s1", "attack": "A3", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",), whitelist_characters=\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw0123456789.\"\n        ),\n        min_size=1,\n        max_size=40,\n    ),\n    st.just(None),\n)"}, {"id": "A3/s2", "attack": "A3", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.digits + \"abcdefghijklmnopqrstuvwxyz.-_+!v\",\n        min_size=1,\n        max_size=40,\n    ),\n    st.just(\",\"),\n).map(lambda args: args[0])"}, {"id": "A3/s3", "attack": "A3", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.one_of(\n        st.text(string.digits),\n        st.text(string.digits, min_size=1, max_size=3).example(\"1.2.3\"),\n        st.text(\"!\").example(\"1!2.3.4\"),\n        st.text(\"-\").example(\"1.2.3a1\"),\n        st.text(\"_\").example(\"1.2.3_dev1\"),\n        st.text(\"+\").example(\"1.2.3+local\"),\n        st.text(\"alpha\").example(\"1.2.3a1\"),\n        st.text(\"beta\").example(\"1.2.3b1\"),\n        st.text(\"rc\").example(\"1.2.3rc1\"),\n        st.text(\"dev\").example(\"1.0.dev1\"),\n        st.text(\"post\").example(\"1.2.3.post1\"),\n        st.text(\"c\").example(\"1.2.3c1\"),\n        st.text(\"pre\").example(\"1.2.3pre1\"),\n        st.text(\"preview\").example(\"1.2.3preview1\"),\n        st.text(\"h\").example(\"1.2.3h1\"),\n        st.text(\"I\").example(\"1I2.3.4\"),\n        st.text(\"L\").example(\"1L2.3.4\"),\n        st.text(\"O\").example(\"1O2.3.4\"),\n        st.text(\"P\").example(\"1P2.3.4\"),\n        st.text(\"R\").example(\"1R2.3.4\"),\n        st.text(\"S\").example(\"1S2.3.4\"),\n        st.text(\"T\").example(\"1T2.3.4\"),\n        st.text(\"V\").example(\"1V2.3.4\"),\n        st.text(\"W\").example(\"1W2.3.4\"),\n        st.text(\"E\").example(\"1E2.3.4\"),\n    ),\n    min_size=1,\n    max_size=1,\n).map(lambda lst: lst[0])"}, {"id": "A3/s4", "attack": "A3", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.ascii_letters + string.digits + \"+-._\",\n        min_size=1,\n        max_size=60,\n    ),\n    st.none() | st.integers(min_value=0, max_value=999),\n)"}, {"id": "A4/s1", "attack": "A4", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.sampled_from([\n        \"1.2.3a1\",\n        \"1!2.3.4\",\n        \"1.2.3+local\",\n        \"v1.2.3\",\n        \"1.2-rc1\",\n        \"2.0.0.dev1\",\n        \"1.0.post1\",\n        \"1!3.2.1.dev4+local\",\n        \"v0.1.0a0+local.1\",\n        \"1.2.3_abc\",\n    ]),\n    st.integers(0, 2),  # number of extra arguments (not used, kept for structure)\n)"}, {"id": "A4/s2", "attack": "A4", "valid": true, "error": null, "source": "strategy = st.one_of(\n    st.lists(\n        st.integers(min_value=0, max_value=999),\n        min_size=1,\n        max_size=4,\n    ).map(lambda parts: \".\".join(map(str, parts))),\n    st.text(\n        alphabet=string.ascii_letters + string.digits + \"!+-._\",\n        min_size=1,\n    ).filter(lambda s: any(c in \"_NON_SIMPLE_VERSION_INDICATORS\" for c in s)),\n)"}, {"id": "A4/s3", "attack": "A4", "valid": true, "error": null, "source": "strategy = st.one_of(\n    st.text(alphabet=string.ascii_letters + string.digits + \"!+-=._\", min_size=1).example(condition=lambda s: any(c in s for c in \"!+-=._\")),\n    st.text(alphabet=string.digits + \".\", min_size=1).example(lambda s: s.count(\".\") >= 1),\n    st.text(alphabet=string.digits, min_size=1),\n    st.just(\"v1.2.3\"),\n    st.text(alphabet=string.ascii_letters + string.digits + \"-\", min_size=1).example(lambda s: \"-rc\" in s or \"-dev\" in s),\n)"}, {"id": "A4/s4", "attack": "A4", "valid": true, "error": null, "source": "strategy = st.one_of(\n    # Pre-release tags (alpha, beta, rc, etc.)\n    st.text(alphabet=st.characters(blacklist_characters='!?@#$%^&*(){}[]|\\\\;:\"<>,./ ')).map(lambda s: \"1.2.3\" + s).filter(lambda v: any(c in v for c in \"abrcpP\")),\n    # Epoch indicator\n    st.integers(min_value=1, max_value=99999).map(lambda e: f\"{e}!1.2.3\"),\n    # Local version with '+'\n    st.text(alphabet=st.characters(blacklist_characters='!?@#$%^&*(){}[]|\\\\;:\"<>,./ ')).map(lambda s: \"1.2.3+local\" + s).filter(lambda v: \"+\" in v),\n    # Leading 'v'\n    st.text(alphabet=st.characters(blacklist_characters='!?@#$%^&*(){}[]|\\\\;:\"<>,./ ')).map(lambda s: \"v\" + s).filter(lambda v: v.startswith(\"v\")),\n    # Separators and other non-simple indicators\n    st.text(alphabet=st.characters(blacklist_characters='!?@#$%^&*(){}[]|\\\\;:\"<>,./ ')).map(lambda s: \"1.2.3-\" + s).filter(lambda v: \"-\" in v),\n)"}, {"id": "A5/s1", "attack": "A5", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.text(\n        alphabet=st.characters(blacklist_characters='\\d.'),\n        min_size=1,\n        max_size=3,\n    ),\n    min_size=1,\n    max_size=1,\n).map(lambda parts: '.'.join(parts))"}, {"id": "A5/s2", "attack": "A5", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.text(\n        alphabet=string.ascii_letters + string.digits + \".-\",\n        min_size=1,\n        max_size=10,\n    ),\n    min_size=1,\n    max_size=5,\n).map(lambda parts: \".\".join(parts))"}, {"id": "A5/s3", "attack": "A5", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.lists(\n        st.sampled_from([\n            \"1.2.3f\", \"2.0g\", \"3.4.5XYZ\", \"1.2.3a\", \"4.5.6b\", \"7.8.9rc1\",\n            \"10.11.12\", \"1.0.0dev1\", \"1.0.0post1\", \"1.0.0alpha\", \"1.0.0beta1\",\n            \"1.0.0c1\", \"1.0.0preview\", \"1.0.0r1\", \"1.0.0rev1\"\n        ])\n    )\n)"}, {"id": "A5/s4", "attack": "A5", "valid": true, "error": null, "source": "# Strategy generates invalid version strings that trigger the fast‑path ValueError.\n# It covers short/long digit‑only parts, mixed valid/invalid components,\n# and strings with/without leading/trailing dots to exercise the split logic.\nstrategy = st.tuples(\n    st.text(\n        alphabet=string.digits + string.ascii_letters,\n        min_size=1,\n        max_size=20\n    ).filter(lambda s: any(c.isalpha() for c in s)),  # at least one letter\n    st.integers(min_value=1, max_value=3)  # number of dot‑separated components\n).example(lambda a, n: \".\".join(a.split()[:n]) if n <= len(a.split()) else a)\n# The above tuple strategy yields a single string argument; wrap in list for\n# positional arg convention if needed: e.g. strategy = st.lists(...)"}]}
-{"seq": 24, "t": 87.13, "kind": "phase", "name": "search"}
-{"seq": 25, "t": 87.13, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 1}
-{"seq": 26, "t": 87.13, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 2}
-{"seq": 27, "t": 87.13, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 3}
-{"seq": 28, "t": 87.13, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 4}
-{"seq": 29, "t": 89.55, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 4, "cpu_s": 1.39, "exit_code": 0, "ms": 2414}
-{"seq": 30, "t": 89.55, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 5}
-{"seq": 31, "t": 89.55, "kind": "strategy", "id": "A1/s4", "examples": 300, "findings": 0, "error": null}
-{"seq": 32, "t": 89.58, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 5, "cpu_s": 2.81, "exit_code": 0, "ms": 2448}
-{"seq": 33, "t": 89.58, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 6}
-{"seq": 34, "t": 89.58, "kind": "strategy", "id": "A2/s2", "examples": 300, "findings": 0, "error": null}
-{"seq": 35, "t": 89.67, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 6, "cpu_s": 4.15, "exit_code": 0, "ms": 2531}
-{"seq": 36, "t": 89.67, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 7}
-{"seq": 37, "t": 89.67, "kind": "strategy", "id": "A1/s2", "examples": 300, "findings": 0, "error": null}
-{"seq": 38, "t": 89.78, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 7, "cpu_s": 5.72, "exit_code": 0, "ms": 2644}
-{"seq": 39, "t": 89.78, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 8}
-{"seq": 40, "t": 89.78, "kind": "finding", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii", "probe": "P2", "found_by": "Nemotron strategy search", "title": "Exception behaviour changed", "inputs": [["input", "Version(\"٠.0.0\")"]], "base": "raises InvalidVersion", "head": "returns normally", "base_exc": "packaging.version.InvalidVersion", "head_exc": ""}
-{"seq": 41, "t": 89.78, "kind": "strategy", "id": "A2/s1", "examples": 318, "findings": 1, "error": null}
-{"seq": 42, "t": 91.42, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 8, "cpu_s": 6.64, "exit_code": 0, "ms": 1864}
-{"seq": 43, "t": 91.42, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 9}
-{"seq": 44, "t": 91.42, "kind": "strategy", "id": "A2/s4", "examples": 0, "findings": 0, "error": "TypeError: characters() got an unexpected keyword argument 'mode'"}
-{"seq": 45, "t": 91.77, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 9, "cpu_s": 7.58, "exit_code": 0, "ms": 1988}
-{"seq": 46, "t": 91.77, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 10}
-{"seq": 47, "t": 91.77, "kind": "strategy", "id": "A3/s3", "examples": 0, "findings": 0, "error": "TypeError: SearchStrategy.example() takes 1 positional argument but 2 were given"}
-{"seq": 48, "t": 91.92, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 10, "cpu_s": 8.88, "exit_code": 0, "ms": 2335}
-{"seq": 49, "t": 91.92, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 11}
-{"seq": 50, "t": 91.92, "kind": "strategy", "id": "A3/s1", "examples": 278, "findings": 0, "error": "UnicodeEncodeError: 'utf-8' codec can't encode character '\\ud800' in position 156: surrogates not allowed"}
-{"seq": 51, "t": 92.11, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 11, "cpu_s": 10.14, "exit_code": 0, "ms": 2437}
-{"seq": 52, "t": 92.11, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 12}
-{"seq": 53, "t": 92.11, "kind": "strategy", "id": "A3/s2", "examples": 300, "findings": 0, "error": null}
-{"seq": 54, "t": 93.19, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 12, "cpu_s": 11.26, "exit_code": 0, "ms": 1770}
-{"seq": 55, "t": 93.19, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 13}
-{"seq": 56, "t": 93.19, "kind": "strategy", "id": "A3/s4", "examples": 300, "findings": 0, "error": null}
-{"seq": 57, "t": 93.5, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 13, "cpu_s": 12.21, "exit_code": 0, "ms": 1729}
-{"seq": 58, "t": 93.5, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 14}
-{"seq": 59, "t": 93.51, "kind": "strategy", "id": "A4/s1", "examples": 30, "findings": 0, "error": null}
-{"seq": 60, "t": 93.86, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 14, "cpu_s": 13.06, "exit_code": 0, "ms": 1754}
-{"seq": 61, "t": 93.86, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 15}
-{"seq": 62, "t": 93.86, "kind": "strategy", "id": "A4/s3", "examples": 0, "findings": 0, "error": "TypeError: SearchStrategy.example() got an unexpected keyword argument 'condition'"}
-{"seq": 63, "t": 94.27, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 15, "cpu_s": 14.41, "exit_code": 0, "ms": 2345}
-{"seq": 64, "t": 94.27, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 16}
-{"seq": 65, "t": 94.27, "kind": "strategy", "id": "A4/s2", "examples": 300, "findings": 0, "error": null}
-{"seq": 66, "t": 95.35, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 16, "cpu_s": 15.82, "exit_code": 0, "ms": 2158}
-{"seq": 67, "t": 95.35, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 17}
-{"seq": 68, "t": 95.35, "kind": "strategy", "id": "A4/s4", "examples": 137, "findings": 0, "error": "UnicodeEncodeError: 'utf-8' codec can't encode character '\\ud800' in position 162: surrogates not allowed"}
-{"seq": 69, "t": 96.92, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 17, "cpu_s": 18.23, "exit_code": 0, "ms": 3417}
-{"seq": 70, "t": 96.92, "kind": "strategy", "id": "A5/s1", "examples": 300, "findings": 0, "error": null}
-{"seq": 71, "t": 97.48, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 17, "cpu_s": 20.31, "exit_code": 0, "ms": 3612}
-{"seq": 72, "t": 97.48, "kind": "strategy", "id": "A5/s2", "examples": 300, "findings": 0, "error": null}
-{"seq": 73, "t": 97.63, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 17, "cpu_s": 22.16, "exit_code": 0, "ms": 3360}
-{"seq": 74, "t": 97.63, "kind": "finding", "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested", "probe": "P2", "found_by": "Nemotron strategy search", "title": "Exception behaviour changed", "inputs": [["input", "Version([])"]], "base": "raises TypeError", "head": "raises AttributeError", "base_exc": "builtins.TypeError", "head_exc": "builtins.AttributeError"}
-{"seq": 75, "t": 97.63, "kind": "strategy", "id": "A5/s3", "examples": 304, "findings": 1, "error": null}
-{"seq": 76, "t": 97.75, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 17, "cpu_s": 23.48, "exit_code": 0, "ms": 2397}
-{"seq": 77, "t": 97.75, "kind": "strategy", "id": "A5/s4", "examples": 0, "findings": 0, "error": "TypeError: SearchStrategy.example() takes 1 positional argument but 2 were given"}
-{"seq": 78, "t": 97.75, "kind": "phase", "name": "batch"}
-{"seq": 79, "t": 97.78, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 18}
-{"seq": 80, "t": 98.79, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 18, "cpu_s": 23.69, "exit_code": 0, "ms": 1008}
-{"seq": 81, "t": 98.79, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 19}
-{"seq": 82, "t": 99.47, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 19, "cpu_s": 23.88, "exit_code": 0, "ms": 673}
-{"seq": 83, "t": 99.47, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 20}
-{"seq": 84, "t": 100.14, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 20, "cpu_s": 24.05, "exit_code": 0, "ms": 667}
-{"seq": 85, "t": 100.15, "kind": "finding", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace", "probe": "P2", "found_by": "hostile mutation", "title": "Exception behaviour changed", "inputs": [["input", "Version(\"1. 0\")"]], "base": "raises InvalidVersion", "head": "returns normally", "base_exc": "packaging.version.InvalidVersion", "head_exc": ""}
-{"seq": 86, "t": 100.15, "kind": "finding", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits", "probe": "P2", "found_by": "hostile mutation", "title": "Exception behaviour changed", "inputs": [["input", "Version(\"100000000000000000000000000000000000000000…0000000000\" (4,301 chars))"]], "base": "raises ValueError", "head": "raises InvalidVersion", "base_exc": "builtins.ValueError", "head_exc": "packaging.version.InvalidVersion"}
-{"seq": 87, "t": 100.16, "kind": "finding", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+whitespace", "probe": "P2", "found_by": "hostile mutation", "title": "Exception behaviour changed", "inputs": [["input", "Version(\"  1000000000000000000000000000000000000000…0000.3.4  \" (4,309 chars))"]], "base": "raises ValueError", "head": "raises InvalidVersion", "base_exc": "builtins.ValueError", "head_exc": "packaging.version.InvalidVersion"}
-{"seq": 88, "t": 100.16, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 21}
-{"seq": 89, "t": 100.84, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 21, "cpu_s": 24.17, "exit_code": 0, "ms": 682}
-{"seq": 90, "t": 100.87, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 22}
-{"seq": 91, "t": 101.68, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 22, "cpu_s": 24.39, "exit_code": 0, "ms": 810}
-{"seq": 92, "t": 101.69, "kind": "batch", "inputs": 450, "mutations": 250, "focus": 55, "classes": 5}
-{"seq": 93, "t": 101.7, "kind": "phase", "name": "adjudicate"}
-{"seq": 94, "t": 101.88, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 23}
-{"seq": 95, "t": 102.4, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 23, "cpu_s": 24.46, "exit_code": 0, "ms": 514}
-{"seq": 96, "t": 102.4, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 24}
-{"seq": 97, "t": 103.05, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 24, "cpu_s": 24.64, "exit_code": 0, "ms": 649}
-{"seq": 98, "t": 103.05, "kind": "llm-start", "tier": "reasoning", "purpose": "adjudicate", "requests": 1}
-{"seq": 99, "t": 121.6, "kind": "llm", "tier": "reasoning", "model": "nvidia/Nemotron-3-Ultra-550b-a55b", "purpose": "adjudicate", "tokens_in": 8414, "tokens_out": 9436, "reasoning_tokens": 7176, "usd": 0.036722, "latency_ms": 18541, "ok": true}
-{"seq": 100, "t": 121.6, "kind": "verdict", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii", "label": "likely-bug", "votes": {"likely-bug": 3}, "rationale": "The fast‑path treats any string that lacks characters in `_NON_SIMPLE_VERSION_INDICATORS` as a simple numeric version and parses each dot‑separated segment with `int()`. The indicator set only contains ASCII letters and symbols; it does not contain Unicode digits such as Arabic‑Indic “١”. Consequently the Arabic digit passes the fast‑path, `int(\"١\")` succeeds, and a Version object is created, whereas the original regex‑based parser rejects it with `InvalidVersion`. This unintended acceptance of non‑ASCII digits is a regression.", "evidence": ["+_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")", "+            if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"]}
-{"seq": 101, "t": 121.6, "kind": "verdict", "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested", "label": "likely-bug", "votes": {"likely-bug": 3}, "rationale": "The fast‑path does not verify that `version` is a string before calling `isdisjoint` and `strip()`. Passing a non‑string (e.g., a list) makes `isdisjoint` succeed (the iterable contains no indicator characters) and then `version.strip()` raises `AttributeError`. The original code performed a type check and raised `TypeError`. This regression changes the exception type.", "evidence": ["+            if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):", "+                    self._release = tuple(map(int, version.strip().split(\".\")))"]}
-{"seq": 102, "t": 121.6, "kind": "verdict", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace", "label": "likely-bug", "votes": {"likely-bug": 3}, "rationale": "A version string containing a space (`\"1. 0\"`) contains no characters from `_NON_SIMPLE_VERSION_INDICATORS`, so the fast‑path is taken. `strip().split('.')` yields `[\"1\", \" 0\"]`; `int(\" 0\")` succeeds because Python’s `int` accepts leading spaces, producing a version `(1, 0)`. The original regex rejects the space and raises `InvalidVersion`. Accepting spaces contradicts PEP 440 and the fast‑path comment that only “numbers and dots” are allowed.", "evidence": ["+_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")", "+            if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"]}
-{"seq": 103, "t": 121.6, "kind": "verdict", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits", "label": "needs-human", "votes": {"likely-bug": 1, "intended": 1, "needs-human": 1}, "rationale": "For an extremely long numeric version the fast‑path parses each component with `int()` and builds a huge release tuple, then raises `InvalidVersion` (a subclass of `ValueError`) on any `ValueError`. The original regex path raises a plain `ValueError`. The exception type changes from `ValueError` to its subclass `InvalidVersion`, which is a behavioral change not described in the PR.", "evidence": []}
-{"seq": 104, "t": 121.6, "kind": "verdict", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+whitespace", "label": "needs-human", "votes": {"likely-bug": 1, "intended": 1, "needs-human": 1}, "rationale": "Passing a list containing a string triggers the fast‑path (the list contains no indicator characters), then `version.strip()` fails with `AttributeError`. The fast‑path catches `ValueError` and re‑raises `InvalidVersion`, but the `AttributeError` propagates unchanged, while the original code raised `TypeError`. The exception type changes, indicating a regression.", "evidence": []}
-{"seq": 105, "t": 121.6, "kind": "phase", "name": "perf-plan"}
-{"seq": 106, "t": 121.6, "kind": "llm-start", "tier": "reasoning", "purpose": "perf-plan", "requests": 1}
-{"seq": 107, "t": 182.96, "kind": "llm", "tier": "reasoning", "model": "nvidia/Nemotron-3-Ultra-550b-a55b", "purpose": "perf-plan", "tokens_in": 7781, "tokens_out": 40568, "reasoning_tokens": 7174, "usd": 0.129485, "latency_ms": 61354, "ok": true}
-{"seq": 108, "t": 182.96, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F1", "requests": 1}
-{"seq": 109, "t": 183.49, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F1", "tokens_in": 326, "tokens_out": 75, "reasoning_tokens": 0, "usd": 3.756e-05, "latency_ms": 527, "ok": true}
-{"seq": 110, "t": 183.49, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F2", "requests": 1}
-{"seq": 111, "t": 183.96, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F2", "tokens_in": 293, "tokens_out": 63, "reasoning_tokens": 0, "usd": 3.2699999999999995e-05, "latency_ms": 476, "ok": true}
-{"seq": 112, "t": 183.96, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F3", "requests": 1}
-{"seq": 113, "t": 184.9, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F3", "tokens_in": 241, "tokens_out": 189, "reasoning_tokens": 0, "usd": 5.982e-05, "latency_ms": 930, "ok": true}
-{"seq": 114, "t": 184.9, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F4", "requests": 1}
-{"seq": 115, "t": 186.05, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F4", "tokens_in": 361, "tokens_out": 252, "reasoning_tokens": 0, "usd": 8.214e-05, "latency_ms": 1154, "ok": true}
-{"seq": 116, "t": 186.05, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F5", "requests": 1}
-{"seq": 117, "t": 186.4, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F5", "tokens_in": 318, "tokens_out": 23, "reasoning_tokens": 0, "usd": 2.4599999999999998e-05, "latency_ms": 348, "ok": true}
-{"seq": 118, "t": 186.4, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F6", "requests": 1}
-{"seq": 119, "t": 188.3, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F6", "tokens_in": 285, "tokens_out": 482, "reasoning_tokens": 0, "usd": 0.00013278, "latency_ms": 1898, "ok": true}
-{"seq": 120, "t": 188.31, "kind": "phase", "name": "perf-screen"}
-{"seq": 121, "t": 188.31, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 25}
-{"seq": 122, "t": 188.31, "kind": "family", "id": "F4", "family_kind": "suspected_slowdown", "family": "The fast‑path only checks that none of the indicator characters appear.  Characters such as '~', '^', '@', '#', '$', '%', '`', '|', '\\', ':', ';', '\"', \"'\", '<'", "origin": "plan", "screen_ratio": null, "valid_fraction": null, "error": "make(n) rejected: syntax error: unterminated string literal (detected at line 5) (line 5)"}
-{"seq": 123, "t": 188.31, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 26}
-{"seq": 124, "t": 188.31, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 27}
-{"seq": 125, "t": 188.31, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 28}
-{"seq": 126, "t": 190.24, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 28, "cpu_s": 25.54, "exit_code": 0, "ms": 1928}
-{"seq": 127, "t": 190.24, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 29}
-{"seq": 128, "t": 190.32, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 29, "cpu_s": 26.56, "exit_code": 0, "ms": 2011}
-{"seq": 129, "t": 190.32, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 30}
-{"seq": 130, "t": 190.4, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 30, "cpu_s": 27.52, "exit_code": 0, "ms": 2087}
-{"seq": 131, "t": 190.4, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 31}
-{"seq": 132, "t": 190.47, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 31, "cpu_s": 28.47, "exit_code": 0, "ms": 2158}
-{"seq": 133, "t": 190.47, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 32}
-{"seq": 134, "t": 191.61, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 32, "cpu_s": 28.61, "exit_code": 0, "ms": 1365}
-{"seq": 135, "t": 191.61, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 33}
-{"seq": 136, "t": 191.73, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 33, "cpu_s": 28.76, "exit_code": 0, "ms": 1331}
-{"seq": 137, "t": 191.73, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 34}
-{"seq": 138, "t": 191.83, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 34, "cpu_s": 28.87, "exit_code": 0, "ms": 1505}
-{"seq": 139, "t": 191.83, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 35}
-{"seq": 140, "t": 191.91, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 35, "cpu_s": 28.97, "exit_code": 0, "ms": 1444}
-{"seq": 141, "t": 191.91, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 36}
-{"seq": 142, "t": 197.4, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 36, "cpu_s": 33.52, "exit_code": 0, "ms": 5787}
-{"seq": 143, "t": 197.4, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 37}
-{"seq": 144, "t": 197.46, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 37, "cpu_s": 37.92, "exit_code": 0, "ms": 5732}
-{"seq": 145, "t": 197.46, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 38}
-{"seq": 146, "t": 197.68, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 38, "cpu_s": 42.27, "exit_code": 0, "ms": 5847}
-{"seq": 147, "t": 197.68, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 39}
-{"seq": 148, "t": 198.19, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 39, "cpu_s": 46.76, "exit_code": 0, "ms": 6270}
-{"seq": 149, "t": 198.19, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 40}
-{"seq": 150, "t": 203.31, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 40, "cpu_s": 51.53, "exit_code": 0, "ms": 5846}
-{"seq": 151, "t": 203.31, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 41}
-{"seq": 152, "t": 203.56, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 41, "cpu_s": 56.59, "exit_code": 0, "ms": 6159}
-{"seq": 153, "t": 203.56, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 42}
-{"seq": 154, "t": 204.18, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 42, "cpu_s": 61.33, "exit_code": 0, "ms": 6498}
-{"seq": 155, "t": 204.18, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 43}
-{"seq": 156, "t": 205.14, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 43, "cpu_s": 66.79, "exit_code": 0, "ms": 6949}
-{"seq": 157, "t": 205.14, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 44}
-{"seq": 158, "t": 212.87, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 44, "cpu_s": 74.33, "exit_code": 0, "ms": 9554}
-{"seq": 159, "t": 212.87, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 45}
-{"seq": 160, "t": 213.31, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 45, "cpu_s": 81.29, "exit_code": 0, "ms": 9750}
-{"seq": 161, "t": 213.31, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 46}
-{"seq": 162, "t": 213.53, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 46, "cpu_s": 88.03, "exit_code": 0, "ms": 9349}
-{"seq": 163, "t": 213.53, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 47}
-{"seq": 164, "t": 214.3, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 47, "cpu_s": 93.3, "exit_code": 0, "ms": 9160}
-{"seq": 165, "t": 214.3, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 48}
-{"seq": 166, "t": 218.32, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 48, "cpu_s": 97.77, "exit_code": 0, "ms": 5442}
-{"seq": 167, "t": 218.32, "kind": "family", "id": "F5", "family_kind": "suspected_slowdown", "family": "correctness", "origin": "plan", "screen_ratio": 1.038385853336385, "valid_fraction": 1.0, "error": null}
-{"seq": 168, "t": 218.32, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 49}
-{"seq": 169, "t": 218.9, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 49, "cpu_s": 102.17, "exit_code": 0, "ms": 5584}
-{"seq": 170, "t": 218.9, "kind": "family", "id": "F1", "family_kind": "claimed_speedup", "family": "performance", "origin": "plan", "screen_ratio": 0.4507125050731476, "valid_fraction": 1.0, "error": null}
-{"seq": 171, "t": 218.9, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 50}
-{"seq": 172, "t": 218.97, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 50, "cpu_s": 106.44, "exit_code": 0, "ms": 5438}
-{"seq": 173, "t": 218.97, "kind": "family", "id": "F2", "family_kind": "claimed_speedup", "family": "Added a fast‑path that detects a \"simple\" version (only digits and dots) by testing that none of the characters in `_NON_SIMPLE_VERSION_INDICATORS` appear in th", "origin": "plan", "screen_ratio": 0.36565253333051617, "valid_fraction": 1.0, "error": null}
-{"seq": 174, "t": 218.97, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 51}
-{"seq": 175, "t": 220.04, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 51, "cpu_s": 107.12, "exit_code": 0, "ms": 1716}
-{"seq": 176, "t": 220.05, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 52}
-{"seq": 177, "t": 220.37, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 52, "cpu_s": 111.65, "exit_code": 0, "ms": 6070}
-{"seq": 178, "t": 220.37, "kind": "family", "id": "F3", "family_kind": "suspected_slowdown", "family": "correctness", "origin": "plan", "screen_ratio": 0.44865222356634454, "valid_fraction": 1.0, "error": null}
-{"seq": 179, "t": 220.37, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 53}
-{"seq": 180, "t": 220.7, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 53, "cpu_s": 112.73, "exit_code": 0, "ms": 1801}
-{"seq": 181, "t": 220.7, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 54}
-{"seq": 182, "t": 221.13, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 54, "cpu_s": 113.85, "exit_code": 0, "ms": 2159}
-{"seq": 183, "t": 221.13, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 55}
-{"seq": 184, "t": 221.21, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 55, "cpu_s": 113.97, "exit_code": 0, "ms": 1162}
-{"seq": 185, "t": 221.21, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 56}
-{"seq": 186, "t": 222.26, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 56, "cpu_s": 114.11, "exit_code": 0, "ms": 1555}
-{"seq": 187, "t": 222.26, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 57}
-{"seq": 188, "t": 222.49, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 57, "cpu_s": 115.04, "exit_code": 0, "ms": 2110}
-{"seq": 189, "t": 222.49, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 58}
-{"seq": 190, "t": 222.61, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 58, "cpu_s": 115.18, "exit_code": 0, "ms": 1470}
-{"seq": 191, "t": 222.61, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 59}
-{"seq": 192, "t": 224.07, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 59, "cpu_s": 115.31, "exit_code": 0, "ms": 1578}
-{"seq": 193, "t": 224.07, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 60}
-{"seq": 194, "t": 228.61, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 60, "cpu_s": 121.14, "exit_code": 0, "ms": 7389}
-{"seq": 195, "t": 228.61, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 61}
-{"seq": 196, "t": 229.05, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 61, "cpu_s": 126.59, "exit_code": 0, "ms": 6792}
-{"seq": 197, "t": 229.05, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 62}
-{"seq": 198, "t": 229.47, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 62, "cpu_s": 132.09, "exit_code": 0, "ms": 6862}
-{"seq": 199, "t": 229.47, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 63}
-{"seq": 200, "t": 230.06, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 63, "cpu_s": 137.12, "exit_code": 0, "ms": 5989}
-{"seq": 201, "t": 230.06, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 64}
-{"seq": 202, "t": 235.16, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 64, "cpu_s": 142.9, "exit_code": 0, "ms": 6551}
-{"seq": 203, "t": 235.16, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 65}
-{"seq": 204, "t": 235.74, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 65, "cpu_s": 148.52, "exit_code": 0, "ms": 6686}
-{"seq": 205, "t": 235.74, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 66}
-{"seq": 206, "t": 236.21, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 66, "cpu_s": 154.29, "exit_code": 0, "ms": 6734}
-{"seq": 207, "t": 236.21, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 67}
-{"seq": 208, "t": 237.08, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 67, "cpu_s": 159.98, "exit_code": 0, "ms": 7015}
-{"seq": 209, "t": 237.08, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 68}
-{"seq": 210, "t": 241.9, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 68, "cpu_s": 165.5, "exit_code": 0, "ms": 6736}
-{"seq": 211, "t": 241.9, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 69}
-{"seq": 212, "t": 242.44, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 69, "cpu_s": 170.84, "exit_code": 0, "ms": 6701}
-{"seq": 213, "t": 242.45, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 70}
-{"seq": 214, "t": 242.6, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 70, "cpu_s": 176.14, "exit_code": 0, "ms": 6386}
-{"seq": 215, "t": 242.6, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 71}
-{"seq": 216, "t": 243.15, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 71, "cpu_s": 181.3, "exit_code": 0, "ms": 6070}
-{"seq": 217, "t": 243.15, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 72}
-{"seq": 218, "t": 247.06, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 72, "cpu_s": 185.77, "exit_code": 0, "ms": 5164}
-{"seq": 219, "t": 247.06, "kind": "family", "id": "F6", "family_kind": "suspected_slowdown", "family": "The fast‑path code is placed at the very start of `Version.__init__` (before the `isinstance(version, Version)` guard that the original code had).  If a `Versio", "origin": "plan", "screen_ratio": 0.7294628021392376, "valid_fraction": 0.375, "error": null}
-{"seq": 220, "t": 247.06, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 73}
-{"seq": 221, "t": 247.42, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 73, "cpu_s": 190.06, "exit_code": 0, "ms": 4973}
-{"seq": 222, "t": 247.42, "kind": "family", "id": "R1", "family_kind": "suspected_slowdown", "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.", "origin": "archive", "screen_ratio": 2.0933183121944663, "valid_fraction": 0.0, "error": null}
-{"seq": 223, "t": 247.67, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 73, "cpu_s": 194.36, "exit_code": 0, "ms": 5073}
-{"seq": 224, "t": 247.67, "kind": "family", "id": "R2", "family_kind": "suspected_slowdown", "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"", "origin": "archive", "screen_ratio": 2.0933183121944663, "valid_fraction": 0.0, "error": null}
-{"seq": 225, "t": 248.19, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 73, "cpu_s": 194.98, "exit_code": 0, "ms": 1119}
-{"seq": 226, "t": 248.19, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 74}
-{"seq": 227, "t": 248.35, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 74, "cpu_s": 199.33, "exit_code": 0, "ms": 5190}
-{"seq": 228, "t": 248.35, "kind": "family", "id": "R3", "family_kind": "suspected_slowdown", "family": "Each numeric chunk increases digit count linearly while keeping total chunks fixed", "origin": "archive", "screen_ratio": 1.2735706618996405, "valid_fraction": 1.0, "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"}
-{"seq": 229, "t": 248.97, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 74, "cpu_s": 199.48, "exit_code": 0, "ms": 774}
-{"seq": 230, "t": 248.97, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 75}
-{"seq": 231, "t": 253.59, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 75, "cpu_s": 203.64, "exit_code": 0, "ms": 4618}
-{"seq": 232, "t": 253.59, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 76}
-{"seq": 233, "t": 258.36, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 76, "cpu_s": 207.97, "exit_code": 0, "ms": 4770}
-{"seq": 234, "t": 258.36, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 77}
-{"seq": 235, "t": 262.88, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 77, "cpu_s": 211.89, "exit_code": 0, "ms": 4523}
-{"seq": 236, "t": 262.89, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 78}
-{"seq": 237, "t": 267.33, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 78, "cpu_s": 215.94, "exit_code": 0, "ms": 4442}
-{"seq": 238, "t": 267.33, "kind": "family", "id": "R4", "family_kind": "suspected_slowdown", "family": "Single repeated segment \"999.\" n times plus prerelease c5", "origin": "archive", "screen_ratio": 1.1387213463857293, "valid_fraction": 1.0, "error": null}
-{"seq": 239, "t": 267.33, "kind": "phase", "name": "perf-expand"}
-{"seq": 240, "t": 267.33, "kind": "llm-start", "tier": "proposer", "purpose": "perf-expand:R3", "requests": 1}
-{"seq": 241, "t": 269.66, "kind": "llm", "tier": "proposer", "model": "nvidia/nemotron-3-super-120b-a12b", "purpose": "perf-expand:R3", "tokens_in": 370, "tokens_out": 339, "reasoning_tokens": 0, "usd": 0.00041610000000000003, "latency_ms": 2328, "ok": true}
-{"seq": 242, "t": 269.66, "kind": "llm-start", "tier": "proposer", "purpose": "perf-expand:R4", "requests": 1}
-{"seq": 243, "t": 270.51, "kind": "llm", "tier": "proposer", "model": "nvidia/nemotron-3-super-120b-a12b", "purpose": "perf-expand:R4", "tokens_in": 356, "tokens_out": 68, "reasoning_tokens": 0, "usd": 0.000168, "latency_ms": 840, "ok": true}
-{"seq": 244, "t": 270.51, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 79}
-{"seq": 245, "t": 270.51, "kind": "family", "id": "R3.3", "family_kind": "suspected_slowdown", "family": "Pre-release part also scales with n via increasing alphabetical repetition", "origin": "expand:R3", "screen_ratio": null, "valid_fraction": null, "error": "make(n) rejected: syntax error: unmatched ')' (line 6)"}
-{"seq": 246, "t": 270.51, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 80}
-{"seq": 247, "t": 270.52, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 81}
-{"seq": 248, "t": 271.53, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 81, "cpu_s": 216.52, "exit_code": 0, "ms": 1012}
-{"seq": 249, "t": 271.53, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 82}
-{"seq": 250, "t": 271.59, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 82, "cpu_s": 217.08, "exit_code": 0, "ms": 1075}
-{"seq": 251, "t": 271.59, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 83}
-{"seq": 252, "t": 271.65, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 83, "cpu_s": 217.69, "exit_code": 0, "ms": 1136}
-{"seq": 253, "t": 271.65, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 84}
-{"seq": 254, "t": 272.12, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 84, "cpu_s": 217.77, "exit_code": 0, "ms": 584}
-{"seq": 255, "t": 272.12, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 85}
-{"seq": 256, "t": 272.27, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 85, "cpu_s": 217.86, "exit_code": 0, "ms": 678}
-{"seq": 257, "t": 272.27, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 86}
-{"seq": 258, "t": 272.42, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 86, "cpu_s": 217.95, "exit_code": 0, "ms": 767}
-{"seq": 259, "t": 272.42, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 87}
-{"seq": 260, "t": 277.12, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 87, "cpu_s": 221.93, "exit_code": 0, "ms": 5002}
-{"seq": 261, "t": 277.12, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 88}
-{"seq": 262, "t": 277.17, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 88, "cpu_s": 225.94, "exit_code": 0, "ms": 4891}
-{"seq": 263, "t": 277.17, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 89}
-{"seq": 264, "t": 277.22, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 89, "cpu_s": 229.84, "exit_code": 0, "ms": 4798}
-{"seq": 265, "t": 277.22, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 90}
-{"seq": 266, "t": 281.72, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 90, "cpu_s": 233.81, "exit_code": 0, "ms": 4601}
-{"seq": 267, "t": 281.72, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 91}
-{"seq": 268, "t": 281.82, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 91, "cpu_s": 237.86, "exit_code": 0, "ms": 4648}
-{"seq": 269, "t": 281.82, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 92}
-{"seq": 270, "t": 281.93, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 92, "cpu_s": 241.8, "exit_code": 0, "ms": 4712}
-{"seq": 271, "t": 281.93, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 93}
-{"seq": 272, "t": 286.25, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 93, "cpu_s": 245.8, "exit_code": 0, "ms": 4520}
-{"seq": 273, "t": 286.25, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 94}
-{"seq": 274, "t": 286.54, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 94, "cpu_s": 249.83, "exit_code": 0, "ms": 4718}
-{"seq": 275, "t": 286.54, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 95}
-{"seq": 276, "t": 286.66, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 95, "cpu_s": 253.81, "exit_code": 0, "ms": 4724}
-{"seq": 277, "t": 286.66, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 96}
-{"seq": 278, "t": 290.88, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 96, "cpu_s": 257.95, "exit_code": 0, "ms": 4631}
-{"seq": 279, "t": 290.88, "kind": "family", "id": "R3.2", "family_kind": "suspected_slowdown", "family": "Zero-padding applied after all chunks are joined by dots rather than per-chunk", "origin": "expand:R3", "screen_ratio": 1.118065858740977, "valid_fraction": 1.0, "error": null}
-{"seq": 280, "t": 291.33, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 96, "cpu_s": 262.19, "exit_code": 0, "ms": 4787}
-{"seq": 281, "t": 291.33, "kind": "family", "id": "R4.1", "family_kind": "suspected_slowdown", "family": "Trailing underscore after major.minor", "origin": "expand:R4", "screen_ratio": 1.1067961622393214, "valid_fraction": 0.0, "error": null}
-{"seq": 282, "t": 291.45, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 96, "cpu_s": 266.34, "exit_code": 0, "ms": 4790}
-{"seq": 283, "t": 291.45, "kind": "family", "id": "R3.1", "family_kind": "suspected_slowdown", "family": "Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded numbers", "origin": "expand:R3", "screen_ratio": 1.2879795827846565, "valid_fraction": 1.0, "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"}
-{"seq": 284, "t": 291.46, "kind": "phase", "name": "perf-full"}
-{"seq": 285, "t": 291.46, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:R3.1", "requests": 1}
-{"seq": 286, "t": 291.46, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:R3", "requests": 1}
-{"seq": 287, "t": 293.03, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:R3.1", "tokens_in": 322, "tokens_out": 160, "reasoning_tokens": 0, "usd": 5.7719999999999996e-05, "latency_ms": 1568, "ok": true}
-{"seq": 288, "t": 293.03, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 97}
-{"seq": 289, "t": 293.12, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:R3", "tokens_in": 314, "tokens_out": 188, "reasoning_tokens": 0, "usd": 6.395999999999999e-05, "latency_ms": 1664, "ok": true}
-{"seq": 290, "t": 293.12, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 98}
-{"seq": 291, "t": 294.14, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 98, "cpu_s": 266.99, "exit_code": 0, "ms": 1014}
-{"seq": 292, "t": 294.14, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 99}
-{"seq": 293, "t": 295.15, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 99, "cpu_s": 267.62, "exit_code": 0, "ms": 1002}
-{"seq": 294, "t": 295.15, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 100}
-{"seq": 295, "t": 295.15, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 101}
-{"seq": 296, "t": 295.15, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 102}
-{"seq": 297, "t": 295.15, "kind": "sandbox", "state": "start", "in_flight": 5, "runs": 103}
-{"seq": 298, "t": 295.15, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 104}
-{"seq": 299, "t": 295.15, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 105}
-{"seq": 300, "t": 298.69, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 105, "cpu_s": 272.17, "exit_code": 0, "ms": 5654}
-{"seq": 301, "t": 298.69, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 106}
-{"seq": 302, "t": 301.34, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 106, "cpu_s": 277.03, "exit_code": 0, "ms": 6181}
-{"seq": 303, "t": 301.34, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 107}
-{"seq": 304, "t": 301.43, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 107, "cpu_s": 281.8, "exit_code": 0, "ms": 6267}
-{"seq": 305, "t": 301.43, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 108}
-{"seq": 306, "t": 301.51, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 108, "cpu_s": 286.6, "exit_code": 0, "ms": 6361}
-{"seq": 307, "t": 301.51, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 109}
-{"seq": 308, "t": 301.6, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 109, "cpu_s": 291.53, "exit_code": 0, "ms": 6433}
-{"seq": 309, "t": 301.6, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 110}
-{"seq": 310, "t": 301.64, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 110, "cpu_s": 296.39, "exit_code": 0, "ms": 6488}
-{"seq": 311, "t": 301.64, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 111}
-{"seq": 312, "t": 301.71, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 111, "cpu_s": 301.3, "exit_code": 0, "ms": 6554}
-{"seq": 313, "t": 301.71, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 112}
-{"seq": 314, "t": 301.81, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 112, "cpu_s": 303.59, "exit_code": 0, "ms": 3117}
-{"seq": 315, "t": 301.81, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 113}
-{"seq": 316, "t": 301.81, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 114}
-{"seq": 317, "t": 301.81, "kind": "sandbox", "state": "start", "in_flight": 9, "runs": 115}
-{"seq": 318, "t": 301.82, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 116}
-{"seq": 319, "t": 301.82, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 117}
-{"seq": 320, "t": 301.83, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 118}
-{"seq": 321, "t": 312.26, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 118, "cpu_s": 309.9, "exit_code": 0, "ms": 10657}
-{"seq": 322, "t": 312.26, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 119}
-{"seq": 323, "t": 312.59, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 119, "cpu_s": 315.82, "exit_code": 0, "ms": 11073}
-{"seq": 324, "t": 312.59, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 120}
-{"seq": 325, "t": 312.76, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 120, "cpu_s": 322.17, "exit_code": 0, "ms": 11412}
-{"seq": 326, "t": 312.76, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 121}
-{"seq": 327, "t": 312.81, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 121, "cpu_s": 328.36, "exit_code": 0, "ms": 11384}
-{"seq": 328, "t": 312.81, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 122}
-{"seq": 329, "t": 313.42, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 122, "cpu_s": 334.33, "exit_code": 0, "ms": 11586}
-{"seq": 330, "t": 313.42, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 123}
-{"seq": 331, "t": 313.63, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 123, "cpu_s": 340.47, "exit_code": 0, "ms": 11806}
-{"seq": 332, "t": 313.63, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 124}
-{"seq": 333, "t": 314.36, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 124, "cpu_s": 346.67, "exit_code": 0, "ms": 12534}
-{"seq": 334, "t": 314.36, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 125}
-{"seq": 335, "t": 314.6, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 125, "cpu_s": 352.98, "exit_code": 0, "ms": 12885}
-{"seq": 336, "t": 314.6, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 126}
-{"seq": 337, "t": 314.68, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 126, "cpu_s": 359.46, "exit_code": 0, "ms": 13036}
-{"seq": 338, "t": 314.68, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 127}
-{"seq": 339, "t": 315.55, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 127, "cpu_s": 365.46, "exit_code": 0, "ms": 13729}
-{"seq": 340, "t": 315.55, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 128}
-{"seq": 341, "t": 315.67, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 128, "cpu_s": 371.63, "exit_code": 0, "ms": 13853}
-{"seq": 342, "t": 315.67, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 129}
-{"seq": 343, "t": 315.98, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 129, "cpu_s": 378.14, "exit_code": 0, "ms": 14145}
-{"seq": 344, "t": 315.98, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 130}
-{"seq": 345, "t": 324.38, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 130, "cpu_s": 384.36, "exit_code": 0, "ms": 10958}
-{"seq": 346, "t": 324.38, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 131}
-{"seq": 347, "t": 326.31, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 131, "cpu_s": 390.76, "exit_code": 0, "ms": 14044}
-{"seq": 348, "t": 326.31, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 132}
-{"seq": 349, "t": 326.47, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 132, "cpu_s": 397.17, "exit_code": 0, "ms": 13877}
-{"seq": 350, "t": 326.47, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 133}
-{"seq": 351, "t": 326.59, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 133, "cpu_s": 403.61, "exit_code": 0, "ms": 13773}
-{"seq": 352, "t": 326.59, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 134}
-{"seq": 353, "t": 326.67, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 134, "cpu_s": 409.91, "exit_code": 0, "ms": 13040}
-{"seq": 354, "t": 326.67, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 134, "cpu_s": 415.88, "exit_code": 0, "ms": 10998}
-{"seq": 355, "t": 326.67, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 135}
-{"seq": 356, "t": 326.67, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 135, "cpu_s": 422.45, "exit_code": 0, "ms": 13912}
-{"seq": 357, "t": 326.67, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 136}
-{"seq": 358, "t": 326.68, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 137}
-{"seq": 359, "t": 327.0, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 137, "cpu_s": 428.94, "exit_code": 0, "ms": 12396}
-{"seq": 360, "t": 327.0, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 138}
-{"seq": 361, "t": 327.08, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 138, "cpu_s": 435.01, "exit_code": 0, "ms": 11090}
-{"seq": 362, "t": 327.08, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 139}
-{"seq": 363, "t": 327.16, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 139, "cpu_s": 441.25, "exit_code": 0, "ms": 12801}
-{"seq": 364, "t": 327.16, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 140}
-{"seq": 365, "t": 327.75, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 140, "cpu_s": 447.53, "exit_code": 0, "ms": 12200}
-{"seq": 366, "t": 327.75, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 141}
-{"seq": 367, "t": 328.25, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 141, "cpu_s": 454.07, "exit_code": 0, "ms": 13564}
-{"seq": 368, "t": 328.25, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 142}
-{"seq": 369, "t": 337.0, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 142, "cpu_s": 460.09, "exit_code": 0, "ms": 12624}
-{"seq": 370, "t": 337.0, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 143}
-{"seq": 371, "t": 337.65, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 143, "cpu_s": 465.84, "exit_code": 0, "ms": 11339}
-{"seq": 372, "t": 337.72, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 143, "cpu_s": 471.67, "exit_code": 0, "ms": 11039}
-{"seq": 373, "t": 337.72, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 144}
-{"seq": 374, "t": 338.2, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 144, "cpu_s": 477.22, "exit_code": 0, "ms": 11523}
-{"seq": 375, "t": 338.38, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 144, "cpu_s": 483.18, "exit_code": 0, "ms": 11794}
-{"seq": 376, "t": 338.86, "kind": "sandbox", "state": "end", "in_flight": 8, "runs": 144, "cpu_s": 488.91, "exit_code": 0, "ms": 12392}
-{"seq": 377, "t": 339.04, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 144, "cpu_s": 494.52, "exit_code": 0, "ms": 12364}
-{"seq": 378, "t": 339.04, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 145}
-{"seq": 379, "t": 339.2, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 145, "cpu_s": 500.7, "exit_code": 0, "ms": 12201}
-{"seq": 380, "t": 339.25, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 145, "cpu_s": 506.66, "exit_code": 0, "ms": 12173}
-{"seq": 381, "t": 339.25, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 146}
-{"seq": 382, "t": 339.72, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 146, "cpu_s": 512.86, "exit_code": 0, "ms": 12552}
-{"seq": 383, "t": 339.72, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 147}
-{"seq": 384, "t": 341.47, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 147, "cpu_s": 519.85, "exit_code": 0, "ms": 13219}
-{"seq": 385, "t": 341.48, "kind": "measured", "family_id": "R3", "family": "Each numeric chunk increases digit count linearly while keeping total chunks fixed", "family_kind": "suspected_slowdown", "verdict": "slower", "valid_fraction": 1.0, "slope_base": 0.6331471846857833, "slope_head": 0.7317994287174469, "ladder": [{"input_chars": 10.0, "ratio": 1.040907437320577}, {"input_chars": 19.0, "ratio": 1.0664168679529353}, {"input_chars": 157.0, "ratio": 1.2735706618996405}, {"input_chars": 2149.0, "ratio": 1.88682463549591}, {"input_chars": 33157.0, "ratio": 2.5027073281484338}, {"input_chars": 525829.0, "ratio": 2.7609570294948322}]}
-{"seq": 386, "t": 341.48, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:R4", "requests": 1}
-{"seq": 387, "t": 342.11, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 147, "cpu_s": 526.43, "exit_code": 0, "ms": 14361}
-{"seq": 388, "t": 342.12, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 148}
-{"seq": 389, "t": 342.27, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:R4", "tokens_in": 300, "tokens_out": 101, "reasoning_tokens": 0, "usd": 4.2239999999999995e-05, "latency_ms": 790, "ok": true}
-{"seq": 390, "t": 342.27, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 149}
-{"seq": 391, "t": 343.87, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 149, "cpu_s": 527.26, "exit_code": 0, "ms": 1595}
-{"seq": 392, "t": 343.87, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 150}
-{"seq": 393, "t": 345.03, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 150, "cpu_s": 532.57, "exit_code": 0, "ms": 8022}
-{"seq": 394, "t": 345.03, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 151}
-{"seq": 395, "t": 345.63, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 151, "cpu_s": 537.89, "exit_code": 0, "ms": 7905}
-{"seq": 396, "t": 345.63, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 152}
-{"seq": 397, "t": 346.71, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 152, "cpu_s": 543.43, "exit_code": 0, "ms": 7675}
-{"seq": 398, "t": 346.71, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 153}
-{"seq": 399, "t": 346.93, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 153, "cpu_s": 548.9, "exit_code": 0, "ms": 7671}
-{"seq": 400, "t": 346.93, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 154}
-{"seq": 401, "t": 347.24, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 154, "cpu_s": 554.65, "exit_code": 0, "ms": 7516}
-{"seq": 402, "t": 348.05, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 154, "cpu_s": 557.47, "exit_code": 0, "ms": 4180}
-{"seq": 403, "t": 348.05, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 155}
-{"seq": 404, "t": 348.05, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 156}
-{"seq": 405, "t": 348.06, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 157}
-{"seq": 406, "t": 348.06, "kind": "sandbox", "state": "start", "in_flight": 9, "runs": 158}
-{"seq": 407, "t": 348.07, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 159}
-{"seq": 408, "t": 348.07, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 160}
-{"seq": 409, "t": 352.88, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 160, "cpu_s": 564.5, "exit_code": 0, "ms": 10767}
-{"seq": 410, "t": 354.22, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 160, "cpu_s": 570.41, "exit_code": 0, "ms": 9184}
-{"seq": 411, "t": 354.22, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 161}
-{"seq": 412, "t": 356.6, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 161, "cpu_s": 576.64, "exit_code": 0, "ms": 9669}
-{"seq": 413, "t": 356.6, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 162}
-{"seq": 414, "t": 356.87, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 162, "cpu_s": 583.01, "exit_code": 0, "ms": 11239}
-{"seq": 415, "t": 356.87, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 163}
-{"seq": 416, "t": 356.98, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 163, "cpu_s": 589.12, "exit_code": 0, "ms": 10264}
-{"seq": 417, "t": 356.98, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 164}
-{"seq": 418, "t": 357.37, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 164, "cpu_s": 595.13, "exit_code": 0, "ms": 9298}
-{"seq": 419, "t": 357.37, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 165}
-{"seq": 420, "t": 357.72, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 165, "cpu_s": 601.11, "exit_code": 0, "ms": 9660}
-{"seq": 421, "t": 357.72, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 166}
-{"seq": 422, "t": 359.02, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 166, "cpu_s": 607.59, "exit_code": 0, "ms": 10966}
-{"seq": 423, "t": 359.02, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 167}
-{"seq": 424, "t": 359.53, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 167, "cpu_s": 614.07, "exit_code": 0, "ms": 11453}
-{"seq": 425, "t": 359.53, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 168}
-{"seq": 426, "t": 359.63, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 168, "cpu_s": 620.28, "exit_code": 0, "ms": 11571}
-{"seq": 427, "t": 359.63, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 169}
-{"seq": 428, "t": 359.83, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 169, "cpu_s": 626.5, "exit_code": 0, "ms": 11751}
-{"seq": 429, "t": 359.83, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 170}
-{"seq": 430, "t": 365.52, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 170, "cpu_s": 632.99, "exit_code": 0, "ms": 11300}
-{"seq": 431, "t": 366.84, "kind": "sandbox", "state": "end", "in_flight": 8, "runs": 170, "cpu_s": 638.64, "exit_code": 0, "ms": 9861}
-{"seq": 432, "t": 366.94, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 170, "cpu_s": 644.48, "exit_code": 0, "ms": 10339}
-{"seq": 433, "t": 367.21, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 170, "cpu_s": 650.4, "exit_code": 0, "ms": 9842}
-{"seq": 434, "t": 367.21, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 171}
-{"seq": 435, "t": 367.28, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 171, "cpu_s": 656.24, "exit_code": 0, "ms": 10411}
-{"seq": 436, "t": 367.28, "kind": "measured", "family_id": "R3.1", "family": "Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded numbers", "family_kind": "suspected_slowdown", "verdict": "slower", "valid_fraction": 1.0, "slope_base": 0.666129439197062, "slope_head": 0.7492835783592665, "ladder": [{"input_chars": 10.0, "ratio": 1.0411295277568429}, {"input_chars": 19.0, "ratio": 1.0676502698337886}, {"input_chars": 157.0, "ratio": 1.2879795827846565}, {"input_chars": 2149.0, "ratio": 1.9269040039264174}, {"input_chars": 33157.0, "ratio": 2.4363880809276957}, {"input_chars": 525829.0, "ratio": 2.232137523472957}]}
-{"seq": 437, "t": 367.29, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:R3.2", "requests": 1}
-{"seq": 438, "t": 367.57, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 171, "cpu_s": 661.96, "exit_code": 0, "ms": 9843}
-{"seq": 439, "t": 367.57, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 172}
-{"seq": 440, "t": 368.41, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:R3.2", "tokens_in": 338, "tokens_out": 220, "reasoning_tokens": 0, "usd": 7.308e-05, "latency_ms": 1123, "ok": true}
-{"seq": 441, "t": 368.41, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 173}
-{"seq": 442, "t": 368.56, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 173, "cpu_s": 667.95, "exit_code": 0, "ms": 9538}
-{"seq": 443, "t": 368.56, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 174}
-{"seq": 444, "t": 368.61, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 174, "cpu_s": 673.65, "exit_code": 0, "ms": 8785}
-{"seq": 445, "t": 368.61, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 175}
-{"seq": 446, "t": 368.88, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 175, "cpu_s": 679.38, "exit_code": 0, "ms": 9351}
-{"seq": 447, "t": 368.88, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 176}
-{"seq": 448, "t": 368.97, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 176, "cpu_s": 685.07, "exit_code": 0, "ms": 9334}
-{"seq": 449, "t": 368.97, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 177}
-{"seq": 450, "t": 370.7, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 177, "cpu_s": 685.96, "exit_code": 0, "ms": 2286}
-{"seq": 451, "t": 370.7, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 178}
-{"seq": 452, "t": 372.31, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 178, "cpu_s": 686.74, "exit_code": 0, "ms": 1604}
-{"seq": 453, "t": 372.31, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 179}
-{"seq": 454, "t": 372.31, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 180}
-{"seq": 455, "t": 372.31, "kind": "sandbox", "state": "start", "in_flight": 9, "runs": 181}
-{"seq": 456, "t": 372.31, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 182}
-{"seq": 457, "t": 372.31, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 183}
-{"seq": 458, "t": 372.31, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 184}
-{"seq": 459, "t": 376.47, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 184, "cpu_s": 692.56, "exit_code": 0, "ms": 8901}
-{"seq": 460, "t": 376.47, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 185}
-{"seq": 461, "t": 376.56, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 185, "cpu_s": 698.22, "exit_code": 0, "ms": 9342}
-{"seq": 462, "t": 376.56, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 186}
-{"seq": 463, "t": 378.16, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 186, "cpu_s": 704.05, "exit_code": 0, "ms": 9271}
-{"seq": 464, "t": 378.16, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 187}
-{"seq": 465, "t": 378.71, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 187, "cpu_s": 710.07, "exit_code": 0, "ms": 10094}
-{"seq": 466, "t": 378.71, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 188}
-{"seq": 467, "t": 379.23, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 188, "cpu_s": 715.91, "exit_code": 0, "ms": 10666}
-{"seq": 468, "t": 379.23, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 189}
-{"seq": 469, "t": 379.67, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 189, "cpu_s": 721.87, "exit_code": 0, "ms": 10695}
-{"seq": 470, "t": 379.67, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 190}
-{"seq": 471, "t": 383.14, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 190, "cpu_s": 728.0, "exit_code": 0, "ms": 10808}
-{"seq": 472, "t": 383.14, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 191}
-{"seq": 473, "t": 383.75, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 191, "cpu_s": 734.37, "exit_code": 0, "ms": 11439}
-{"seq": 474, "t": 383.75, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 192}
-{"seq": 475, "t": 385.52, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 192, "cpu_s": 740.87, "exit_code": 0, "ms": 13194}
-{"seq": 476, "t": 385.52, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 193}
-{"seq": 477, "t": 386.16, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 193, "cpu_s": 747.36, "exit_code": 0, "ms": 13836}
-{"seq": 478, "t": 386.16, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 194}
-{"seq": 479, "t": 386.33, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 194, "cpu_s": 754.03, "exit_code": 0, "ms": 14015}
-{"seq": 480, "t": 386.33, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 195}
-{"seq": 481, "t": 386.5, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 195, "cpu_s": 760.48, "exit_code": 0, "ms": 14182}
-{"seq": 482, "t": 386.5, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 196}
-{"seq": 483, "t": 390.04, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 196, "cpu_s": 766.99, "exit_code": 0, "ms": 13560}
-{"seq": 484, "t": 390.04, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 197}
-{"seq": 485, "t": 390.18, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 197, "cpu_s": 773.72, "exit_code": 0, "ms": 13620}
-{"seq": 486, "t": 390.18, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 198}
-{"seq": 487, "t": 390.36, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 198, "cpu_s": 780.31, "exit_code": 0, "ms": 12198}
-{"seq": 488, "t": 390.36, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 199}
-{"seq": 489, "t": 391.78, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 199, "cpu_s": 786.96, "exit_code": 0, "ms": 13067}
-{"seq": 490, "t": 391.78, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 200}
-{"seq": 491, "t": 392.51, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 200, "cpu_s": 793.43, "exit_code": 0, "ms": 12843}
-{"seq": 492, "t": 392.51, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 201}
-{"seq": 493, "t": 393.12, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 201, "cpu_s": 800.2, "exit_code": 0, "ms": 13882}
-{"seq": 494, "t": 393.12, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 202}
-{"seq": 495, "t": 395.77, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 202, "cpu_s": 806.59, "exit_code": 0, "ms": 12016}
-{"seq": 496, "t": 395.77, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 203}
-{"seq": 497, "t": 396.25, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 203, "cpu_s": 813.16, "exit_code": 0, "ms": 13108}
-{"seq": 498, "t": 396.25, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 204}
-{"seq": 499, "t": 398.52, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 204, "cpu_s": 819.52, "exit_code": 0, "ms": 12354}
-{"seq": 500, "t": 398.52, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 205}
-{"seq": 501, "t": 399.94, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 205, "cpu_s": 825.92, "exit_code": 0, "ms": 14420}
-{"seq": 502, "t": 399.94, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 206}
-{"seq": 503, "t": 400.38, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 206, "cpu_s": 832.49, "exit_code": 0, "ms": 14045}
-{"seq": 504, "t": 400.38, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 207}
-{"seq": 505, "t": 401.04, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 207, "cpu_s": 839.01, "exit_code": 0, "ms": 14541}
-{"seq": 506, "t": 401.04, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 208}
-{"seq": 507, "t": 402.42, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 208, "cpu_s": 845.03, "exit_code": 0, "ms": 10635}
-{"seq": 508, "t": 402.42, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 209}
-{"seq": 509, "t": 402.73, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 209, "cpu_s": 851.48, "exit_code": 0, "ms": 12691}
-{"seq": 510, "t": 402.73, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 210}
-{"seq": 511, "t": 404.24, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 210, "cpu_s": 857.88, "exit_code": 0, "ms": 14055}
-{"seq": 512, "t": 404.24, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 211}
-{"seq": 513, "t": 404.54, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 211, "cpu_s": 864.19, "exit_code": 0, "ms": 14176}
-{"seq": 514, "t": 404.54, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 212}
-{"seq": 515, "t": 405.01, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 212, "cpu_s": 870.58, "exit_code": 0, "ms": 12496}
-{"seq": 516, "t": 405.01, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 213}
-{"seq": 517, "t": 406.93, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 213, "cpu_s": 876.91, "exit_code": 0, "ms": 13808}
-{"seq": 518, "t": 406.93, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 214}
-{"seq": 519, "t": 409.33, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 214, "cpu_s": 883.32, "exit_code": 0, "ms": 13551}
-{"seq": 520, "t": 409.33, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 215}
-{"seq": 521, "t": 409.5, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 215, "cpu_s": 889.46, "exit_code": 0, "ms": 13250}
-{"seq": 522, "t": 409.5, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 216}
-{"seq": 523, "t": 411.97, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 216, "cpu_s": 895.56, "exit_code": 0, "ms": 13454}
-{"seq": 524, "t": 411.97, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 217}
-{"seq": 525, "t": 412.04, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 217, "cpu_s": 901.73, "exit_code": 0, "ms": 10991}
-{"seq": 526, "t": 412.04, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 218}
-{"seq": 527, "t": 412.13, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 218, "cpu_s": 908.06, "exit_code": 0, "ms": 12187}
-{"seq": 528, "t": 412.13, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 219}
-{"seq": 529, "t": 412.13, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 219, "cpu_s": 914.28, "exit_code": 0, "ms": 11751}
-{"seq": 530, "t": 412.13, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 220}
-{"seq": 531, "t": 415.14, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 220, "cpu_s": 920.61, "exit_code": 0, "ms": 12720}
-{"seq": 532, "t": 415.37, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 220, "cpu_s": 927.06, "exit_code": 0, "ms": 12642}
-{"seq": 533, "t": 415.97, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 220, "cpu_s": 933.16, "exit_code": 0, "ms": 10959}
-{"seq": 534, "t": 416.13, "kind": "sandbox", "state": "end", "in_flight": 8, "runs": 220, "cpu_s": 939.75, "exit_code": 0, "ms": 11590}
-{"seq": 535, "t": 416.19, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 220, "cpu_s": 946.36, "exit_code": 0, "ms": 11952}
-{"seq": 536, "t": 417.5, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 220, "cpu_s": 952.41, "exit_code": 0, "ms": 10575}
-{"seq": 537, "t": 417.51, "kind": "measured", "family_id": "R4", "family": "Single repeated segment \"999.\" n times plus prerelease c5", "family_kind": "suspected_slowdown", "verdict": "slower", "valid_fraction": 1.0, "slope_base": 0.793054745693273, "slope_head": 0.8161811608548126, "ladder": [{"input_chars": 13.0, "ratio": 1.0514585098080833}, {"input_chars": 21.0, "ratio": 1.072929316239873}, {"input_chars": 69.0, "ratio": 1.1387213463857293}, {"input_chars": 261.0, "ratio": 1.197268044303964}, {"input_chars": 1029.0, "ratio": 1.2196290662917064}, {"input_chars": 4101.0, "ratio": 1.2308679773355853}, {"input_chars": 16389.0, "ratio": 1.2346773092465264}]}
-{"seq": 538, "t": 417.51, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:F2", "requests": 1}
-{"seq": 539, "t": 418.3, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:F2", "tokens_in": 424, "tokens_out": 99, "reasoning_tokens": 0, "usd": 4.9199999999999997e-05, "latency_ms": 789, "ok": true}
-{"seq": 540, "t": 418.3, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 221}
-{"seq": 541, "t": 419.26, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 221, "cpu_s": 958.42, "exit_code": 0, "ms": 9759}
-{"seq": 542, "t": 419.26, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 222}
-{"seq": 543, "t": 419.37, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 222, "cpu_s": 964.61, "exit_code": 0, "ms": 10045}
-{"seq": 544, "t": 419.38, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 223}
-{"seq": 545, "t": 420.62, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 223, "cpu_s": 970.23, "exit_code": 0, "ms": 8486}
-{"seq": 546, "t": 420.95, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 223, "cpu_s": 975.76, "exit_code": 0, "ms": 8820}
-{"seq": 547, "t": 421.08, "kind": "sandbox", "state": "end", "in_flight": 4, "runs": 223, "cpu_s": 981.25, "exit_code": 0, "ms": 9042}
-{"seq": 548, "t": 421.41, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 223, "cpu_s": 986.97, "exit_code": 0, "ms": 9435}
-{"seq": 549, "t": 423.27, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 223, "cpu_s": 991.01, "exit_code": 0, "ms": 4961}
-{"seq": 550, "t": 423.27, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 224}
-{"seq": 551, "t": 424.34, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 224, "cpu_s": 991.7, "exit_code": 0, "ms": 1076}
-{"seq": 552, "t": 424.34, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 225}
-{"seq": 553, "t": 424.35, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 226}
-{"seq": 554, "t": 424.35, "kind": "sandbox", "state": "start", "in_flight": 5, "runs": 227}
-{"seq": 555, "t": 424.35, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 228}
-{"seq": 556, "t": 424.35, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 229}
-{"seq": 557, "t": 424.35, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 230}
-{"seq": 558, "t": 425.86, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 230, "cpu_s": 996.62, "exit_code": 0, "ms": 6596}
-{"seq": 559, "t": 425.86, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 231}
-{"seq": 560, "t": 426.54, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 231, "cpu_s": 1001.73, "exit_code": 0, "ms": 7160}
-{"seq": 561, "t": 426.54, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 232}
-{"seq": 562, "t": 431.59, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 232, "cpu_s": 1006.9, "exit_code": 0, "ms": 7231}
-{"seq": 563, "t": 431.59, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 233}
-{"seq": 564, "t": 431.7, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 233, "cpu_s": 1012.25, "exit_code": 0, "ms": 7355}
-{"seq": 565, "t": 431.7, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 234}
-{"seq": 566, "t": 431.76, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 234, "cpu_s": 1017.58, "exit_code": 0, "ms": 7416}
-{"seq": 567, "t": 431.76, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 235}
-{"seq": 568, "t": 431.83, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 235, "cpu_s": 1022.79, "exit_code": 0, "ms": 7469}
-{"seq": 569, "t": 431.83, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 236}
-{"seq": 570, "t": 431.88, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 236, "cpu_s": 1028.24, "exit_code": 0, "ms": 7532}
-{"seq": 571, "t": 431.88, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 237}
-{"seq": 572, "t": 431.89, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 237, "cpu_s": 1033.5, "exit_code": 0, "ms": 7532}
-{"seq": 573, "t": 431.89, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 238}
-{"seq": 574, "t": 432.65, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 238, "cpu_s": 1038.6, "exit_code": 0, "ms": 6785}
-{"seq": 575, "t": 433.93, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 238, "cpu_s": 1043.73, "exit_code": 0, "ms": 7387}
-{"seq": 576, "t": 433.93, "kind": "measured", "family_id": "R3.2", "family": "Zero-padding applied after all chunks are joined by dots rather than per-chunk", "family_kind": "suspected_slowdown", "verdict": "slower", "valid_fraction": 1.0, "slope_base": 0.685416282377542, "slope_head": 0.7320408755097492, "ladder": [{"input_chars": 10.0, "ratio": 1.0406774238491587}, {"input_chars": 15.0, "ratio": 1.0543045503660597}, {"input_chars": 60.0, "ratio": 1.118065858740977}, {"input_chars": 252.0, "ratio": 1.1784658209375463}, {"input_chars": 1305.0, "ratio": 1.239749802222604}, {"input_chars": 6066.0, "ratio": 1.2707471729567816}, {"input_chars": 27570.0, "ratio": 1.6155897048859404}]}
-{"seq": 577, "t": 437.65, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 238, "cpu_s": 1048.22, "exit_code": 0, "ms": 6061}
-{"seq": 578, "t": 437.65, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 239}
-{"seq": 579, "t": 437.97, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 239, "cpu_s": 1052.73, "exit_code": 0, "ms": 6262}
-{"seq": 580, "t": 437.97, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 240}
-{"seq": 581, "t": 438.27, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 240, "cpu_s": 1057.17, "exit_code": 0, "ms": 6506}
-{"seq": 582, "t": 438.27, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 241}
-{"seq": 583, "t": 438.32, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 241, "cpu_s": 1061.58, "exit_code": 0, "ms": 6484}
-{"seq": 584, "t": 438.32, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 242}
-{"seq": 585, "t": 438.38, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 242, "cpu_s": 1066.07, "exit_code": 0, "ms": 6489}
-{"seq": 586, "t": 438.38, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 243}
-{"seq": 587, "t": 438.75, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 243, "cpu_s": 1070.73, "exit_code": 0, "ms": 6869}
-{"seq": 588, "t": 438.76, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 244}
-{"seq": 589, "t": 443.42, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 244, "cpu_s": 1075.3, "exit_code": 0, "ms": 5767}
-{"seq": 590, "t": 443.42, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 245}
-{"seq": 591, "t": 443.76, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 245, "cpu_s": 1079.63, "exit_code": 0, "ms": 5793}
-{"seq": 592, "t": 443.76, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 246}
-{"seq": 593, "t": 443.99, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 246, "cpu_s": 1083.86, "exit_code": 0, "ms": 5668}
-{"seq": 594, "t": 443.99, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 247}
-{"seq": 595, "t": 444.14, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 247, "cpu_s": 1088.16, "exit_code": 0, "ms": 5868}
-{"seq": 596, "t": 444.14, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 248}
-{"seq": 597, "t": 444.4, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 248, "cpu_s": 1092.56, "exit_code": 0, "ms": 6016}
-{"seq": 598, "t": 444.4, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 249}
-{"seq": 599, "t": 444.87, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 249, "cpu_s": 1097.03, "exit_code": 0, "ms": 6116}
-{"seq": 600, "t": 444.88, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 250}
-{"seq": 601, "t": 449.29, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 250, "cpu_s": 1101.5, "exit_code": 0, "ms": 5866}
-{"seq": 602, "t": 449.29, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 251}
-{"seq": 603, "t": 449.73, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 251, "cpu_s": 1105.92, "exit_code": 0, "ms": 5970}
-{"seq": 604, "t": 449.74, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 252}
-{"seq": 605, "t": 449.96, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 252, "cpu_s": 1110.49, "exit_code": 0, "ms": 5974}
-{"seq": 606, "t": 450.46, "kind": "sandbox", "state": "end", "in_flight": 4, "runs": 252, "cpu_s": 1114.94, "exit_code": 0, "ms": 6309}
-{"seq": 607, "t": 450.58, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 252, "cpu_s": 1119.38, "exit_code": 0, "ms": 6177}
-{"seq": 608, "t": 450.9, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 252, "cpu_s": 1123.84, "exit_code": 0, "ms": 6027}
-{"seq": 609, "t": 454.39, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 252, "cpu_s": 1128.16, "exit_code": 0, "ms": 5102}
-{"seq": 610, "t": 454.4, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 253}
-{"seq": 611, "t": 454.84, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 253, "cpu_s": 1132.41, "exit_code": 0, "ms": 5107}
-{"seq": 612, "t": 454.85, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 254}
-{"seq": 613, "t": 459.07, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 254, "cpu_s": 1136.6, "exit_code": 0, "ms": 4673}
-{"seq": 614, "t": 459.38, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 254, "cpu_s": 1140.68, "exit_code": 0, "ms": 4534}
-{"seq": 615, "t": 459.38, "kind": "measured", "family_id": "F2", "family": "Added a fast‑path that detects a \"simple\" version (only digits and dots) by testing that none of the characters in `_NON_SIMPLE_VERSION_INDICATORS` appear in th", "family_kind": "claimed_speedup", "verdict": "slower", "valid_fraction": 1.0, "slope_base": null, "slope_head": null, "ladder": [{"input_chars": 8.333333333333334, "ratio": 0.3424937227434915}, {"input_chars": 6.6, "ratio": 0.46443065360388025}, {"input_chars": 6.0, "ratio": 0.36565253333051617}, {"input_chars": 8.0, "ratio": 0.37055651310443005}, {"input_chars": 5.0, "ratio": 0.36225607389790443}, {"input_chars": 8.0, "ratio": 2.1977043354571606}, {"input_chars": 8.0, "ratio": 0.3725001657503784}]}
-{"seq": 616, "t": 459.39, "kind": "phase", "name": "report"}
-{"seq": 617, "t": 459.4, "kind": "done", "verdict": "BLOCK", "classes": 5, "report": "report.html", "usd": 0.287354, "usd_by_tier": {"reasoning": 0.284864, "volume": 0.0019059600000000002, "proposer": 0.0005841}}
+{"seq": 1, "t": 0.08, "kind": "run", "run_id": "c1a7799be95f", "repo": "https://github.com/pypa/packaging", "base": "59f183fe90da403e41eef339ce9088bda0fe4cd3", "head": "61967cca278dc51389b8973ba65bbbf23eaa3eda", "target": "packaging.version:Version", "title": "perf: fast path for simple versions (intermediate commit 61967cca)", "provider": "tokenfactory"}
+{"seq": 2, "t": 0.08, "kind": "phase", "name": "build"}
+{"seq": 3, "t": 0.26, "kind": "phase", "name": "plan"}
+{"seq": 4, "t": 0.26, "kind": "llm-start", "tier": "reasoning", "purpose": "plan", "requests": 1}
+{"seq": 5, "t": 27.16, "kind": "llm", "tier": "reasoning", "model": "nvidia/Nemotron-3-Ultra-550b-a55b", "purpose": "plan", "tokens_in": 8032, "tokens_out": 12778, "reasoning_tokens": 9394, "usd": 0.046366, "latency_ms": 26898, "ok": true}
+{"seq": 6, "t": 27.16, "kind": "plan", "attacks": [{"id": "A1", "assumption": "The fast‑path assumes the version string contains only ASCII digits and dots, so it strips leading/trailing whitespace before parsing.", "why_it_breaks": "base: The original regex‑based parser (`_regex.fullmatch(version)`) is anchored (`^…$`) and does not allow surrounding whitespace, so it raises `InvalidVersion`.; head: The new fast‑path accepts the stripped string, builds a Version object with epoch 0, release tuple, and no pre/post/dev/local parts, and returns normally.", "input_family": "Version strings that are a valid simple numeric dotted version surrounded by leading/trailing ASCII whitespace.", "examples": [[" 1.2.3 "], ["\t1.0.0\n"]]}, {"id": "A2", "assumption": "The fast‑path assumes a simple numeric version never has trailing zero components, so it skips the normal trailing‑zero stripping logic.", "why_it_breaks": "base: Version(\"1.0.0\").release == (1,) and str(Version(\"1.0.0\")) == \"1.0\".; head: Version(\"1.0.0\").release == (1, 0, 0) and str(Version(\"1.0.0\")) == \"1.0.0\".", "input_family": "numeric dot‑only versions with trailing zero components", "examples": [["1.0.0"], ["2.0.0.0"], ["0.0"], ["5.0.0.0.0"]]}, {"id": "A3", "assumption": "The fast‑path assumes that surrounding whitespace is harmless because it strips the string before parsing, while the original regex validates the raw string.", "why_it_breaks": "base: Version(\" 1.2.3 \") raises `InvalidVersion` because the original regex does a fullmatch on the raw string containing spaces.; head: Version(\" 1.2.3 \") is accepted; the fast‑path strips whitespace, splits on '.', converts each part to int, stores epoch=0, pre/post/dev/local=None and returns a valid Version object.", "input_family": "whitespace‑padded numeric version", "examples": [[" 1.2.3 "], ["\t1.2.3\n"]]}, {"id": "A4", "assumption": "The fast‑path assumes the version string contains only ASCII digits and dots, so it strips any Unicode whitespace characters before parsing.", "why_it_breaks": "base: The original regex does not recognise Unicode whitespace as part of the version pattern, so `fullmatch` fails and `InvalidVersion` is raised.; head: The fast‑path creates a Version object from the stripped numeric dotted string, treating it as a valid simple version.", "input_family": "Version strings that are a valid simple numeric dotted version surrounded by leading/trailing Unicode whitespace.", "examples": [["　 1.2.3 　"]]}, {"id": "A5", "assumption": "The fast‑path assumes numeric dot‑only versions are already in normalized form, so it omits the trailing‑zero stripping step.", "why_it_breaks": "base: Version(\"3.2.0\").release == (3, 2) and str(Version(\"3.2.0\")) == \"3.2\".; head: Version(\"3.2.0\").release == (3, 2, 0) and str(Version(\"3.2.0\")) == \"3.2.0\".", "input_family": "numeric dot‑only versions ending with one or more zero components", "examples": [["3.2.0"], ["10.0"], ["0.0.0"]]}]}
+{"seq": 7, "t": 27.16, "kind": "phase", "name": "generate"}
+{"seq": 8, "t": 27.16, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A1", "requests": 2}
+{"seq": 9, "t": 28.24, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A1", "tokens_in": 814, "tokens_out": 71, "reasoning_tokens": 0, "usd": 6.588e-05, "latency_ms": 1081, "ok": true}
+{"seq": 10, "t": 28.54, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A1", "tokens_in": 814, "tokens_out": 354, "reasoning_tokens": 0, "usd": 0.00013379999999999997, "latency_ms": 1381, "ok": true}
+{"seq": 11, "t": 28.54, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A2", "requests": 2}
+{"seq": 12, "t": 29.64, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A2", "tokens_in": 817, "tokens_out": 71, "reasoning_tokens": 0, "usd": 6.606e-05, "latency_ms": 1088, "ok": true}
+{"seq": 13, "t": 29.73, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A2", "tokens_in": 817, "tokens_out": 216, "reasoning_tokens": 0, "usd": 0.00010085999999999998, "latency_ms": 1186, "ok": true}
+{"seq": 14, "t": 29.73, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A3", "requests": 2}
+{"seq": 15, "t": 30.97, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A3", "tokens_in": 807, "tokens_out": 236, "reasoning_tokens": 0, "usd": 0.00010506, "latency_ms": 1231, "ok": true}
+{"seq": 16, "t": 31.04, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A3", "tokens_in": 807, "tokens_out": 107, "reasoning_tokens": 0, "usd": 7.41e-05, "latency_ms": 1300, "ok": true}
+{"seq": 17, "t": 31.04, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A4", "requests": 2}
+{"seq": 18, "t": 32.72, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A4", "tokens_in": 786, "tokens_out": 103, "reasoning_tokens": 0, "usd": 7.188e-05, "latency_ms": 1678, "ok": true}
+{"seq": 19, "t": 33.22, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A4", "tokens_in": 786, "tokens_out": 604, "reasoning_tokens": 0, "usd": 0.00019212, "latency_ms": 2176, "ok": true}
+{"seq": 20, "t": 33.22, "kind": "llm-start", "tier": "volume", "purpose": "strategy:A5", "requests": 2}
+{"seq": 21, "t": 34.42, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A5", "tokens_in": 811, "tokens_out": 71, "reasoning_tokens": 0, "usd": 6.569999999999998e-05, "latency_ms": 1199, "ok": true}
+{"seq": 22, "t": 34.64, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "strategy:A5", "tokens_in": 811, "tokens_out": 306, "reasoning_tokens": 0, "usd": 0.00012209999999999999, "latency_ms": 1420, "ok": true}
+{"seq": 23, "t": 34.64, "kind": "strategies", "jobs": [{"id": "A1/s1", "attack": "A1", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",),\n            include_categories=(\"Nd\", \"L\", \"Z\", \"Ps\", \"Pe\", \"Pd\"),\n        ),\n        min_size=1,\n        max_size=3,\n    ),\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",),\n            include_categories=(\"Ps\", \"Pe\", \"Pd\"),\n        ),\n        min_size=0,\n        max_size=3,\n    ),\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",),\n            include_categories=(\"Ps\", \"Pe\", \"Pd\"),\n        ),\n        min_size=0,\n        max_size=3,\n    ),\n).map(lambda args: \"\".join(args))"}, {"id": "A1/s2", "attack": "A1", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.digits + \".\",\n        min_size=1,\n        max_size=5,\n    ).map(lambda s: \" \" * st.integers(min_value=0, max_value=3).example() + s + \" \" * st.integers(min_value=0, max_value=3)),\n)"}, {"id": "A1/s3", "attack": "A1", "valid": false, "error": "syntax error: invalid syntax (line 1)", "source": "st.lists(st.one_of(st.integers(min_value=0, max_value=99), st.text(alphabet=string.digits+\".\", min_size=1, max_size=5)), min_size=1, max_size=3) st.text(alphabet=string.whitespace, min_size=1) st.just(\" \").map(lambda _: \" 1.2.3 \")"}, {"id": "A1/s4", "attack": "A1", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.ascii_letters + string.digits + \" \\t\\n\\r\",\n        min_size=1,\n        max_size=30,\n    ).map(lambda s: s.strip(\" \\t\\n\\r\")),\n    st.just(\".\"),\n)"}, {"id": "A2/s1", "attack": "A2", "valid": false, "error": "code must assign `strategy`", "source": "# Generate numeric dot-only version strings with trailing zeros.\n# Covers the fast-path trigger: versions consisting solely of digits and dots,\n# where the fast path sets release=(1,) while the normal logic keeps all components.\nst.text(st.characters(alphabet=string.digits + \".\", min_size=1, max_size=64))"}, {"id": "A2/s2", "attack": "A2", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.just(\".\").map(lambda _: st.integers(min_value=0, max_value=999)),\n    min_size=1,\n    max_size=5,\n).map(lambda parts: \".\".join(str(p) for p in parts))"}, {"id": "A2/s3", "attack": "A2", "valid": false, "error": "syntax error: unexpected indent (line 2)", "source": "# strategy for A2: numeric dot-only versions with trailing zeros\n    strategy = st.lists(\n        st.integers(min_value=0, max_value=999),\n        min_size=1,\n        max_size=5\n    ).map(lambda parts: \".\".join(str(p) for p in parts))"}, {"id": "A2/s4", "attack": "A2", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.integers(min_value=0, max_value=999),\n    st.text(\n        alphabet=string.digits + \".\",\n        min_size=1,\n        max_size=5,\n    ).filter(lambda s: s.count(\".\") >= 1),\n)"}, {"id": "A3/s1", "attack": "A3", "valid": false, "error": "code must assign `strategy`", "source": "st.tuples(st.text(alphabet=string.digits+\". \", min_size=1, max_size=1).map(str.strip or (lambda x: x)), st.text(alphabet=string.whitespace, min_size=1, max_size=1))"}, {"id": "A3/s2", "attack": "A3", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.text(alphabet=st.characters(blacklist_categories=(\"Cc\",)), min_size=1, max_size=5),\n    min_size=1,\n    max_size=1,\n).map(lambda lst: \" \" * st.just(2).example() + lst[0] + \" \" * st.just(2).example() if lst else \"\")"}, {"id": "A3/s3", "attack": "A3", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.one_of(st.text(alphabet=string.digits + \".\", min_size=1, max_size=20), st.just(\" \")),\n    min_size=2,\n    max_size=3,\n).map(lambda parts: \" \" + parts[0] + \" \" if len(parts) == 2 else \" \".join(parts))"}, {"id": "A3/s4", "attack": "A3", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.one_of(\n        st.text(st.characters(whitespace=True, min_codepoint=0, max_codepoint=0x10FFFF), min_size=1, max_size=30),\n        st.just(\"\"),\n    ),\n    min_size=1,\n    max_size=1,\n).map(lambda items: tuple(\" \" + \"\".join(items) + \" \" for _ in range(1)) if False else \"\".join(items)),"}, {"id": "A4/s1", "attack": "A4", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.one_of(\n        st.text(alphabet=st.characters(whitelist_categories=(\"Zs\",)), min_size=1, max_size=10),\n        st.text(alphabet=st.characters(blacklist_characters=\" \\t\\n\\r\"), min_size=1, max_size=10),\n        st.integers(min_value=0, max_value=999),\n        st.just(\".\"),\n        st.just(\"\"),\n    ),\n    min_size=1, max_size=5\n).map(\"\".join).flatmap(lambda s: st.just(\"\\u3000\\u3000\" + s + \"\\u3000\\u3000\"))"}, {"id": "A4/s2", "attack": "A4", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.characters(\n        alphabet=string.whitespace,\n        min_codepoint=0x2000,\n        max_codepoint=0x200F,\n    ),\n    min_size=0,\n    max_size=5,\n).map(''.join) | st.just(\"\")\n@st.composite\ndef _version_str(draw):\n    inner = st.text(\n        alphabet=st.characters(whitelist_categories=None, blacklist_characters='!+-ABCDEHILOPRSTVW_abcdehiloprstvw'),\n        min_size=1,\n        max_size=4,\n    ).example(\"1.2.3\")\n    return draw(st.text(alphabet=st.characters(whitelist_categories=None), min_size=0, max_size=8)) + inner + draw(st.text(alphabet=st.characters(whitelist_categories=None), min_size=0, max_size=8))\n\nstrategy = st.tuples(_version_str())"}, {"id": "A4/s3", "attack": "A4", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(alphabet=string.whitespace + \"0123456789.\", min_size=1, max_size=50),\n    st.integers(min_value=0, max_value=999)\n).map(lambda args: f\"{args[0]}{args[1]}\" if args[1] else args[0]) if False else None or st.text(alphabet=string.whitespace + \"0123456789.\", min_size=1, max_size=50).map(lambda s: s.strip(string.whitespace).strip() if s.strip(string.whitespace).strip() else s)  # noqa: E501\n\n# Simplified for the prompt constraint\nstrategy = st.text(alphabet=string.whitespace + \"0123456789.\", min_size=1, max_size=50).map(lambda s: f\"{s.strip(string.whitespace)}\")"}, {"id": "A4/s4", "attack": "A4", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.whitespace,\n        min_size=1,\n        max_size=20\n    ) +\n    st.text(\n        alphabet=string.digits + \".\",\n        min_size=1,\n        max_size=30\n    ) +\n    st.text(\n        alphabet=string.whitespace,\n        min_size=1,\n        max_size=20\n    ),\n    st.just(\"\")\n)"}, {"id": "A5/s1", "attack": "A5", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.one_of(st.just(\".\"), st.integers(min_value=0, max_value=999)),\n    min_size=1,\n    max_size=5,\n).map(lambda parts: \".\".join(str(p) for p in parts)).filter(\n    lambda s: s.count(\".\") >= 1 and s.rsplit(\".\", 1)[-1] == \"0\"\n)"}, {"id": "A5/s2", "attack": "A5", "valid": false, "error": "syntax error: invalid syntax (line 9)", "source": "strategy = st.lists(\n    st.one_of(\n        st.integers(min_value=0, max_value=999),\n        st.text(st.characters(min_codepoint=48, max_codepoint=57)),\n    ),\n    min_size=1,\n    max_size=4,\n).map(lambda parts: \".\".join(str(p) for p in parts))\n.strategy = strategy.example(\"3.2.0\").example(\"10.0\").example(\"0.0.0\")"}, {"id": "A5/s3", "attack": "A5", "valid": true, "error": null, "source": "strategy = st.lists(\n    st.integers(min_value=0, max_value=999),\n    min_size=1,\n    max_size=5\n).map(lambda parts: \".\".join(str(p) for p in parts)).filter(\n    lambda s: s.endswith(\".\") or any(s.rsplit(\".\", 1)[-1] == \"0\" for _ in [1])\n).map(st.just)"}, {"id": "A5/s4", "attack": "A5", "valid": true, "error": null, "source": "strategy = st.tuples(\n    st.text(\n        alphabet=st.characters(whitelist_categories=(\"Nd\",)),\n        min_size=1,\n        max_size=4,\n    ).example(lambda x: x),\n    st.integers(min_value=0, max_value=999),\n)"}]}
+{"seq": 24, "t": 34.65, "kind": "phase", "name": "search"}
+{"seq": 25, "t": 34.65, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 1}
+{"seq": 26, "t": 34.65, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 2}
+{"seq": 27, "t": 34.65, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 3}
+{"seq": 28, "t": 34.65, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 4}
+{"seq": 29, "t": 36.25, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 4, "cpu_s": 0.85, "exit_code": 0, "ms": 1601}
+{"seq": 30, "t": 36.25, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 5}
+{"seq": 31, "t": 36.25, "kind": "strategy", "id": "A1/s1", "examples": 0, "findings": 0, "error": "TypeError: characters() got an unexpected keyword argument 'include_categories'"}
+{"seq": 32, "t": 36.33, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 5, "cpu_s": 1.85, "exit_code": 0, "ms": 1679}
+{"seq": 33, "t": 36.33, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 6}
+{"seq": 34, "t": 36.33, "kind": "strategy", "id": "A1/s2", "examples": 0, "findings": 0, "error": "HypothesisException: Using example() inside a strategy definition is a bad idea. Instead consider using hypothesis.strategies.builds() or @hypothesis.strategies.composite to define your strategy. See https://hypothesis.readthedocs.io/en/latest/reference/strategies.html#hypothesis.strategies.builds or https://hypothesis.readthedocs.io/en/latest/reference/strategies.html#hypothesis.strategies.composite for more details."}
+{"seq": 35, "t": 36.36, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 6, "cpu_s": 2.87, "exit_code": 0, "ms": 1704}
+{"seq": 36, "t": 36.36, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 7}
+{"seq": 37, "t": 36.36, "kind": "strategy", "id": "A2/s2", "examples": 5, "findings": 0, "error": null}
+{"seq": 38, "t": 36.8, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 7, "cpu_s": 4.18, "exit_code": 0, "ms": 2150}
+{"seq": 39, "t": 36.8, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 8}
+{"seq": 40, "t": 36.8, "kind": "strategy", "id": "A1/s4", "examples": 300, "findings": 0, "error": null}
+{"seq": 41, "t": 38.04, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 8, "cpu_s": 5.15, "exit_code": 0, "ms": 1700}
+{"seq": 42, "t": 38.04, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 9}
+{"seq": 43, "t": 38.04, "kind": "strategy", "id": "A3/s2", "examples": 0, "findings": 0, "error": "HypothesisException: Using example() inside a strategy definition is a bad idea. Instead consider using hypothesis.strategies.builds() or @hypothesis.strategies.composite to define your strategy. See https://hypothesis.readthedocs.io/en/latest/reference/strategies.html#hypothesis.strategies.builds or https://hypothesis.readthedocs.io/en/latest/reference/strategies.html#hypothesis.strategies.composite for more details."}
+{"seq": 44, "t": 38.63, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 9, "cpu_s": 5.95, "exit_code": 0, "ms": 1829}
+{"seq": 45, "t": 38.63, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 10}
+{"seq": 46, "t": 38.63, "kind": "strategy", "id": "A3/s4", "examples": 0, "findings": 0, "error": "TypeError: characters() got an unexpected keyword argument 'whitespace'"}
+{"seq": 47, "t": 38.71, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 10, "cpu_s": 7.52, "exit_code": 0, "ms": 2454}
+{"seq": 48, "t": 38.71, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 11}
+{"seq": 49, "t": 38.71, "kind": "strategy", "id": "A2/s4", "examples": 300, "findings": 0, "error": null}
+{"seq": 50, "t": 39.16, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 11, "cpu_s": 9.35, "exit_code": 0, "ms": 2803}
+{"seq": 51, "t": 39.16, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 12}
+{"seq": 52, "t": 39.16, "kind": "finding", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace", "probe": "P2", "found_by": "Nemotron strategy search", "title": "Exception behaviour changed", "inputs": [["input", "Version(\"0. 0  \")"]], "base": "raises InvalidVersion", "head": "returns normally", "base_exc": "packaging.version.InvalidVersion", "head_exc": ""}
+{"seq": 53, "t": 39.16, "kind": "strategy", "id": "A3/s3", "examples": 449, "findings": 1, "error": null}
+{"seq": 54, "t": 39.73, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 12, "cpu_s": 10.46, "exit_code": 0, "ms": 1694}
+{"seq": 55, "t": 39.73, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 13}
+{"seq": 56, "t": 39.73, "kind": "strategy", "id": "A4/s1", "examples": 1, "findings": 0, "error": "TypeError: sequence item 0: expected str instance, int found"}
+{"seq": 57, "t": 40.33, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 13, "cpu_s": 11.3, "exit_code": 0, "ms": 1694}
+{"seq": 58, "t": 40.33, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 14}
+{"seq": 59, "t": 40.33, "kind": "strategy", "id": "A4/s2", "examples": 0, "findings": 0, "error": "TypeError: characters() got an unexpected keyword argument 'alphabet'"}
+{"seq": 60, "t": 40.74, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 14, "cpu_s": 12.06, "exit_code": 0, "ms": 1579}
+{"seq": 61, "t": 40.74, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 15}
+{"seq": 62, "t": 40.74, "kind": "strategy", "id": "A4/s4", "examples": 0, "findings": 0, "error": "TypeError: unsupported operand type(s) for +: 'LazyStrategy' and 'LazyStrategy'"}
+{"seq": 63, "t": 40.87, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 15, "cpu_s": 13.36, "exit_code": 0, "ms": 2161}
+{"seq": 64, "t": 40.87, "kind": "strategy", "id": "A4/s3", "examples": 396, "findings": 1, "error": null}
+{"seq": 65, "t": 42.04, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 15, "cpu_s": 14.05, "exit_code": 0, "ms": 1292}
+{"seq": 66, "t": 42.04, "kind": "strategy", "id": "A5/s4", "examples": 0, "findings": 0, "error": "TypeError: SearchStrategy.example() takes 1 positional argument but 2 were given"}
+{"seq": 67, "t": 44.35, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 15, "cpu_s": 17.63, "exit_code": 0, "ms": 4020}
+{"seq": 68, "t": 44.35, "kind": "strategy", "id": "A5/s3", "examples": 300, "findings": 0, "error": null}
+{"seq": 69, "t": 48.02, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 15, "cpu_s": 25.2, "exit_code": 0, "ms": 8287}
+{"seq": 70, "t": 48.02, "kind": "strategy", "id": "A5/s1", "examples": 300, "findings": 0, "error": null}
+{"seq": 71, "t": 48.02, "kind": "phase", "name": "batch"}
+{"seq": 72, "t": 48.03, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 16}
+{"seq": 73, "t": 48.5, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 16, "cpu_s": 25.34, "exit_code": 0, "ms": 465}
+{"seq": 74, "t": 48.5, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 17}
+{"seq": 75, "t": 48.97, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 17, "cpu_s": 25.46, "exit_code": 0, "ms": 465}
+{"seq": 76, "t": 48.97, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 18}
+{"seq": 77, "t": 49.5, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 18, "cpu_s": 25.62, "exit_code": 0, "ms": 527}
+{"seq": 78, "t": 49.52, "kind": "finding", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii+whitespace", "probe": "P2", "found_by": "hostile mutation", "title": "Exception behaviour changed", "inputs": [["input", "Version(\" ١.2.3 \")"]], "base": "raises InvalidVersion", "head": "returns normally", "base_exc": "packaging.version.InvalidVersion", "head_exc": ""}
+{"seq": 79, "t": 49.52, "kind": "finding", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+whitespace", "probe": "P2", "found_by": "hostile mutation", "title": "Exception behaviour changed", "inputs": [["input", "Version(\" 10000000000000000000000000000000000000000…00000.2.3 \" (4,307 chars))"]], "base": "raises ValueError", "head": "raises InvalidVersion", "base_exc": "builtins.ValueError", "head_exc": "packaging.version.InvalidVersion"}
+{"seq": 80, "t": 49.52, "kind": "finding", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits", "probe": "P2", "found_by": "hostile mutation", "title": "Exception behaviour changed", "inputs": [["input", "Version(\"100000000000000000000000000000000000000000…000000.0.0\" (4,305 chars))"]], "base": "raises ValueError", "head": "raises InvalidVersion", "base_exc": "builtins.ValueError", "head_exc": "packaging.version.InvalidVersion"}
+{"seq": 81, "t": 49.52, "kind": "finding", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii", "probe": "P2", "found_by": "hostile mutation", "title": "Exception behaviour changed", "inputs": [["input", "Version(\"١.0.0\")"]], "base": "raises InvalidVersion", "head": "returns normally", "base_exc": "packaging.version.InvalidVersion", "head_exc": ""}
+{"seq": 82, "t": 49.53, "kind": "finding", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+non-ascii+whitespace", "probe": "P2", "found_by": "hostile mutation", "title": "Exception behaviour changed", "inputs": [["input", "Version(\"　 1000000000000000000000000000000000000000…0000.2.3 　\" (4,309 chars))"]], "base": "raises ValueError", "head": "raises InvalidVersion", "base_exc": "builtins.ValueError", "head_exc": "packaging.version.InvalidVersion"}
+{"seq": 83, "t": 49.53, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 19}
+{"seq": 84, "t": 49.94, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 19, "cpu_s": 25.7, "exit_code": 0, "ms": 407}
+{"seq": 85, "t": 49.94, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 20}
+{"seq": 86, "t": 50.37, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 20, "cpu_s": 25.79, "exit_code": 0, "ms": 423}
+{"seq": 87, "t": 50.37, "kind": "batch", "inputs": 450, "mutations": 250, "focus": 38, "classes": 6}
+{"seq": 88, "t": 50.37, "kind": "phase", "name": "adjudicate"}
+{"seq": 89, "t": 50.5, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 21}
+{"seq": 90, "t": 50.91, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 21, "cpu_s": 25.87, "exit_code": 0, "ms": 406}
+{"seq": 91, "t": 50.91, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 22}
+{"seq": 92, "t": 51.34, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 22, "cpu_s": 25.94, "exit_code": 0, "ms": 430}
+{"seq": 93, "t": 51.34, "kind": "llm-start", "tier": "reasoning", "purpose": "adjudicate", "requests": 1}
+{"seq": 94, "t": 71.56, "kind": "llm", "tier": "reasoning", "model": "nvidia/Nemotron-3-Ultra-550b-a55b", "purpose": "adjudicate", "tokens_in": 8600, "tokens_out": 11281, "reasoning_tokens": 7478, "usd": 0.042443, "latency_ms": 20219, "ok": true}
+{"seq": 95, "t": 71.56, "kind": "verdict", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace", "label": "likely-bug", "votes": {"likely-bug": 3}, "rationale": "Fast‑path added in src/packaging/version.py strips only leading/trailing whitespace and then splits on '.'; internal spaces such as \"0. 0\" pass the fast path (since space is not in _NON_SIMPLE_VERSION_INDICATORS) and int(\" 0\") succeeds, whereas the original PEP‑440 regex rejected internal spaces, raising InvalidVersion. This change was not documented and appears unintentional.", "evidence": ["_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")", "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"]}
+{"seq": 96, "t": 71.56, "kind": "verdict", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii+whitespace", "label": "likely-bug", "votes": {"likely-bug": 3}, "rationale": "The fast‑path treats any characters not in _NON_SIMPLE_VERSION_INDICATORS as “simple”. Arabic‑Indic digit “١” is not in that set, so the version \" ١.2.3 \" passes the fast path after stripping spaces, and int(\"١\") succeeds (Python accepts Unicode digits). The original PEP 440 regex only accepts ASCII digits, so it raised InvalidVersion. This acceptance of non‑ASCII digits is unintended.", "evidence": ["_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")", "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"]}
+{"seq": 97, "t": 71.56, "kind": "verdict", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+whitespace", "label": "likely-bug", "votes": {"likely-bug": 2, "intended": 1}, "rationale": "A very long version consisting only of digits and dots contains no indicator characters, so the fast path parses it into a huge tuple of ints and returns successfully. The original regex‑based validation rejected it with a ValueError (InvalidVersion). Accepting arbitrarily long releases bypasses PEP 440 validation and is an unintended performance shortcut.", "evidence": ["_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")", "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"]}
+{"seq": 98, "t": 71.56, "kind": "verdict", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits", "label": "likely-bug", "votes": {"likely-bug": 2, "intended": 1}, "rationale": "Same reasoning as C3 – an extremely long numeric version passes the fast path because it contains only digits and dots, while the original regex raised ValueError. The fast path unintentionally relaxes the version length limits.", "evidence": ["_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")", "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"]}
+{"seq": 99, "t": 71.56, "kind": "verdict", "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii", "label": "likely-bug", "votes": {"likely-bug": 3}, "rationale": "Arabic‑Indic digit “١” is not in the indicator set, so the fast path accepts \"١.0.0\" after stripping and splitting, converting the Unicode digit with int(). The original regex only allowed ASCII digits, raising InvalidVersion. Accepting non‑ASCII digits is a regression.", "evidence": ["_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")", "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"]}
+{"seq": 100, "t": 71.56, "kind": "verdict", "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+non-ascii+whitespace", "label": "likely-bug", "votes": {"likely-bug": 2, "intended": 1}, "rationale": "A version with a leading ideographic space and a massive numeric component contains no indicator characters; strip() removes the leading space and the fast path parses the huge numeric segments successfully. The original validator rejected it with ValueError. This is another unintended relaxation of validation.", "evidence": ["_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")", "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"]}
+{"seq": 101, "t": 71.56, "kind": "phase", "name": "perf-plan"}
+{"seq": 102, "t": 71.56, "kind": "llm-start", "tier": "reasoning", "purpose": "perf-plan", "requests": 1}
+{"seq": 103, "t": 81.41, "kind": "llm", "tier": "reasoning", "model": "nvidia/Nemotron-3-Ultra-550b-a55b", "purpose": "perf-plan", "tokens_in": 7781, "tokens_out": 4242, "reasoning_tokens": 2813, "usd": 0.020507, "latency_ms": 9847, "ok": true}
+{"seq": 104, "t": 81.42, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F1", "requests": 1}
+{"seq": 105, "t": 82.44, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F1", "tokens_in": 231, "tokens_out": 226, "reasoning_tokens": 0, "usd": 6.809999999999999e-05, "latency_ms": 1022, "ok": true}
+{"seq": 106, "t": 82.44, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F2", "requests": 1}
+{"seq": 107, "t": 82.78, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F2", "tokens_in": 164, "tokens_out": 22, "reasoning_tokens": 0, "usd": 1.512e-05, "latency_ms": 336, "ok": true}
+{"seq": 108, "t": 82.78, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F3", "requests": 1}
+{"seq": 109, "t": 83.6, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F3", "tokens_in": 229, "tokens_out": 162, "reasoning_tokens": 0, "usd": 5.2619999999999994e-05, "latency_ms": 817, "ok": true}
+{"seq": 110, "t": 83.6, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F4", "requests": 1}
+{"seq": 111, "t": 85.03, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F4", "tokens_in": 265, "tokens_out": 310, "reasoning_tokens": 0, "usd": 9.029999999999999e-05, "latency_ms": 1429, "ok": true}
+{"seq": 112, "t": 85.03, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F5", "requests": 1}
+{"seq": 113, "t": 86.13, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F5", "tokens_in": 221, "tokens_out": 210, "reasoning_tokens": 0, "usd": 6.366e-05, "latency_ms": 1099, "ok": true}
+{"seq": 114, "t": 86.13, "kind": "llm-start", "tier": "volume", "purpose": "perf-make:F6", "requests": 1}
+{"seq": 115, "t": 86.86, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-make:F6", "tokens_in": 240, "tokens_out": 139, "reasoning_tokens": 0, "usd": 4.776e-05, "latency_ms": 727, "ok": true}
+{"seq": 116, "t": 86.86, "kind": "phase", "name": "perf-screen"}
+{"seq": 117, "t": 86.87, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 23}
+{"seq": 118, "t": 86.87, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 24}
+{"seq": 119, "t": 86.87, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 25}
+{"seq": 120, "t": 86.87, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 26}
+{"seq": 121, "t": 88.42, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 26, "cpu_s": 26.71, "exit_code": 0, "ms": 1542}
+{"seq": 122, "t": 88.42, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 27}
+{"seq": 123, "t": 88.47, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 27, "cpu_s": 27.44, "exit_code": 0, "ms": 1593}
+{"seq": 124, "t": 88.47, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 28}
+{"seq": 125, "t": 88.51, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 28, "cpu_s": 28.16, "exit_code": 0, "ms": 1638}
+{"seq": 126, "t": 88.51, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 29}
+{"seq": 127, "t": 88.56, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 29, "cpu_s": 28.93, "exit_code": 0, "ms": 1684}
+{"seq": 128, "t": 88.56, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 30}
+{"seq": 129, "t": 89.33, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 30, "cpu_s": 29.03, "exit_code": 0, "ms": 905}
+{"seq": 130, "t": 89.33, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 31}
+{"seq": 131, "t": 89.43, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 31, "cpu_s": 29.11, "exit_code": 0, "ms": 958}
+{"seq": 132, "t": 89.43, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 32}
+{"seq": 133, "t": 89.57, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 32, "cpu_s": 29.21, "exit_code": 0, "ms": 1057}
+{"seq": 134, "t": 89.57, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 33}
+{"seq": 135, "t": 89.7, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 33, "cpu_s": 29.34, "exit_code": 0, "ms": 1139}
+{"seq": 136, "t": 89.7, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 34}
+{"seq": 137, "t": 94.65, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 34, "cpu_s": 33.5, "exit_code": 0, "ms": 5319}
+{"seq": 138, "t": 94.65, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 35}
+{"seq": 139, "t": 94.83, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 35, "cpu_s": 37.67, "exit_code": 0, "ms": 5402}
+{"seq": 140, "t": 94.83, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 36}
+{"seq": 141, "t": 95.04, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 36, "cpu_s": 41.82, "exit_code": 0, "ms": 5461}
+{"seq": 142, "t": 95.04, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 37}
+{"seq": 143, "t": 95.1, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 37, "cpu_s": 46.01, "exit_code": 0, "ms": 5402}
+{"seq": 144, "t": 95.1, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 38}
+{"seq": 145, "t": 99.62, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 38, "cpu_s": 50.25, "exit_code": 0, "ms": 4966}
+{"seq": 146, "t": 99.62, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 39}
+{"seq": 147, "t": 100.02, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 39, "cpu_s": 54.41, "exit_code": 0, "ms": 5183}
+{"seq": 148, "t": 100.02, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 40}
+{"seq": 149, "t": 100.33, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 40, "cpu_s": 58.44, "exit_code": 0, "ms": 5226}
+{"seq": 150, "t": 100.33, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 41}
+{"seq": 151, "t": 100.37, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 41, "cpu_s": 62.53, "exit_code": 0, "ms": 5335}
+{"seq": 152, "t": 100.37, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 42}
+{"seq": 153, "t": 104.37, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 42, "cpu_s": 66.68, "exit_code": 0, "ms": 4751}
+{"seq": 154, "t": 104.37, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 43}
+{"seq": 155, "t": 105.01, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 43, "cpu_s": 70.89, "exit_code": 0, "ms": 4992}
+{"seq": 156, "t": 105.01, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 44}
+{"seq": 157, "t": 105.37, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 44, "cpu_s": 75.0, "exit_code": 0, "ms": 5031}
+{"seq": 158, "t": 105.37, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 45}
+{"seq": 159, "t": 105.47, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 45, "cpu_s": 79.08, "exit_code": 0, "ms": 5088}
+{"seq": 160, "t": 105.47, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 46}
+{"seq": 161, "t": 109.35, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 46, "cpu_s": 83.28, "exit_code": 0, "ms": 4969}
+{"seq": 162, "t": 109.35, "kind": "family", "id": "F1", "family_kind": "claimed_speedup", "family": "Added a fast‑path that detects “simple” numeric versions (only digits and dots) with a fast frozenset disjoint check and then parses them with a cheap split‑and", "origin": "plan", "screen_ratio": 0.9863714559272647, "valid_fraction": 0.0, "error": null}
+{"seq": 163, "t": 109.35, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 47}
+{"seq": 164, "t": 109.77, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 47, "cpu_s": 87.41, "exit_code": 0, "ms": 4752}
+{"seq": 165, "t": 109.77, "kind": "family", "id": "F4", "family_kind": "suspected_slowdown", "family": "The fast‑path guard uses a Python‑level frozenset `isdisjoint` check that iterates over every character of the version string until it finds a “non‑simple” indi", "origin": "plan", "screen_ratio": 1.0900511594405804, "valid_fraction": 0.0, "error": null}
+{"seq": 166, "t": 109.77, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 48}
+{"seq": 167, "t": 110.3, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 48, "cpu_s": 91.47, "exit_code": 0, "ms": 4835}
+{"seq": 168, "t": 110.3, "kind": "family", "id": "F3", "family_kind": "claimed_speedup", "family": "Fast‑path for simple numeric versions", "origin": "plan", "screen_ratio": 0.9999545081533796, "valid_fraction": 0.0, "error": null}
+{"seq": 169, "t": 110.3, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 49}
+{"seq": 170, "t": 110.39, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 49, "cpu_s": 95.64, "exit_code": 0, "ms": 5018}
+{"seq": 171, "t": 110.39, "kind": "family", "id": "F2", "family_kind": "suspected_slowdown", "family": "performance_optimization", "origin": "plan", "screen_ratio": 0.644451582146806, "valid_fraction": 1.0, "error": null}
+{"seq": 172, "t": 110.39, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 50}
+{"seq": 173, "t": 110.54, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 50, "cpu_s": 96.28, "exit_code": 0, "ms": 1193}
+{"seq": 174, "t": 110.54, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 51}
+{"seq": 175, "t": 111.19, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 51, "cpu_s": 96.98, "exit_code": 0, "ms": 1420}
+{"seq": 176, "t": 111.19, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 52}
+{"seq": 177, "t": 111.55, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 52, "cpu_s": 97.06, "exit_code": 0, "ms": 1011}
+{"seq": 178, "t": 111.55, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 53}
+{"seq": 179, "t": 111.69, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 53, "cpu_s": 97.69, "exit_code": 0, "ms": 1390}
+{"seq": 180, "t": 111.7, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 54}
+{"seq": 181, "t": 111.83, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 54, "cpu_s": 98.29, "exit_code": 0, "ms": 1444}
+{"seq": 182, "t": 111.84, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 55}
+{"seq": 183, "t": 112.32, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 55, "cpu_s": 98.39, "exit_code": 0, "ms": 1129}
+{"seq": 184, "t": 112.33, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 56}
+{"seq": 185, "t": 112.97, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 56, "cpu_s": 98.49, "exit_code": 0, "ms": 1274}
+{"seq": 186, "t": 112.97, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 57}
+{"seq": 187, "t": 113.12, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 57, "cpu_s": 98.61, "exit_code": 0, "ms": 1280}
+{"seq": 188, "t": 113.12, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 58}
+{"seq": 189, "t": 117.29, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 58, "cpu_s": 103.1, "exit_code": 0, "ms": 5738}
+{"seq": 190, "t": 117.3, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 59}
+{"seq": 191, "t": 118.0, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 59, "cpu_s": 107.56, "exit_code": 0, "ms": 5670}
+{"seq": 192, "t": 118.0, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 60}
+{"seq": 193, "t": 118.42, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 60, "cpu_s": 111.9, "exit_code": 0, "ms": 5445}
+{"seq": 194, "t": 118.42, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 61}
+{"seq": 195, "t": 118.47, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 61, "cpu_s": 116.24, "exit_code": 0, "ms": 5350}
+{"seq": 196, "t": 118.47, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 62}
+{"seq": 197, "t": 122.2, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 62, "cpu_s": 120.55, "exit_code": 0, "ms": 4908}
+{"seq": 198, "t": 122.21, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 63}
+{"seq": 199, "t": 122.91, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 63, "cpu_s": 124.84, "exit_code": 0, "ms": 4908}
+{"seq": 200, "t": 122.91, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 64}
+{"seq": 201, "t": 123.21, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 64, "cpu_s": 128.89, "exit_code": 0, "ms": 4789}
+{"seq": 202, "t": 123.21, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 65}
+{"seq": 203, "t": 123.27, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 65, "cpu_s": 132.89, "exit_code": 0, "ms": 4794}
+{"seq": 204, "t": 123.27, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 66}
+{"seq": 205, "t": 127.03, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 66, "cpu_s": 137.21, "exit_code": 0, "ms": 4819}
+{"seq": 206, "t": 127.03, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 67}
+{"seq": 207, "t": 127.85, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 67, "cpu_s": 141.52, "exit_code": 0, "ms": 4933}
+{"seq": 208, "t": 127.85, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 68}
+{"seq": 209, "t": 128.3, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 68, "cpu_s": 145.79, "exit_code": 0, "ms": 5027}
+{"seq": 210, "t": 128.3, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 69}
+{"seq": 211, "t": 128.39, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 69, "cpu_s": 150.11, "exit_code": 0, "ms": 5180}
+{"seq": 212, "t": 128.39, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 70}
+{"seq": 213, "t": 131.9, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 70, "cpu_s": 154.46, "exit_code": 0, "ms": 4872}
+{"seq": 214, "t": 131.9, "kind": "family", "id": "F5", "family_kind": "suspected_slowdown", "family": "Accidental acceptance of whitespace in simple versions", "origin": "plan", "screen_ratio": 0.9247185740303128, "valid_fraction": 0.125, "error": null}
+{"seq": 215, "t": 131.9, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 71}
+{"seq": 216, "t": 132.7, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 71, "cpu_s": 158.7, "exit_code": 0, "ms": 4849}
+{"seq": 217, "t": 132.7, "kind": "family", "id": "F6", "family_kind": "suspected_slowdown", "family": "When the fast path is taken (pure numeric versions), the version string is stripped, split on ‘.’, and each component is converted with `int`. This allocates a ", "origin": "plan", "screen_ratio": 0.4404265335596345, "valid_fraction": 1.0, "error": null}
+{"seq": 218, "t": 132.7, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 72}
+{"seq": 219, "t": 133.17, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 72, "cpu_s": 159.36, "exit_code": 0, "ms": 1267}
+{"seq": 220, "t": 133.17, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 73}
+{"seq": 221, "t": 133.26, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 73, "cpu_s": 163.52, "exit_code": 0, "ms": 4966}
+{"seq": 222, "t": 133.26, "kind": "family", "id": "R2", "family_kind": "suspected_slowdown", "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"", "origin": "archive", "screen_ratio": 2.0933183121944663, "valid_fraction": 0.0, "error": null}
+{"seq": 223, "t": 133.43, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 73, "cpu_s": 167.7, "exit_code": 0, "ms": 5036}
+{"seq": 224, "t": 133.43, "kind": "family", "id": "R1", "family_kind": "suspected_slowdown", "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.", "origin": "archive", "screen_ratio": 2.0933183121944663, "valid_fraction": 0.0, "error": null}
+{"seq": 225, "t": 133.87, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 73, "cpu_s": 167.8, "exit_code": 0, "ms": 691}
+{"seq": 226, "t": 133.87, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 74}
+{"seq": 227, "t": 134.04, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 74, "cpu_s": 168.56, "exit_code": 0, "ms": 1344}
+{"seq": 228, "t": 134.05, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 75}
+{"seq": 229, "t": 134.81, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 75, "cpu_s": 168.64, "exit_code": 0, "ms": 765}
+{"seq": 230, "t": 134.82, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 76}
+{"seq": 231, "t": 138.51, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 76, "cpu_s": 172.62, "exit_code": 0, "ms": 4639}
+{"seq": 232, "t": 138.51, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 77}
+{"seq": 233, "t": 139.17, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 77, "cpu_s": 176.58, "exit_code": 0, "ms": 4357}
+{"seq": 234, "t": 139.17, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 78}
+{"seq": 235, "t": 142.88, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 78, "cpu_s": 180.48, "exit_code": 0, "ms": 4372}
+{"seq": 236, "t": 142.88, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 79}
+{"seq": 237, "t": 143.42, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 79, "cpu_s": 184.37, "exit_code": 0, "ms": 4246}
+{"seq": 238, "t": 143.42, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 80}
+{"seq": 239, "t": 147.13, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 80, "cpu_s": 188.22, "exit_code": 0, "ms": 4241}
+{"seq": 240, "t": 147.13, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 81}
+{"seq": 241, "t": 147.67, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 81, "cpu_s": 192.07, "exit_code": 0, "ms": 4244}
+{"seq": 242, "t": 147.67, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 82}
+{"seq": 243, "t": 151.52, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 82, "cpu_s": 196.05, "exit_code": 0, "ms": 4388}
+{"seq": 244, "t": 151.52, "kind": "family", "id": "R3", "family_kind": "suspected_slowdown", "family": "Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded numbers", "origin": "archive", "screen_ratio": 1.2879795827846565, "valid_fraction": 1.0, "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"}
+{"seq": 245, "t": 152.24, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 82, "cpu_s": 200.12, "exit_code": 0, "ms": 4568}
+{"seq": 246, "t": 152.24, "kind": "family", "id": "R4", "family_kind": "suspected_slowdown", "family": "Each numeric chunk increases digit count linearly while keeping total chunks fixed", "origin": "archive", "screen_ratio": 1.2735706618996405, "valid_fraction": 1.0, "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"}
+{"seq": 247, "t": 152.24, "kind": "phase", "name": "perf-expand"}
+{"seq": 248, "t": 152.24, "kind": "llm-start", "tier": "proposer", "purpose": "perf-expand:R3", "requests": 1}
+{"seq": 249, "t": 154.84, "kind": "llm", "tier": "proposer", "model": "nvidia/nemotron-3-super-120b-a12b", "purpose": "perf-expand:R3", "tokens_in": 376, "tokens_out": 344, "reasoning_tokens": 0, "usd": 0.0004224, "latency_ms": 2589, "ok": true}
+{"seq": 250, "t": 154.84, "kind": "llm-start", "tier": "proposer", "purpose": "perf-expand:R4", "requests": 1}
+{"seq": 251, "t": 157.65, "kind": "llm", "tier": "proposer", "model": "nvidia/nemotron-3-super-120b-a12b", "purpose": "perf-expand:R4", "tokens_in": 370, "tokens_out": 445, "reasoning_tokens": 0, "usd": 0.0005115, "latency_ms": 2809, "ok": true}
+{"seq": 252, "t": 157.65, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 83}
+{"seq": 253, "t": 157.65, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 84}
+{"seq": 254, "t": 157.65, "kind": "family", "id": "R4.1", "family_kind": "suspected_slowdown", "family": "Each segment contains repeated identical digits instead of unique numbers", "origin": "expand:R4", "screen_ratio": null, "valid_fraction": null, "error": "make(n) rejected: syntax error: unexpected character after line continuation character (line 3)"}
+{"seq": 255, "t": 157.65, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 85}
+{"seq": 256, "t": 157.66, "kind": "family", "id": "R4.2", "family_kind": "suspected_slowdown", "family": "Segments grow exponentially in digit size but share a common prefix", "origin": "expand:R4", "screen_ratio": null, "valid_fraction": null, "error": "make(n) rejected: syntax error: unexpected character after line continuation character (line 3)"}
+{"seq": 257, "t": 157.66, "kind": "family", "id": "R4.3", "family_kind": "suspected_slowdown", "family": "Chunks stay small but are separated by variable-length non-digit markers", "origin": "expand:R4", "screen_ratio": null, "valid_fraction": null, "error": "make(n) rejected: syntax error: unmatched '}' (line 15)"}
+{"seq": 258, "t": 158.94, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 85, "cpu_s": 200.86, "exit_code": 0, "ms": 1291}
+{"seq": 259, "t": 158.95, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 86}
+{"seq": 260, "t": 159.01, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 86, "cpu_s": 201.59, "exit_code": 0, "ms": 1358}
+{"seq": 261, "t": 159.02, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 87}
+{"seq": 262, "t": 159.81, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 87, "cpu_s": 201.74, "exit_code": 0, "ms": 862}
+{"seq": 263, "t": 159.81, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 88}
+{"seq": 264, "t": 159.89, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 88, "cpu_s": 201.88, "exit_code": 0, "ms": 876}
+{"seq": 265, "t": 159.89, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 89}
+{"seq": 266, "t": 159.97, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 89, "cpu_s": 203.42, "exit_code": 0, "ms": 2317}
+{"seq": 267, "t": 159.97, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 90}
+{"seq": 268, "t": 161.19, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 90, "cpu_s": 203.56, "exit_code": 0, "ms": 1222}
+{"seq": 269, "t": 161.19, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 91}
+{"seq": 270, "t": 165.5, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 91, "cpu_s": 208.38, "exit_code": 0, "ms": 5691}
+{"seq": 271, "t": 165.5, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 92}
+{"seq": 272, "t": 165.55, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 92, "cpu_s": 213.21, "exit_code": 0, "ms": 5654}
+{"seq": 273, "t": 165.55, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 93}
+{"seq": 274, "t": 166.68, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 93, "cpu_s": 217.69, "exit_code": 0, "ms": 5482}
+{"seq": 275, "t": 166.68, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 94}
+{"seq": 276, "t": 170.52, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 94, "cpu_s": 221.88, "exit_code": 0, "ms": 5015}
+{"seq": 277, "t": 170.52, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 95}
+{"seq": 278, "t": 170.63, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 95, "cpu_s": 226.08, "exit_code": 0, "ms": 5074}
+{"seq": 279, "t": 170.63, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 96}
+{"seq": 280, "t": 171.49, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 96, "cpu_s": 230.3, "exit_code": 0, "ms": 4813}
+{"seq": 281, "t": 171.49, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 97}
+{"seq": 282, "t": 175.89, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 97, "cpu_s": 234.88, "exit_code": 0, "ms": 5369}
+{"seq": 283, "t": 175.89, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 98}
+{"seq": 284, "t": 175.94, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 98, "cpu_s": 239.42, "exit_code": 0, "ms": 5317}
+{"seq": 285, "t": 175.94, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 99}
+{"seq": 286, "t": 176.72, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 99, "cpu_s": 243.89, "exit_code": 0, "ms": 5223}
+{"seq": 287, "t": 176.72, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 100}
+{"seq": 288, "t": 180.96, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 100, "cpu_s": 248.26, "exit_code": 0, "ms": 5064}
+{"seq": 289, "t": 180.96, "kind": "family", "id": "R3.2", "family_kind": "suspected_slowdown", "family": "Pre-release label changed from 'c5' to 'alpha.1'", "origin": "expand:R3", "screen_ratio": 1.3151357893422584, "valid_fraction": 1.0, "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"}
+{"seq": 290, "t": 181.04, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 100, "cpu_s": 252.62, "exit_code": 0, "ms": 5098}
+{"seq": 291, "t": 181.04, "kind": "family", "id": "R3.3", "family_kind": "suspected_slowdown", "family": "Repeating triple-digit pattern in each chunk", "origin": "expand:R3", "screen_ratio": 1.2324345567588313, "valid_fraction": 1.0, "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"}
+{"seq": 292, "t": 181.47, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 100, "cpu_s": 256.78, "exit_code": 0, "ms": 4751}
+{"seq": 293, "t": 181.47, "kind": "family", "id": "R3.1", "family_kind": "suspected_slowdown", "family": "Each numeric chunk is an ascending sequence starting at '0'", "origin": "expand:R3", "screen_ratio": 2.3848235530124784, "valid_fraction": 0.0, "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"}
+{"seq": 294, "t": 181.47, "kind": "phase", "name": "perf-full"}
+{"seq": 295, "t": 181.47, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:R3.2", "requests": 1}
+{"seq": 296, "t": 181.47, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:R3", "requests": 1}
+{"seq": 297, "t": 182.39, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:R3.2", "tokens_in": 318, "tokens_out": 137, "reasoning_tokens": 0, "usd": 5.195999999999999e-05, "latency_ms": 910, "ok": true}
+{"seq": 298, "t": 182.39, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 101}
+{"seq": 299, "t": 182.51, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:R3", "tokens_in": 320, "tokens_out": 220, "reasoning_tokens": 0, "usd": 7.2e-05, "latency_ms": 1039, "ok": true}
+{"seq": 300, "t": 182.51, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 102}
+{"seq": 301, "t": 183.43, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 102, "cpu_s": 257.47, "exit_code": 0, "ms": 1038}
+{"seq": 302, "t": 183.43, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 103}
+{"seq": 303, "t": 183.66, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 103, "cpu_s": 258.2, "exit_code": 0, "ms": 1146}
+{"seq": 304, "t": 183.66, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 104}
+{"seq": 305, "t": 184.74, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 104, "cpu_s": 259.1, "exit_code": 0, "ms": 1306}
+{"seq": 306, "t": 184.74, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 105}
+{"seq": 307, "t": 184.74, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 106}
+{"seq": 308, "t": 184.74, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 107}
+{"seq": 309, "t": 184.75, "kind": "sandbox", "state": "start", "in_flight": 5, "runs": 108}
+{"seq": 310, "t": 184.75, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 109}
+{"seq": 311, "t": 184.75, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 110}
+{"seq": 312, "t": 191.27, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 110, "cpu_s": 265.15, "exit_code": 0, "ms": 7607}
+{"seq": 313, "t": 191.27, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 111}
+{"seq": 314, "t": 191.28, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 112}
+{"seq": 315, "t": 191.28, "kind": "sandbox", "state": "start", "in_flight": 9, "runs": 113}
+{"seq": 316, "t": 191.28, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 114}
+{"seq": 317, "t": 191.29, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 115}
+{"seq": 318, "t": 191.29, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 116}
+{"seq": 319, "t": 195.89, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 116, "cpu_s": 272.14, "exit_code": 0, "ms": 11148}
+{"seq": 320, "t": 195.89, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 117}
+{"seq": 321, "t": 196.05, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 117, "cpu_s": 279.44, "exit_code": 0, "ms": 11294}
+{"seq": 322, "t": 196.05, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 118}
+{"seq": 323, "t": 196.22, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 118, "cpu_s": 286.81, "exit_code": 0, "ms": 11468}
+{"seq": 324, "t": 196.22, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 119}
+{"seq": 325, "t": 196.23, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 119, "cpu_s": 294.04, "exit_code": 0, "ms": 11489}
+{"seq": 326, "t": 196.23, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 120}
+{"seq": 327, "t": 196.34, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 120, "cpu_s": 301.23, "exit_code": 0, "ms": 11584}
+{"seq": 328, "t": 196.34, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 121}
+{"seq": 329, "t": 196.35, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 121, "cpu_s": 308.82, "exit_code": 0, "ms": 11600}
+{"seq": 330, "t": 196.35, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 122}
+{"seq": 331, "t": 204.73, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 122, "cpu_s": 316.75, "exit_code": 0, "ms": 13448}
+{"seq": 332, "t": 204.73, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 123}
+{"seq": 333, "t": 205.06, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 123, "cpu_s": 324.13, "exit_code": 0, "ms": 13780}
+{"seq": 334, "t": 205.06, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 124}
+{"seq": 335, "t": 207.08, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 124, "cpu_s": 331.68, "exit_code": 0, "ms": 15802}
+{"seq": 336, "t": 207.08, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 125}
+{"seq": 337, "t": 207.4, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 125, "cpu_s": 339.57, "exit_code": 0, "ms": 16103}
+{"seq": 338, "t": 207.4, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 126}
+{"seq": 339, "t": 207.8, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 126, "cpu_s": 347.69, "exit_code": 0, "ms": 16510}
+{"seq": 340, "t": 207.8, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 127}
+{"seq": 341, "t": 208.07, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 127, "cpu_s": 354.5, "exit_code": 0, "ms": 12173}
+{"seq": 342, "t": 208.07, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 128}
+{"seq": 343, "t": 208.17, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 128, "cpu_s": 362.14, "exit_code": 0, "ms": 16869}
+{"seq": 344, "t": 208.17, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 129}
+{"seq": 345, "t": 208.61, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 129, "cpu_s": 369.05, "exit_code": 0, "ms": 12259}
+{"seq": 346, "t": 208.61, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 130}
+{"seq": 347, "t": 209.81, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 130, "cpu_s": 375.67, "exit_code": 0, "ms": 13757}
+{"seq": 348, "t": 209.81, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 131}
+{"seq": 349, "t": 213.08, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 131, "cpu_s": 383.31, "exit_code": 0, "ms": 16740}
+{"seq": 350, "t": 213.08, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 132}
+{"seq": 351, "t": 213.21, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 132, "cpu_s": 391.11, "exit_code": 0, "ms": 16985}
+{"seq": 352, "t": 213.21, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 133}
+{"seq": 353, "t": 214.8, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 133, "cpu_s": 399.23, "exit_code": 0, "ms": 18569}
+{"seq": 354, "t": 214.81, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 134}
+{"seq": 355, "t": 219.84, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 134, "cpu_s": 406.76, "exit_code": 0, "ms": 14782}
+{"seq": 356, "t": 219.84, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 135}
+{"seq": 357, "t": 220.18, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 135, "cpu_s": 414.68, "exit_code": 0, "ms": 15444}
+{"seq": 358, "t": 220.18, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 136}
+{"seq": 359, "t": 223.75, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 136, "cpu_s": 422.55, "exit_code": 0, "ms": 16666}
+{"seq": 360, "t": 223.75, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 137}
+{"seq": 361, "t": 223.87, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 137, "cpu_s": 430.47, "exit_code": 0, "ms": 15700}
+{"seq": 362, "t": 223.87, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 138}
+{"seq": 363, "t": 223.98, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 138, "cpu_s": 438.7, "exit_code": 0, "ms": 16587}
+{"seq": 364, "t": 223.99, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 139}
+{"seq": 365, "t": 224.32, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 139, "cpu_s": 446.7, "exit_code": 0, "ms": 15708}
+{"seq": 366, "t": 224.32, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 140}
+{"seq": 367, "t": 225.05, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 140, "cpu_s": 454.88, "exit_code": 0, "ms": 16977}
+{"seq": 368, "t": 225.05, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 141}
+{"seq": 369, "t": 225.96, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 141, "cpu_s": 462.99, "exit_code": 0, "ms": 18154}
+{"seq": 370, "t": 225.96, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 142}
+{"seq": 371, "t": 227.76, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 142, "cpu_s": 470.65, "exit_code": 0, "ms": 17943}
+{"seq": 372, "t": 227.76, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 143}
+{"seq": 373, "t": 228.59, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 143, "cpu_s": 478.07, "exit_code": 0, "ms": 15505}
+{"seq": 374, "t": 228.59, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 144}
+{"seq": 375, "t": 230.29, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 144, "cpu_s": 486.67, "exit_code": 0, "ms": 17072}
+{"seq": 376, "t": 230.29, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 145}
+{"seq": 377, "t": 232.83, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 145, "cpu_s": 495.57, "exit_code": 0, "ms": 18020}
+{"seq": 378, "t": 232.83, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 146}
+{"seq": 379, "t": 236.38, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 146, "cpu_s": 503.9, "exit_code": 0, "ms": 16539}
+{"seq": 380, "t": 236.39, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 147}
+{"seq": 381, "t": 238.16, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 147, "cpu_s": 512.49, "exit_code": 0, "ms": 17977}
+{"seq": 382, "t": 238.16, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 148}
+{"seq": 383, "t": 240.63, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 148, "cpu_s": 520.5, "exit_code": 0, "ms": 16303}
+{"seq": 384, "t": 240.79, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 148, "cpu_s": 528.53, "exit_code": 0, "ms": 15739}
+{"seq": 385, "t": 241.05, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 148, "cpu_s": 536.63, "exit_code": 0, "ms": 17178}
+{"seq": 386, "t": 241.05, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 149}
+{"seq": 387, "t": 242.2, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 149, "cpu_s": 544.84, "exit_code": 0, "ms": 18446}
+{"seq": 388, "t": 242.2, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 150}
+{"seq": 389, "t": 242.7, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 150, "cpu_s": 552.68, "exit_code": 0, "ms": 14109}
+{"seq": 390, "t": 242.85, "kind": "sandbox", "state": "end", "in_flight": 8, "runs": 150, "cpu_s": 561.33, "exit_code": 0, "ms": 18857}
+{"seq": 391, "t": 242.86, "kind": "sandbox", "state": "start", "in_flight": 9, "runs": 151}
+{"seq": 392, "t": 243.36, "kind": "sandbox", "state": "end", "in_flight": 8, "runs": 151, "cpu_s": 570.4, "exit_code": 0, "ms": 17392}
+{"seq": 393, "t": 243.36, "kind": "sandbox", "state": "start", "in_flight": 9, "runs": 152}
+{"seq": 394, "t": 244.0, "kind": "sandbox", "state": "end", "in_flight": 8, "runs": 152, "cpu_s": 577.84, "exit_code": 0, "ms": 16241}
+{"seq": 395, "t": 245.99, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 152, "cpu_s": 586.22, "exit_code": 0, "ms": 15697}
+{"seq": 396, "t": 247.62, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 152, "cpu_s": 592.99, "exit_code": 0, "ms": 11236}
+{"seq": 397, "t": 247.83, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 152, "cpu_s": 602.15, "exit_code": 0, "ms": 14991}
+{"seq": 398, "t": 247.84, "kind": "measured", "family_id": "R3.2", "family": "Pre-release label changed from 'c5' to 'alpha.1'", "family_kind": "suspected_slowdown", "verdict": "slower", "valid_fraction": 1.0, "slope_base": 0.6965041702512191, "slope_head": 0.7817671609001466, "ladder": [{"input_chars": 16.0, "ratio": 1.0426700276942307}, {"input_chars": 25.0, "ratio": 1.0691108047644728}, {"input_chars": 163.0, "ratio": 1.3151357893422584}, {"input_chars": 2155.0, "ratio": 1.9287493354485514}, {"input_chars": 33163.0, "ratio": 2.4366753116799162}, {"input_chars": 525835.0, "ratio": 2.2323559424729695}]}
+{"seq": 399, "t": 247.84, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:R4", "requests": 1}
+{"seq": 400, "t": 248.67, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:R4", "tokens_in": 314, "tokens_out": 142, "reasoning_tokens": 0, "usd": 5.292e-05, "latency_ms": 832, "ok": true}
+{"seq": 401, "t": 248.67, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 153}
+{"seq": 402, "t": 248.71, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 153, "cpu_s": 608.88, "exit_code": 0, "ms": 10545}
+{"seq": 403, "t": 249.84, "kind": "sandbox", "state": "end", "in_flight": 4, "runs": 153, "cpu_s": 615.23, "exit_code": 0, "ms": 8790}
+{"seq": 404, "t": 252.34, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 153, "cpu_s": 622.92, "exit_code": 0, "ms": 10141}
+{"seq": 405, "t": 253.73, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 153, "cpu_s": 631.66, "exit_code": 0, "ms": 10874}
+{"seq": 406, "t": 255.27, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 153, "cpu_s": 641.53, "exit_code": 0, "ms": 11912}
+{"seq": 407, "t": 255.27, "kind": "measured", "family_id": "R3", "family": "Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded numbers", "family_kind": "suspected_slowdown", "verdict": "slower", "valid_fraction": 1.0, "slope_base": 0.6661289775416621, "slope_head": 0.7492839920008143, "ladder": [{"input_chars": 10.0, "ratio": 1.0411295277568429}, {"input_chars": 19.0, "ratio": 1.0676502698337886}, {"input_chars": 157.0, "ratio": 1.2879795827846565}, {"input_chars": 2149.0, "ratio": 1.9269040039264174}, {"input_chars": 33157.0, "ratio": 2.4363880809276957}, {"input_chars": 525829.0, "ratio": 2.2321664359489053}]}
+{"seq": 408, "t": 255.28, "kind": "llm-start", "tier": "volume", "purpose": "perf-strategy:R3.3", "requests": 1}
+{"seq": 409, "t": 255.56, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 153, "cpu_s": 647.23, "exit_code": 0, "ms": 6888}
+{"seq": 410, "t": 255.56, "kind": "sandbox", "state": "start", "in_flight": 1, "runs": 154}
+{"seq": 411, "t": 256.61, "kind": "llm", "tier": "volume", "model": "nvidia/Nemotron-3_5-Lightning", "purpose": "perf-strategy:R3.3", "tokens_in": 343, "tokens_out": 240, "reasoning_tokens": 0, "usd": 7.817999999999999e-05, "latency_ms": 1328, "ok": true}
+{"seq": 412, "t": 256.61, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 155}
+{"seq": 413, "t": 258.01, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 155, "cpu_s": 648.18, "exit_code": 0, "ms": 1403}
+{"seq": 414, "t": 258.02, "kind": "sandbox", "state": "start", "in_flight": 2, "runs": 156}
+{"seq": 415, "t": 258.02, "kind": "sandbox", "state": "start", "in_flight": 3, "runs": 157}
+{"seq": 416, "t": 258.02, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 158}
+{"seq": 417, "t": 258.03, "kind": "sandbox", "state": "start", "in_flight": 5, "runs": 159}
+{"seq": 418, "t": 258.04, "kind": "sandbox", "state": "start", "in_flight": 6, "runs": 160}
+{"seq": 419, "t": 258.04, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 161}
+{"seq": 420, "t": 258.22, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 161, "cpu_s": 650.08, "exit_code": 0, "ms": 2652}
+{"seq": 421, "t": 258.22, "kind": "sandbox", "state": "start", "in_flight": 7, "runs": 162}
+{"seq": 422, "t": 258.22, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 163}
+{"seq": 423, "t": 258.22, "kind": "sandbox", "state": "start", "in_flight": 9, "runs": 164}
+{"seq": 424, "t": 258.23, "kind": "sandbox", "state": "start", "in_flight": 10, "runs": 165}
+{"seq": 425, "t": 258.23, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 166}
+{"seq": 426, "t": 258.24, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 167}
+{"seq": 427, "t": 271.19, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 167, "cpu_s": 657.41, "exit_code": 0, "ms": 13160}
+{"seq": 428, "t": 271.19, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 168}
+{"seq": 429, "t": 271.3, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 168, "cpu_s": 664.55, "exit_code": 0, "ms": 13258}
+{"seq": 430, "t": 271.3, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 169}
+{"seq": 431, "t": 271.4, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 169, "cpu_s": 671.35, "exit_code": 0, "ms": 13179}
+{"seq": 432, "t": 271.4, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 170}
+{"seq": 433, "t": 271.53, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 170, "cpu_s": 678.69, "exit_code": 0, "ms": 13498}
+{"seq": 434, "t": 271.53, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 171}
+{"seq": 435, "t": 271.53, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 171, "cpu_s": 685.59, "exit_code": 0, "ms": 13517}
+{"seq": 436, "t": 271.53, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 172}
+{"seq": 437, "t": 271.75, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 172, "cpu_s": 692.83, "exit_code": 0, "ms": 13714}
+{"seq": 438, "t": 271.75, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 173}
+{"seq": 439, "t": 271.85, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 173, "cpu_s": 700.19, "exit_code": 0, "ms": 13620}
+{"seq": 440, "t": 271.85, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 174}
+{"seq": 441, "t": 272.04, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 174, "cpu_s": 707.19, "exit_code": 0, "ms": 13797}
+{"seq": 442, "t": 272.04, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 175}
+{"seq": 443, "t": 272.18, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 175, "cpu_s": 714.27, "exit_code": 0, "ms": 13954}
+{"seq": 444, "t": 272.18, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 176}
+{"seq": 445, "t": 272.5, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 176, "cpu_s": 721.72, "exit_code": 0, "ms": 14448}
+{"seq": 446, "t": 272.5, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 177}
+{"seq": 447, "t": 273.4, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 177, "cpu_s": 729.31, "exit_code": 0, "ms": 15156}
+{"seq": 448, "t": 273.4, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 178}
+{"seq": 449, "t": 275.31, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 178, "cpu_s": 736.53, "exit_code": 0, "ms": 17086}
+{"seq": 450, "t": 275.31, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 179}
+{"seq": 451, "t": 285.65, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 179, "cpu_s": 743.93, "exit_code": 0, "ms": 14251}
+{"seq": 452, "t": 285.65, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 180}
+{"seq": 453, "t": 286.62, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 180, "cpu_s": 751.31, "exit_code": 0, "ms": 15087}
+{"seq": 454, "t": 286.62, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 181}
+{"seq": 455, "t": 287.57, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 181, "cpu_s": 759.23, "exit_code": 0, "ms": 16275}
+{"seq": 456, "t": 287.57, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 182}
+{"seq": 457, "t": 287.8, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 182, "cpu_s": 766.98, "exit_code": 0, "ms": 16606}
+{"seq": 458, "t": 287.8, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 183}
+{"seq": 459, "t": 288.58, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 183, "cpu_s": 774.66, "exit_code": 0, "ms": 16830}
+{"seq": 460, "t": 288.58, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 184}
+{"seq": 461, "t": 288.95, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 184, "cpu_s": 782.28, "exit_code": 0, "ms": 17410}
+{"seq": 462, "t": 288.95, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 185}
+{"seq": 463, "t": 289.22, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 185, "cpu_s": 789.89, "exit_code": 0, "ms": 17183}
+{"seq": 464, "t": 289.22, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 186}
+{"seq": 465, "t": 289.38, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 186, "cpu_s": 797.87, "exit_code": 0, "ms": 16875}
+{"seq": 466, "t": 289.38, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 187}
+{"seq": 467, "t": 289.88, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 187, "cpu_s": 805.71, "exit_code": 0, "ms": 17696}
+{"seq": 468, "t": 289.88, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 188}
+{"seq": 469, "t": 290.1, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 188, "cpu_s": 813.46, "exit_code": 0, "ms": 14788}
+{"seq": 470, "t": 290.1, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 189}
+{"seq": 471, "t": 290.54, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 189, "cpu_s": 821.16, "exit_code": 0, "ms": 18687}
+{"seq": 472, "t": 290.54, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 190}
+{"seq": 473, "t": 290.71, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 190, "cpu_s": 828.77, "exit_code": 0, "ms": 17307}
+{"seq": 474, "t": 290.71, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 191}
+{"seq": 475, "t": 301.37, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 191, "cpu_s": 836.52, "exit_code": 0, "ms": 15713}
+{"seq": 476, "t": 301.37, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 192}
+{"seq": 477, "t": 303.07, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 192, "cpu_s": 844.06, "exit_code": 0, "ms": 16452}
+{"seq": 478, "t": 303.07, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 193}
+{"seq": 479, "t": 303.53, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 193, "cpu_s": 851.78, "exit_code": 0, "ms": 15953}
+{"seq": 480, "t": 303.53, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 194}
+{"seq": 481, "t": 305.61, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 194, "cpu_s": 859.64, "exit_code": 0, "ms": 17805}
+{"seq": 482, "t": 305.61, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 195}
+{"seq": 483, "t": 305.8, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 195, "cpu_s": 867.65, "exit_code": 0, "ms": 16850}
+{"seq": 484, "t": 305.81, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 196}
+{"seq": 485, "t": 305.99, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 196, "cpu_s": 875.81, "exit_code": 0, "ms": 17401}
+{"seq": 486, "t": 305.99, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 197}
+{"seq": 487, "t": 306.14, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 197, "cpu_s": 883.83, "exit_code": 0, "ms": 16917}
+{"seq": 488, "t": 306.14, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 198}
+{"seq": 489, "t": 306.87, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 198, "cpu_s": 891.59, "exit_code": 0, "ms": 16325}
+{"seq": 490, "t": 306.87, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 199}
+{"seq": 491, "t": 307.37, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 199, "cpu_s": 899.53, "exit_code": 0, "ms": 17267}
+{"seq": 492, "t": 307.37, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 200}
+{"seq": 493, "t": 307.46, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 200, "cpu_s": 908.25, "exit_code": 0, "ms": 16745}
+{"seq": 494, "t": 307.46, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 201}
+{"seq": 495, "t": 308.58, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 201, "cpu_s": 916.98, "exit_code": 0, "ms": 19198}
+{"seq": 496, "t": 308.58, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 202}
+{"seq": 497, "t": 309.07, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 202, "cpu_s": 924.68, "exit_code": 0, "ms": 19186}
+{"seq": 498, "t": 309.07, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 203}
+{"seq": 499, "t": 315.22, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 203, "cpu_s": 931.8, "exit_code": 0, "ms": 13851}
+{"seq": 500, "t": 315.22, "kind": "sandbox", "state": "start", "in_flight": 12, "runs": 204}
+{"seq": 501, "t": 317.31, "kind": "sandbox", "state": "end", "in_flight": 11, "runs": 204, "cpu_s": 938.88, "exit_code": 0, "ms": 14240}
+{"seq": 502, "t": 319.38, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 204, "cpu_s": 945.78, "exit_code": 0, "ms": 12008}
+{"seq": 503, "t": 319.39, "kind": "sandbox", "state": "start", "in_flight": 11, "runs": 205}
+{"seq": 504, "t": 319.89, "kind": "sandbox", "state": "end", "in_flight": 10, "runs": 205, "cpu_s": 952.78, "exit_code": 0, "ms": 16361}
+{"seq": 505, "t": 319.97, "kind": "sandbox", "state": "end", "in_flight": 9, "runs": 205, "cpu_s": 960.41, "exit_code": 0, "ms": 14161}
+{"seq": 506, "t": 320.23, "kind": "sandbox", "state": "end", "in_flight": 8, "runs": 205, "cpu_s": 967.54, "exit_code": 0, "ms": 14616}
+{"seq": 507, "t": 320.67, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 205, "cpu_s": 975.4, "exit_code": 0, "ms": 13789}
+{"seq": 508, "t": 320.67, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 206}
+{"seq": 509, "t": 320.86, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 206, "cpu_s": 982.76, "exit_code": 0, "ms": 14718}
+{"seq": 510, "t": 320.86, "kind": "sandbox", "state": "start", "in_flight": 8, "runs": 207}
+{"seq": 511, "t": 321.38, "kind": "sandbox", "state": "end", "in_flight": 7, "runs": 207, "cpu_s": 989.82, "exit_code": 0, "ms": 15396}
+{"seq": 512, "t": 322.41, "kind": "sandbox", "state": "end", "in_flight": 6, "runs": 207, "cpu_s": 996.59, "exit_code": 0, "ms": 13343}
+{"seq": 513, "t": 322.71, "kind": "sandbox", "state": "end", "in_flight": 5, "runs": 207, "cpu_s": 1004.42, "exit_code": 0, "ms": 15239}
+{"seq": 514, "t": 323.58, "kind": "sandbox", "state": "end", "in_flight": 4, "runs": 207, "cpu_s": 1012.83, "exit_code": 0, "ms": 14999}
+{"seq": 515, "t": 323.59, "kind": "measured", "family_id": "R3.3", "family": "Repeating triple-digit pattern in each chunk", "family_kind": "suspected_slowdown", "verdict": "slower", "valid_fraction": 1.0, "slope_base": 0.6701623483984215, "slope_head": 0.7565762784420008, "ladder": [{"input_chars": 16.0, "ratio": 1.0327221671668558}, {"input_chars": 25.0, "ratio": 1.0541403496550161}, {"input_chars": 163.0, "ratio": 1.2324345567588313}, {"input_chars": 2155.0, "ratio": 1.880737529198443}, {"input_chars": 33163.0, "ratio": 2.4050244616086456}, {"input_chars": 525835.0, "ratio": 2.2089854135773797}]}
+{"seq": 516, "t": 325.61, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 207, "cpu_s": 1019.38, "exit_code": 0, "ms": 10383}
+{"seq": 517, "t": 325.61, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 208}
+{"seq": 518, "t": 327.99, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 208, "cpu_s": 1025.5, "exit_code": 0, "ms": 8602}
+{"seq": 519, "t": 327.99, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 209}
+{"seq": 520, "t": 328.15, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 209, "cpu_s": 1031.47, "exit_code": 0, "ms": 7284}
+{"seq": 521, "t": 328.15, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 210}
+{"seq": 522, "t": 328.29, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 210, "cpu_s": 1037.61, "exit_code": 0, "ms": 7617}
+{"seq": 523, "t": 328.29, "kind": "sandbox", "state": "start", "in_flight": 4, "runs": 211}
+{"seq": 524, "t": 332.68, "kind": "sandbox", "state": "end", "in_flight": 3, "runs": 211, "cpu_s": 1043.61, "exit_code": 0, "ms": 7073}
+{"seq": 525, "t": 334.76, "kind": "sandbox", "state": "end", "in_flight": 2, "runs": 211, "cpu_s": 1049.39, "exit_code": 0, "ms": 6772}
+{"seq": 526, "t": 334.88, "kind": "sandbox", "state": "end", "in_flight": 1, "runs": 211, "cpu_s": 1055.07, "exit_code": 0, "ms": 6725}
+{"seq": 527, "t": 335.07, "kind": "sandbox", "state": "end", "in_flight": 0, "runs": 211, "cpu_s": 1060.82, "exit_code": 0, "ms": 6781}
+{"seq": 528, "t": 335.08, "kind": "measured", "family_id": "R4", "family": "Each numeric chunk increases digit count linearly while keeping total chunks fixed", "family_kind": "suspected_slowdown", "verdict": "slower", "valid_fraction": 1.0, "slope_base": 0.6331464790264557, "slope_head": 0.7318001954642295, "ladder": [{"input_chars": 10.0, "ratio": 1.040907437320577}, {"input_chars": 19.0, "ratio": 1.0664168679529353}, {"input_chars": 157.0, "ratio": 1.2735706618996405}, {"input_chars": 2149.0, "ratio": 1.88682463549591}, {"input_chars": 33157.0, "ratio": 2.5027073281484338}, {"input_chars": 525829.0, "ratio": 2.7610171881472683}]}
+{"seq": 529, "t": 335.08, "kind": "phase", "name": "report"}
+{"seq": 530, "t": 335.09, "kind": "done", "verdict": "BLOCK", "classes": 6, "report": "report.html", "usd": 0.11184, "usd_by_tier": {"reasoning": 0.109316, "volume": 0.0015901799999999994, "proposer": 0.0009339000000000001}}

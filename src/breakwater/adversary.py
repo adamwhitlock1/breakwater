@@ -39,29 +39,32 @@ from breakwater.repo import Context
 # Prompts
 
 PLAN_SYSTEM = """\
-You review performance-motivated code changes for unintended behavior changes.
+You attack performance-motivated code changes. The change claims to make code faster WITHOUT \
+changing behavior; your job is to find inputs where the new version (head) and the old version \
+(base) behave differently: a different return value or string form, a different exception type, \
+accepting what was rejected (or the reverse), different equality / ordering / hashing, or objects \
+pickled by base that no longer load or compare on head.
 
-The change claims to make code faster WITHOUT changing behavior. Your job is to find inputs for \
-which the new version (head) and the old version (base) give different results: a different return \
-value or string form, a different exception type, different equality / ordering / hashing between \
-objects, or objects that no longer survive pickling from the old version.
-
-Work from the diff. Only inputs that reach changed code can behave differently, so:
+Method:
 1. Find the condition that routes an input into the new or changed code (e.g. a fast-path guard).
-2. For inputs that satisfy it, compare what the new code does with what the old code (the unchanged \
-   path elsewhere in the module) did for the same input. Look for every input the new path accepts, \
-   rejects or transforms differently: character classes the guard lets through (Unicode digits, \
-   whitespace, signs, underscores), Python builtins that behave differently from the old parser \
-   (int() and float() accept Unicode digits, surrounding whitespace and underscores; int() raises \
-   ValueError for strings over 4,300 digits; str.split, str.strip), normalization, cached or \
-   lazily computed state, container types, ordering and de-duplication.
-3. Invalid inputs count: raising a different exception, or accepting what was rejected, is a \
-   behavior change.
+2. List the assumptions the new code makes about inputs that pass that condition, and check each \
+   against what the old code did for the same input. Typical false assumptions: that a guard on a \
+   few characters implies a well-formed input; that int() / float() / str.split / str.strip behave \
+   like the old parser (int() accepts any Unicode decimal digit, surrounding whitespace and \
+   underscores, and raises ValueError above 4,300 digits); that caching, normalization, container \
+   types, ordering and de-duplication are unchanged.
+3. For each assumption that is FALSE for some input, give that input.
+4. Before you claim a difference, trace the OLD code on that exact input. The old code may already \
+   accept, normalize or reject it the same way (e.g. a regex that allows surrounding whitespace or \
+   leading zeros); if so, it is not a difference. Prefer inputs where you can name the line of old \
+   code that behaves differently. Make the attacks cover different assumptions, not variants of one.
 
-Every hypothesis must predict a concrete difference (what base does vs what head does); never \
-include one where you expect identical behavior. Always return at least two: when unsure, include \
-lower-likelihood differences rather than nothing. Do not report slowness or resource exhaustion; \
-that is analysed separately. Be concrete and brief."""
+An attack is a concrete input for which you predict DIFFERENT behavior. Describing which code path \
+an input takes, or explaining why some inputs behave the same, is not an attack: a plan that only \
+maps the code paths is useless. If you conclude an idea gives identical behavior, mark it "no \
+difference expected" (it will be discarded) and move on to inputs that break an assumption. Invalid \
+inputs count: raising a different exception, or accepting what was rejected, is a behavior change. \
+Do not report slowness; that is analysed separately. Be concrete and brief."""
 
 PLAN_USER = """\
 Target under test: `{target}` (called with positional arguments).
@@ -77,10 +80,17 @@ Observed for each result: {observe}.
 {diff}
 ```
 
-Return JSON with up to {n} hypotheses, most likely first. For each: the routing condition that \
-sends inputs into the changed code, the base behavior and head behavior you expect, the input \
-family, and `example_args_json`: 2-5 strings, each a JSON array of positional arguments for \
-`{target}`, for example "[\\"1.0\\"]"."""
+Return JSON with up to {n} attacks, most likely to expose a difference first. For each: the false \
+assumption (one sentence, e.g. "the fast path assumes int() only accepts ASCII digits"), how inputs \
+reach the changed code, what base does and what head does for the example inputs, the kind of \
+difference, the input family, and `example_args_json`: 2-5 strings, each a JSON array of positional \
+arguments for `{target}`, for example "[\\"1.0\\"]". Examples must be inputs where you predict a \
+difference, not ordinary inputs."""
+
+DIFFERENCE_KINDS = ("accepts what base rejects", "rejects what base accepts", "different exception type",
+                    "different value or string form", "different equality, ordering or hash",
+                    "old pickles break", "no difference expected")
+NO_DIFFERENCE = "no difference expected"
 
 PLAN_SCHEMA = {
     "type": "json_schema",
@@ -92,18 +102,21 @@ PLAN_SCHEMA = {
             "properties": {
                 "attacks": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
                             "id": {"type": "string"},
-                            "routing_condition": {"type": "string"},
-                            "assumption": {"type": "string"},
-                            "why_it_breaks": {"type": "string", "description": "base behavior vs head behavior"},
+                            "assumption": {"type": "string", "description": "the false assumption, one sentence"},
+                            "routing_condition": {"type": "string", "description": "how inputs reach the changed code"},
+                            "base_behavior": {"type": "string", "description": "what base does for the examples"},
+                            "head_behavior": {"type": "string", "description": "what head does for the examples"},
+                            "difference": {"type": "string", "enum": list(DIFFERENCE_KINDS)},
                             "input_family": {"type": "string"},
                             "example_args_json": {"type": "array", "items": {"type": "string"}},
                         },
-                        "required": ["id", "routing_condition", "assumption", "why_it_breaks", "input_family",
-                                         "example_args_json"],
+                        "required": ["id", "assumption", "routing_condition", "base_behavior", "head_behavior",
+                                     "difference", "input_family", "example_args_json"],
                         "additionalProperties": False,
                     },
                 }
@@ -149,9 +162,10 @@ class Attack:
     id: str
     routing_condition: str
     assumption: str
-    why_it_breaks: str
+    why_it_breaks: str  # "base: ...; head: ..."
     input_family: str
     example_args: list[list[Any]]
+    difference: str = ""  # one of DIFFERENCE_KINDS
 
 
 @dataclass
@@ -311,16 +325,27 @@ def plan_attacks(llm: LLM, ctx: Context, observe: tuple[str, ...], n: int = 5) -
             except (json.JSONDecodeError, AttributeError):
                 continue
 
+    # Attacks that predict no difference are path descriptions, not attacks: drop them before they
+    # take a slot (on 2026-10-09 they were most of Ultra's plan for #1082).
+    plans = [[a for a in p if isinstance(a, dict) and not _predicts_nothing(a)] for p in plans]
     # Interleave: first attack of each plan, then the second of each, and so on.
     merged: list[dict] = []
     for rank in range(max((len(p) for p in plans), default=0)):
         merged += [p[rank] for p in plans if rank < len(p)]
     attacks = []
     for i, a in enumerate(merged[:n]):
-        attacks.append(Attack(f"A{i + 1}", a.get("routing_condition", ""), a.get("assumption", ""),
-                              a.get("why_it_breaks", ""), a.get("input_family", ""),
-                              _parse_args(a.get("example_args_json", []))))
+        why = a.get("why_it_breaks") or f"base: {a.get('base_behavior', '')}; head: {a.get('head_behavior', '')}"
+        attacks.append(Attack(f"A{i + 1}", a.get("routing_condition", ""), a.get("assumption", ""), why,
+                              a.get("input_family", ""), _parse_args(a.get("example_args_json", [])),
+                              a.get("difference", "")))
     return attacks
+
+
+def _predicts_nothing(a: dict) -> bool:
+    if a.get("difference") == NO_DIFFERENCE:
+        return True
+    base, head = (" ".join(str(a.get(k, "")).lower().split()) for k in ("base_behavior", "head_behavior"))
+    return bool(base) and base == head
 
 
 def write_strategies(llm: LLM, ctx: Context, attack: Attack, n: int) -> list[str]:

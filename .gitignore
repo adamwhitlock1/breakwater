@@ -21,3 +21,6 @@ artifacts/backtest/*
 # Adjudication runs; only Token Factory runs that feed published numbers get committed
 artifacts/adjudication/*
 !artifacts/adjudication/packaging-v2/
+# Built report (CI builds it from committed artifacts; see .github/workflows/pages.yml)
+/site/
+.claude/launch.json

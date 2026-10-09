@@ -62,7 +62,8 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 
 ### WS4: Product, story and submission
 - [ ] `breakwater audit <repo> --base <ref> --head <ref> --target <symbol>` → JSON + Markdown report.
-- [ ] Static web report (verdict, per-family table with CIs, counterexample cards, cost receipt, image UUIDs). Must stay live through Dec 15 at ~$0.
+- [x] Static web report v1 (`breakwater site`, `src/breakwater/site/`): overview with arms vs known regressions, a page per PR with verdict, counterexample cards (adjudication label, votes, quoted evidence, reproduce command), perf ladder charts (inline SVG), receipts and image tags; source JSON under `data/`. Stdlib only, no network requests, deterministic. GitHub Pages workflow (manual trigger; publish only at submission) builds it from committed artifacts.
+- [ ] Report v2: audit-run pages (`breakwater audit` output), wall-clock CIs once finalist timing exists, cost by tier, generated pytest per card, merge near-duplicate classes.
 - [ ] Judge box: in-browser Pyodide "try your own version string" against base / PR / merged.
 - [ ] GitHub Action that runs the CLI and posts a check + comment.
 - [ ] README "For judges" table ([judging-map.md](judging-map.md)), limitations, the real bill.

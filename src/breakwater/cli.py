@@ -180,6 +180,21 @@ def adjudicate(args: argparse.Namespace) -> int:
     return 0
 
 
+def site(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from breakwater.site.build import build
+
+    adj = Path(args.adjudication) if args.adjudication else None
+    try:
+        pages = build(Path(args.backtest), adj, Path(args.out), allow_dev=args.allow_dev)
+    except ValueError as e:
+        print(e)
+        return 2
+    print(f"wrote {len(pages)} pages to {args.out}/ (open {args.out}/index.html)")
+    return 0
+
+
 def bill(args: argparse.Namespace) -> int:
     names = [args.provider] if args.provider else ledger.providers(run_id=args.run_id)
     if not names:
@@ -251,6 +266,12 @@ def main(argv: list[str] | None = None) -> int:
     j.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     j.add_argument("--out", help="output dir (default artifacts/adjudication/<time>-<provider>)")
     j.set_defaults(fn=adjudicate)
+    w = sub.add_parser("site", help="build the static web report from backtest + adjudication JSON")
+    w.add_argument("--backtest", default="artifacts/backtest/packaging-v2")
+    w.add_argument("--adjudication", default="artifacts/adjudication/packaging-v2")
+    w.add_argument("--out", default="site")
+    w.add_argument("--allow-dev", action="store_true", help="allow non-Token-Factory inputs (pages get a dev banner)")
+    w.set_defaults(fn=site)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")
     b.add_argument("--provider", help="tokenfactory or openrouter (default: each provider in the ledger)")

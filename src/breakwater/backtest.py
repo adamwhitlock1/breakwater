@@ -28,6 +28,7 @@ from breakwater import adversary, ledger, perf
 from breakwater.backends import Backend
 from breakwater.images import build_pair, git_req
 from breakwater.llm import Nemotron
+from breakwater.models import active_provider
 from breakwater.mutate import mutate_args
 from breakwater.probes import ALL_PROBES, Runner, Target, run_probes
 from breakwater.repo import _git, checkout, gather
@@ -218,8 +219,11 @@ def run(corpus_path: str, backend: Backend, *, only: list[str] | None, arms: tup
             results.append(fut.result())
     results.sort(key=lambda r: (r["pr"], r["id"]))
     summary = summarize(results, arms)
-    (out_dir / "results.json").write_text(json.dumps({"corpus": corpus_path, "arms": arms, "items": results,
-                                                       "summary": summary}, indent=2, ensure_ascii=False, default=str))
+    provider = active_provider().value
+    summary["provider"] = provider
+    (out_dir / "results.json").write_text(json.dumps({"corpus": corpus_path, "arms": arms, "provider": provider,
+                                                       "items": results, "summary": summary},
+                                                      indent=2, ensure_ascii=False, default=str))
     (out_dir / "table.md").write_text(render(results, arms, summary))
     return summary
 
@@ -250,8 +254,11 @@ def summarize(results: list[dict], arms: tuple[str, ...]) -> dict:
 
 
 def render(results: list[dict], arms: tuple[str, ...], s: dict) -> str:
+    provider = s.get("provider", "tokenfactory")
+    dev = ([f"> **Development run (provider: {provider}).** Not from Nebius Token Factory; do not publish.", ""]
+           if provider != "tokenfactory" else [])
     lines = [
-        "# Breakwater backtest", "",
+        "# Breakwater backtest", "", *dev,
         f"{s['items']} items · verified known issues {s['known_verified']} · candidates {s['known_candidate']} · "
         f"total Nemotron cost ${s['usd']:.2f}", "",
         "| arm | verified known caught | candidate known caught | items with any divergence |",

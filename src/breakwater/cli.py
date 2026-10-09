@@ -17,7 +17,12 @@ from breakwater import ledger
 
 def doctor(_: argparse.Namespace) -> int:
     checks: list[tuple[str, bool, str]] = []
-    for var in ("NEBIUS_API_KEY", "NEBIUS_PROJECT_ID", "TAVILY_API_KEY"):
+    from breakwater.models import PROVIDERS, active_provider
+
+    provider = active_provider()
+    note = "provider of record" if PROVIDERS[provider].publishable else "DEV ONLY: results are not publishable"
+    checks.append(("BREAKWATER_PROVIDER", True, f"{provider.value} ({note})"))
+    for var in ("NEBIUS_API_KEY", "NEBIUS_PROJECT_ID", "TAVILY_API_KEY", "OPENROUTER_API_KEY"):
         checks.append((var, bool(os.environ.get(var)), "set" if os.environ.get(var) else "missing (.env)"))
     docker = shutil.which("docker") is not None
     up = docker and subprocess.run(["docker", "info"], capture_output=True).returncode == 0
@@ -29,7 +34,11 @@ def doctor(_: argparse.Namespace) -> int:
     checks.append(("contree-sdk", contree, "installed" if contree else "uv sync --extra sandboxes"))
     for name, ok, detail in checks:
         print(f"{'ok ' if ok else 'XX '} {name:28s} {detail}")
-    return 0 if all(ok for name, ok, _ in checks if name != "TAVILY_API_KEY") else 1
+    optional = {"TAVILY_API_KEY", "OPENROUTER_API_KEY", "NEBIUS_PROJECT_ID"} - {PROVIDERS[provider].key_env}
+    return 0 if all(ok for name, ok, _ in checks if name not in optional) else 1
+
+
+DEV_BANNER = ("> **Development run (provider: {}).** Not from Nebius Token Factory; do not publish these numbers.")
 
 
 def _short(v, n: int = 70) -> str:
@@ -84,6 +93,7 @@ def audit(args: argparse.Namespace) -> int:
     from breakwater.backends import get_backend
     from breakwater.images import build_pair, git_req
     from breakwater.llm import Nemotron
+    from breakwater.models import Provider
     from breakwater.probes import Target
     from breakwater.repo import gather
 
@@ -95,8 +105,9 @@ def audit(args: argparse.Namespace) -> int:
     target = Target(args.target, tuple(args.observe.split(",")))
     out = Path(args.out or f"artifacts/runs/{run_id}")
     out.mkdir(parents=True, exist_ok=True)
-    report: dict = {"run_id": run_id, "repo": args.repo, "base": args.base, "head": args.head, "target": args.target}
-    sections: list[str] = []
+    report: dict = {"run_id": run_id, "repo": args.repo, "base": args.base, "head": args.head, "target": args.target,
+                    "provider": llm.provider.value}
+    sections: list[str] = [] if llm.provider is Provider.TOKENFACTORY else [DEV_BANNER.format(llm.provider.value)]
     found = False
 
     if args.mode in ("semantic", "both"):
@@ -142,16 +153,19 @@ def backtest(args: argparse.Namespace) -> int:
 
 
 def bill(args: argparse.Namespace) -> int:
-    totals = ledger.summarize(run_id=args.run_id)
-    if not totals:
+    names = [args.provider] if args.provider else ledger.providers(run_id=args.run_id)
+    if not names:
         print("ledger is empty")
         return 0
-    grand = 0.0
-    print(f"{'tier':10s} {'calls':>6s} {'tokens in':>12s} {'tokens out':>12s} {'usd':>10s}")
-    for tier, t in sorted(totals.items()):
-        grand += t["usd"]
-        print(f"{tier:10s} {int(t['calls']):6d} {int(t['tokens_in']):12,d} {int(t['tokens_out']):12,d} {t['usd']:10.4f}")
-    print(f"{'total':10s} {'':6s} {'':12s} {'':12s} {grand:10.4f}")
+    for name in names:
+        totals = ledger.summarize(run_id=args.run_id, provider=name)
+        grand = 0.0
+        print(f"[{name}]")
+        print(f"{'tier':10s} {'calls':>6s} {'tokens in':>12s} {'tokens out':>12s} {'usd':>10s}")
+        for tier, t in sorted(totals.items()):
+            grand += t["usd"]
+            print(f"{tier:10s} {int(t['calls']):6d} {int(t['tokens_in']):12,d} {int(t['tokens_out']):12,d} {t['usd']:10.4f}")
+        print(f"{'total':10s} {'':6s} {'':12s} {'':12s} {grand:10.4f}")
     return 0
 
 
@@ -202,6 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     t.set_defaults(fn=backtest)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")
+    b.add_argument("--provider", help="tokenfactory or openrouter (default: each provider in the ledger)")
     b.set_defaults(fn=bill)
     args = ap.parse_args(argv)
     return args.fn(args)

@@ -25,6 +25,7 @@ class Entry:
     ok: bool
     ts: float = field(default_factory=time.time)
     run_id: str | None = None
+    provider: str = "tokenfactory"  # entries written before the provider switch were all Token Factory
 
 
 def append(entry: Entry, path: Path = DEFAULT_PATH) -> None:
@@ -33,8 +34,9 @@ def append(entry: Entry, path: Path = DEFAULT_PATH) -> None:
         f.write(json.dumps(asdict(entry)) + "\n")
 
 
-def summarize(path: Path = DEFAULT_PATH, run_id: str | None = None) -> dict[str, dict[str, float]]:
-    """Totals per tier: calls, tokens and dollars."""
+def summarize(path: Path = DEFAULT_PATH, run_id: str | None = None,
+              provider: str | None = None) -> dict[str, dict[str, float]]:
+    """Totals per tier (calls, tokens, dollars), optionally for one run and/or one provider."""
     totals: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     if not path.exists():
         return {}
@@ -42,9 +44,23 @@ def summarize(path: Path = DEFAULT_PATH, run_id: str | None = None) -> dict[str,
         e = json.loads(line)
         if run_id and e.get("run_id") != run_id:
             continue
+        if provider and e.get("provider", "tokenfactory") != provider:
+            continue
         t = totals[e["tier"]]
         t["calls"] += 1
         t["tokens_in"] += e["tokens_in"]
         t["tokens_out"] += e["tokens_out"]
         t["usd"] += e["usd"]
     return {k: dict(v) for k, v in totals.items()}
+
+
+def providers(path: Path = DEFAULT_PATH, run_id: str | None = None) -> list[str]:
+    """Providers that appear in the ledger (for one run, if given)."""
+    if not path.exists():
+        return []
+    seen: dict[str, None] = {}
+    for line in path.read_text().splitlines():
+        e = json.loads(line)
+        if not run_id or e.get("run_id") == run_id:
+            seen.setdefault(e.get("provider", "tokenfactory"), None)
+    return list(seen)

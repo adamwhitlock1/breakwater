@@ -1,0 +1,66 @@
+{
+  "volume": {
+    "thinking_False": {
+      "answer": "0.05",
+      "out_tokens": 5,
+      "reasoning_tokens": 0,
+      "s": 0.5
+    },
+    "thinking_True": {
+      "answer": "0.05",
+      "out_tokens": 832,
+      "reasoning_tokens": 624,
+      "s": 8.0
+    },
+    "schema": {
+      "model_accepts_response_format": false,
+      "parses": true,
+      "keys": [
+        "assumption",
+        "attack"
+      ]
+    }
+  },
+  "proposer": {
+    "thinking_False": {
+      "answer": "$0.05",
+      "out_tokens": 6,
+      "reasoning_tokens": 0,
+      "s": 0.5
+    },
+    "thinking_True": {
+      "answer": "0.05",
+      "out_tokens": 87,
+      "reasoning_tokens": 80,
+      "s": 1.5
+    },
+    "schema": {
+      "model_accepts_response_format": true,
+      "parses": false,
+      "error": "Unterminated string starting at: line 1 column 82 (char 81)",
+      "text": "{\"assumption\": \"Version components are small integers (e.g., < 1000)\", \"attack\": \"A version string like '1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0"
+    }
+  },
+  "reasoning": {
+    "thinking_False": {
+      "answer": "$0.05",
+      "out_tokens": 6,
+      "reasoning_tokens": 0,
+      "s": 1.3
+    },
+    "thinking_True": {
+      "answer": "$0.05",
+      "out_tokens": 130,
+      "reasoning_tokens": 74,
+      "s": 3.4
+    },
+    "schema": {
+      "model_accepts_response_format": false,
+      "parses": true,
+      "keys": [
+        "assumption",
+        "attack"
+      ]
+    }
+  }
+}

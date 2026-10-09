@@ -46,6 +46,8 @@ docker build -f docker/harness.Dockerfile -t breakwater-harness .
 uv run breakwater doctor
 ```
 
+For development, set `BREAKWATER_PROVIDER=openrouter` and `OPENROUTER_API_KEY` to run the same Nemotron tiers on OpenRouter's free routes. Published numbers come only from Nebius Token Factory runs; every report records its provider.
+
 Run the deterministic probes on a real regression (pypa/packaging #1082's intermediate commit):
 
 ```bash

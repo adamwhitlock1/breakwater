@@ -9,6 +9,7 @@ Hackathon entry (Nebius x NVIDIA Global AI Hackathon, Coding track). Deadline 20
 - `docker build -f docker/harness.Dockerfile -t breakwater-harness .` — local harness (valgrind); macOS has no valgrind, so Ir measurement runs in this container
 
 ## Rules
+- Develop with `BREAKWATER_PROVIDER=openrouter` (free Nemotron routes); spend Token Factory credit only on runs whose numbers will be published. Only Token Factory results may be published; reports record their provider.
 - All model calls go through `breakwater.llm.Nemotron` so they are tiered, reasoning-controlled and written to the cost ledger. Never use `reasoning_effort`; set `chat_template_kwargs` (Token Factory ignores the former).
 - Untrusted code (LLM-written strategies, candidate patches) runs only through a `breakwater.backends` backend, never in the orchestrator process.
 - contree-sdk is pinned to the 0.3.6 API. Its GitHub README documents unreleased 0.4.0; trust the installed source.

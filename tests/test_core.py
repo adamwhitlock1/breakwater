@@ -50,3 +50,52 @@ def test_docker_backend_reports_second_clock():
     assert res.stdout.strip() == str(sum(range(3_000_000)))
     assert res.resources.user_cpu_s and res.resources.user_cpu_s > 0
     assert "__BW_RUSAGE__" not in res.stderr
+
+
+def test_provider_request_translation():
+    from breakwater.llm import request_kwargs
+    from breakwater.models import Provider
+
+    schema = {"type": "json_schema", "json_schema": {"name": "x", "schema": {"type": "object"}}}
+    msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "u"}]
+    common = dict(max_tokens=10, temperature=1.0, top_p=0.95, service_tier="flex")
+
+    tf = request_kwargs(Provider.TOKENFACTORY, model_for(Tier.REASONING, Provider.TOKENFACTORY), msgs, thinking=True,
+                        response_format=schema, template_kwargs={"medium_effort": True}, **common)
+    assert tf["extra_body"] == {"chat_template_kwargs": {"enable_thinking": True, "medium_effort": True}}
+    assert tf["response_format"] == schema and tf["service_tier"] == "flex" and tf["messages"] == msgs
+
+    ultra = model_for(Tier.REASONING, Provider.OPENROUTER)
+    assert ultra.id.endswith(":free") and not ultra.json_schema
+    orr = request_kwargs(Provider.OPENROUTER, ultra, msgs, thinking=True, response_format=schema,
+                         template_kwargs={"medium_effort": True}, **common)
+    assert orr["extra_body"] == {"reasoning": {"effort": "medium"}}
+    assert "response_format" not in orr and "service_tier" not in orr
+    assert "JSON Schema" in orr["messages"][-1]["content"] and msgs[-1]["content"] == "u"  # caller's list untouched
+    off = request_kwargs(Provider.OPENROUTER, model_for(Tier.VOLUME, Provider.OPENROUTER), msgs, thinking=False,
+                         response_format=None, template_kwargs=None, **common)
+    assert off["extra_body"] == {"reasoning": {"enabled": False}}
+
+
+def test_provider_selection_and_overrides(monkeypatch):
+    from breakwater.models import Provider, active_provider
+
+    monkeypatch.delenv("BREAKWATER_PROVIDER", raising=False)
+    assert active_provider() is Provider.TOKENFACTORY
+    monkeypatch.setenv("BREAKWATER_PROVIDER", "OpenRouter")
+    assert active_provider() is Provider.OPENROUTER
+    monkeypatch.setenv("BREAKWATER_OPENROUTER_MODEL_REASONING", "nvidia/nemotron-3-ultra-550b-a55b")
+    paid = model_for(Tier.REASONING)
+    assert paid.json_schema and paid.usd_per_m_out == pytest.approx(2.2)
+    monkeypatch.setenv("BREAKWATER_PROVIDER", "bogus")
+    with pytest.raises(ValueError):
+        active_provider()
+
+
+def test_ledger_splits_by_provider(tmp_path):
+    path = tmp_path / "ledger.jsonl"
+    ledger.append(ledger.Entry("volume", "m", "p", 1, 1, 0, 0.5, 1, True), path)
+    ledger.append(ledger.Entry("volume", "m", "p", 1, 1, 0, 0.0, 1, True, provider="openrouter"), path)
+    assert ledger.providers(path) == ["tokenfactory", "openrouter"]
+    assert ledger.summarize(path, provider="tokenfactory")["volume"]["usd"] == pytest.approx(0.5)
+    assert ledger.summarize(path, provider="openrouter")["volume"]["calls"] == 1

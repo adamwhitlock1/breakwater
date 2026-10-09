@@ -2,6 +2,13 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-08: OpenRouter as a development-only provider
+- **What:** `BREAKWATER_PROVIDER=openrouter` routes the same three Nemotron tiers to OpenRouter's free routes (`nvidia/nemotron-3.5-lightning:free`, `nemotron-3-super-120b-a12b:free`, `nemotron-3-ultra-550b-a55b:free`). The default stays `tokenfactory`.
+- **Why:** Token Factory credit is $26 in total and ~$6.44 was spent by the end of day 1, almost all on Ultra planning. Prompt tuning and debugging should not spend it.
+- **Rules:** only Token Factory runs feed published numbers (hackathon rule: NVIDIA calls must go through Token Factory). Every ledger entry, audit report and backtest result records its provider; non-Token-Factory reports carry a "development run" banner; `breakwater bill` splits by provider.
+- **Differences handled in `llm.py`:** reasoning via OpenRouter's `reasoning` parameter; no `n` (parallel requests); free Ultra/Lightning reject `response_format`, so the schema goes in the prompt; retries with backoff for rate limits (also now on for Token Factory, after the backtest's transient connection error).
+- **Reverse if:** free-route quality or rate limits make development results misleading. Then use OpenRouter's paid routes via `BREAKWATER_OPENROUTER_MODEL_<TIER>` (cents), or a local model.
+
 ## 2026-10-08: Stabilise with search over families plus deterministic coverage, not better prompts alone
 - **Why:** plan quality varied a lot between samples (5 perf runs on one PR: 1 clean, others weak, mislabelled or broken). Now: more samples, a cheap Ir screen of every family, Super-written variants of the slowest realistic ones, an archive of slower families per target, and deterministic hostile-string mutations for the semantic side. Since then every run has found valid slower families and 3/3 known semantic classes.
 - **Model roles:** Ultra plans; Super writes code that needs reasoning (family variants); Lightning writes volume code (strategies, generator repair).

@@ -440,18 +440,22 @@ def _archive_path(ctx: Context) -> Path:
     return ARCHIVE / (hashlib.sha256(f"{ctx.repo}|{ctx.target}".encode()).hexdigest()[:12] + ".json")
 
 
-def load_archive(ctx: Context, limit: int = 4) -> list[Family]:
+def load_archive(ctx: Context, limit: int = 4, providers: set[str] | None = None) -> list[Family]:
     """Families that measured slower in earlier runs on this target are re-screened every run, so a
-    good find is not lost to an unlucky plan."""
+    good find is not lost to an unlucky plan. `providers`: only families first proposed through these
+    providers (a Token Factory run must not re-screen families a dev run proposed). Entries without a
+    recorded `proposed_by` count as unknown and are skipped whenever a filter is given."""
     path = _archive_path(ctx)
     if not path.exists():
         return []
-    entries = sorted(json.loads(path.read_text()).get("families", []), key=lambda e: -e.get("best_ratio", 0))
+    entries = [e for e in json.loads(path.read_text()).get("families", [])
+               if providers is None or e.get("proposed_by") in providers]
+    entries.sort(key=lambda e: -e.get("best_ratio", 0))
     return [Family(f"R{i + 1}", e["kind"], e["family"], e.get("why", ""), e.get("size_meaning", ""), e["make_source"],
                    e.get("example_args", []), origin="archive") for i, e in enumerate(entries[:limit])]
 
 
-def save_archive(ctx: Context, families: list[Family], run_id: str) -> None:
+def save_archive(ctx: Context, families: list[Family], run_id: str, provider: str = "unknown") -> None:
     path = _archive_path(ctx)
     data = json.loads(path.read_text()) if path.exists() else {"repo": ctx.repo, "target": ctx.target, "families": []}
     by_src = {hashlib.sha256(e["make_source"].encode()).hexdigest(): e for e in data["families"]}
@@ -461,7 +465,7 @@ def save_archive(ctx: Context, families: list[Family], run_id: str) -> None:
         key = hashlib.sha256(f.make_source.encode()).hexdigest()
         e = by_src.setdefault(key, {"kind": f.kind, "family": f.family, "why": f.why, "size_meaning": f.size_meaning,
                                     "make_source": f.make_source, "example_args": f.example_args, "best_ratio": 0,
-                                    "seen_in": []})
+                                    "seen_in": [], "proposed_by": provider})
         e["best_ratio"] = max(e["best_ratio"], f.screen_ratio)
         e["last_ratio"] = f.screen_ratio
         e["seen_in"] = (e["seen_in"] + [f"{run_id}:{ctx.base[:10]}..{ctx.head[:10]}"])[-10:]
@@ -571,7 +575,10 @@ def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, targe
     t0 = time.perf_counter()
     events("phase", name="perf-plan")
     families = plan_families(llm, ctx, n_families)
-    archived = load_archive(ctx) if use_archive else []
+    provider = getattr(getattr(llm, "provider", None), "value", None) or "unknown"
+    # Publishable (Token Factory) runs only re-screen families Token Factory proposed.
+    archived = load_archive(ctx, providers={"tokenfactory"} if provider == "tokenfactory" else None) \
+        if use_archive else []
     known = {f.make_source for f in families}
     families += [f for f in archived if f.make_source not in known]
     timings = {"plan": time.perf_counter() - t0}
@@ -625,7 +632,7 @@ def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, targe
         findings = list(pool.map(measure, selected))
     timings["full"] = time.perf_counter() - t2
     if use_archive:
-        save_archive(ctx, families, run_id)
+        save_archive(ctx, families, run_id, provider)
     for f in findings:
         ladder = ", ".join(f"{r:.2f}" for r in f.ladder_ratios) or "n/a"
         log(f"  {f.family_id}: {f.verdict} (ladder head/base Ir {ladder}; slopes {_fmt(f.slope_base)} -> {_fmt(f.slope_head)})")

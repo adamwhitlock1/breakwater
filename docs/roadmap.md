@@ -64,7 +64,8 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [ ] `breakwater audit <repo> --base <ref> --head <ref> --target <symbol>` → JSON + Markdown report.
 - [x] Static web report v1 (`breakwater site`, `src/breakwater/site/`): overview with arms vs known regressions, a page per PR with verdict, counterexample cards (adjudication label, votes, quoted evidence, reproduce command), perf ladder charts (inline SVG), receipts and image tags; source JSON under `data/`. Stdlib only, no network requests, deterministic. GitHub Pages workflow (manual trigger; publish only at submission) builds it from committed artifacts.
 - [x] Audit-run pages for the demo: `breakwater audit` writes `events.jsonl` (`events.py`), `live.html` (attack feed, phase stepper, "thinking" indicator, cost meter by tier, sandbox gauge, cards landing, perf families) and `report.html` at the end (plan, cards, perf, receipt by tier). `--live` serves it on localhost; `breakwater replay <run> --speed 4` replays a recorded run, labelled as a replay; `breakwater site --run <dir>` adds runs to the site.
-- [ ] Record the demo run on Token Factory (#1082 intermediate commit) and keep its run dir for the video and the site.
+- [x] Demo run recorded on Token Factory: `artifacts/demo/pr1082-61967cca` (run 2026-10-09, BLOCK, $0.29; replay with `breakwater replay`).
+- [ ] Perf: measure validity per ladder point and exclude invalid-dominated points from the verdict. In the demo run, the claimed-speedup family F2 (head ~0.36x on simple versions) is labelled `slower` because its generator emitted one invalid input (`1 + n % 8` inputs) at n=1024, where head's fast-path `int()` failure costs 2.2x.
 - [ ] Report v2: wall-clock CIs once finalist timing exists, generated pytest per card, merge near-duplicate classes.
 - [ ] Judge box: in-browser Pyodide "try your own version string" against base / PR / merged.
 - [ ] GitHub Action that runs the CLI and posts a check + comment.

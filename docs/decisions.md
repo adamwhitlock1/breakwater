@@ -2,6 +2,11 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-09: The perf archive records who proposed each family
+- **What:** archive entries carry `proposed_by` (provider of the run that first proposed the family; existing entries backfilled from the ledger: 67 Token Factory, 8 OpenRouter). Token Factory runs re-screen only Token Factory-proposed families; dev runs may use any.
+- **Why:** the archive is what keeps good finds across runs (the demo run's 2.76x family came from it), but a publishable run must not contain inputs a non-Token-Factory model proposed. Turning the archive off for publishable runs threw away 67 legitimate families and gave a weak demo plan.
+- **Reverse if:** never for publishable runs.
+
 ## 2026-10-08: Adjudication = Ultra votes, checked by deterministic guards
 - **What:** `adjudicate.py` labels every divergence class `likely-bug`, `intended` or `needs-human`. One Ultra call per target covers all its classes, with 3 samples, `medium_effort` and a JSON schema. The audit report says BLOCK only on `likely-bug`.
 - **What the model sees:** what a reviewer has at PR time:
@@ -20,6 +25,7 @@ Newest first. One entry per decision: what, why, what would reverse it.
   - **The adjudicator can't catch probe artifacts.** It labelled the P4 int-digit artifacts (see `backtest.md`, P4 control fix) `likely-bug`, with confident rationales and real quotes. Fixing those facts is the probes' job, which is why facts come first.
   - **Facts state relations without interpreting them.** "`InvalidVersion` subclasses `ValueError`" is a fact. "…so `except ValueError` still catches it" argues one side and nudged votes toward `intended`.
   - **Free routes drop samples.** One top-up call refills them, so an abstention means disagreement, not a lost response.
+  - **Empty samples on Token Factory (2026-10-09 demo run):** 2 of 3 samples came back as `{"verdicts": []}`, which is valid under the schema and counted as parsed, so every class had one vote and abstained. The schema is now pinned per call (exactly one verdict per class, ids enumerated), and a sample covering under half the classes counts as lost and is topped up. The published backtest adjudication had full votes on all 47 classes, so it was not affected.
 - **Lessons from the Token Factory runs:** put long context first and the facts and task last, restating the evidence rule there. With the task first, Ultra sometimes answered a different task about the code. The quote guard demoted those votes, which is the guard doing its job. Results and run history: `backtest.md`, Adjudication.
 - **Reverse if:** the backtest shows guards demoting most correct votes (too strict), or `intended` on a known issue survives them (too weak).
 

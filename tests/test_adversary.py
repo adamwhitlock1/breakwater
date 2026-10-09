@@ -152,3 +152,22 @@ def test_parse_args_accepts_the_shapes_models_actually_return():
     assert _parse_args('[["1.0"], ["2.0"]]') == [["1.0"], ["2.0"]]
     assert _parse_args('["1 . 2", "x"]') == [["1 . 2"], ["x"]]  # plain strings are the arguments
     assert _parse_args([["1.0"], 3]) == [["1.0"], [3]]
+
+
+def test_archive_only_offers_token_factory_families_to_token_factory_runs(tmp_path, monkeypatch):
+    from breakwater import perf
+    from breakwater.perf import Family, load_archive, save_archive
+    from breakwater.repo import Context
+
+    monkeypatch.setattr(perf, "ARCHIVE", tmp_path)
+    ctx = Context("r", "b" * 40, "h" * 40, "m:F", "", "m.py", "", "")
+    fam = lambda src, ratio: Family("F1", "suspected_slowdown", src, "", "", f"def make(n):\n    return [[{src!r}]]",  # noqa: E731
+                                    [], screen_ratio=ratio, valid_fraction=1.0)
+    save_archive(ctx, [fam("tf", 1.5)], "run-tf", "tokenfactory")
+    save_archive(ctx, [fam("dev", 2.5)], "run-dev", "openrouter")
+    data = json.loads(next(tmp_path.glob("*.json")).read_text())
+    data["families"].append({**data["families"][0], "make_source": "x", "family": "legacy", "best_ratio": 9})
+    del data["families"][-1]["proposed_by"]  # written before provenance was recorded
+    next(tmp_path.glob("*.json")).write_text(json.dumps(data))
+    assert [f.family for f in load_archive(ctx, providers={"tokenfactory"})] == ["tf"]
+    assert [f.family for f in load_archive(ctx)] == ["legacy", "dev", "tf"]  # dev runs may use anything

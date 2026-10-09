@@ -1,0 +1,114 @@
+live view: http://127.0.0.1:8766/live.html
+plan: 5 attacks (61.2s)
+  A1: Base version (before change) parses the string via the full PEP‑440 regex (_Version._regex) and builds a Versi
+  A2: Fast‑path branch executes because `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)` is True.
+  A3: Both base and head versions take the original regex‑based parsing path because the fast‑path guard `_NON_SIMPL
+  A4: Fast‑path condition fails, execution falls through to the original regex‑based parser (the pre‑change code pat
+  A5: Base version runs the full regex; the pattern fails to match, the constructor raises `InvalidVersion`. Head ve
+<unknown>:3: SyntaxWarning: invalid escape sequence '\d'
+generate: 17/20 strategies valid (25.6s)
+search: 3467 examples, 2 classes (10.6s)
+batch probes: 450 inputs incl. 250 mutations (3.9s); total 5 classes
+perf plan: 6 planned + 4 from archive (66.7s)
+  F1      0.45x valid 100% [claimed_speedup] (plan) performance
+  F2      0.37x valid 100% [claimed_speedup] (plan) Added a fast‑path that detects a "simple" version (only digits and dots) by test
+  F3      0.45x valid 100% [suspected_slowdown] (plan) correctness
+  F4        n/a valid    ? [suspected_slowdown] (plan) The fast‑path only checks that none of the indicator characters appear.  Charact  ERROR make(n) rejected: syntax error: unterminated string literal (detected at line 5)
+  F5      1.04x valid 100% [suspected_slowdown] (plan) correctness
+  F6      0.73x valid  38% [suspected_slowdown] (plan) The fast‑path code is placed at the very start of `Version.__init__` (before the
+  R1      2.09x valid   0% [suspected_slowdown] (archive) Invalid version strings that nevertheless contain indicator characters (e.g. a t
+  R2      2.09x valid   0% [suspected_slowdown] (archive) invalid strings that look simple (only digits and dots) but contain a non‑numeri
+  R3      1.27x valid 100% [suspected_slowdown] (archive) Each numeric chunk increases digit count linearly while keeping total chunks fix  ERROR ladder inputs exceed 2000000 chars at n=4096; ladder stops here
+  R4      1.14x valid 100% [suspected_slowdown] (archive) Single repeated segment "999." n times plus prerelease c5
+  R3.1    1.29x valid 100% [suspected_slowdown] (expand:R3) Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded   ERROR ladder inputs exceed 2000000 chars at n=4096; ladder stops here
+  R3.2    1.12x valid 100% [suspected_slowdown] (expand:R3) Zero-padding applied after all chunks are joined by dots rather than per-chunk
+  R3.3      n/a valid    ? [suspected_slowdown] (expand:R3) Pre-release part also scales with n via increasing alphabetical repetition  ERROR make(n) rejected: syntax error: unmatched ')' (line 6)
+  R4.1    1.11x valid   0% [suspected_slowdown] (expand:R4) Trailing underscore after major.minor
+  R3.1: slower (ladder head/base Ir 1.04, 1.07, 1.29, 1.93, 2.44, 2.23; slopes 0.67 -> 0.75)
+  R3: slower (ladder head/base Ir 1.04, 1.07, 1.27, 1.89, 2.50, 2.76; slopes 0.63 -> 0.73)
+  R4: slower (ladder head/base Ir 1.05, 1.07, 1.14, 1.20, 1.22, 1.23, 1.23; slopes 0.79 -> 0.82)
+  R3.2: slower (ladder head/base Ir 1.04, 1.05, 1.12, 1.18, 1.24, 1.27, 1.62; slopes 0.69 -> 0.73)
+  F2: slower (ladder head/base Ir 0.34, 0.46, 0.37, 0.37, 0.36, 2.20, 0.37; slopes n/a -> n/a)
+
+## Breakwater audit: `packaging.version:Version`
+https://github.com/pypa/packaging `59f183fe90` → `61967cca27` · backend `docker` · image `bw-pair:348e2d05c100a5f9` · run `16dbaa098b06`
+
+**BLOCK: 5 behavior divergence class(es)**: 3 likely-bug, 2 needs-human.
+
+- **likely-bug** **[P2] outcome**: input `[["١"]]`
+  - base: `{"status": "exc", "exc": "packaging.version.InvalidVersion"}`
+  - head: `{"status": "ok", "obs": {"str": "1", "repr": "<Version('1')>", "attr:release": [1], "attr:public": "1"}}`
+  - found by: A2/s1, mutation:unicode-digits, batch
+  - why: The fast‑path treats any string that lacks characters in `_NON_SIMPLE_VERSION_INDICATORS` as a simple numeric version and parses each dot‑separated segment with `int()`. The indicator set only contains ASCII letters and symbols; it does not contain Unicode digits such as Arabic‑Indic “١”. Consequently the Arabic digit passes the fast‑path, `int("١")` succeeds, and a Version object is created, whereas the original regex‑based parser rejects it with `InvalidVersion`. This unintended acceptance of non‑ASCII digits is a regression.
+- **likely-bug** **[P2] outcome**: input `[[[]]]`
+  - base: `{"status": "exc", "exc": "builtins.TypeError"}`
+  - head: `{"status": "exc", "exc": "builtins.AttributeError"}`
+  - found by: A5/s3
+  - why: The fast‑path does not verify that `version` is a string before calling `isdisjoint` and `strip()`. Passing a non‑string (e.g., a list) makes `isdisjoint` succeed (the iterable contains no indicator characters) and then `version.strip()` raises `AttributeError`. The original code performed a type check and raised `TypeError`. This regression changes the exception type.
+- **likely-bug** **[P2] outcome**: input `[["1. 0"]]`
+  - base: `{"status": "exc", "exc": "packaging.version.InvalidVersion"}`
+  - head: `{"status": "ok", "obs": {"str": "1.0", "repr": "<Version('1.0')>", "attr:release": [1, 0], "attr:public": "1.0"}}`
+  - found by: mutation:whitespace-inner
+  - why: A version string containing a space (`"1. 0"`) contains no characters from `_NON_SIMPLE_VERSION_INDICATORS`, so the fast‑path is taken. `strip().split('.')` yields `["1", " 0"]`; `int(" 0")` succeeds because Python’s `int` accepts leading spaces, producing a version `(1, 0)`. The original regex rejects the space and raises `InvalidVersion`. Accepting spaces contradicts PEP 440 and the fast‑path comment that only “numbers and dots” are allowed.
+- **needs-human** **[P2] outcome**: input `[["1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000… (4307 chars)`
+  - base: `{"status": "exc", "exc": "builtins.ValueError"}`
+  - head: `{"status": "exc", "exc": "packaging.version.InvalidVersion"}`
+  - found by: mutation:huge-number
+  - why: For an extremely long numeric version the fast‑path parses each component with `int()` and builds a huge release tuple, then raises `InvalidVersion` (a subclass of `ValueError`) on any `ValueError`. The original regex path raises a plain `ValueError`. The exception type changes from `ValueError` to its subclass `InvalidVersion`, which is a behavioral change not described in the PR. (no majority)
+- **needs-human** **[P2] outcome**: input `[["  10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000… (4315 chars)`
+  - base: `{"status": "exc", "exc": "builtins.ValueError"}`
+  - head: `{"status": "exc", "exc": "packaging.version.InvalidVersion"}`
+  - found by: mutation:huge-number
+  - why: Passing a list containing a string triggers the fast‑path (the list contains no indicator characters), then `version.strip()` fails with `AttributeError`. The fast‑path catches `ValueError` and re‑raises `InvalidVersion`, but the `AttributeError` propagates unchanged, while the original code raised `TypeError`. The exception type changes, indicating a regression. (no majority)
+
+### Attacks planned
+- **A1** (2/4 strategies valid, 0 hits): Base version (before change) parses the string via the full PEP‑440 regex (_Version._regex) and builds a Version object. Head version (after change) takes the fast‑path branch because the indicator set is disjoint, splits on '.' and converts each component to int, then returns early.
+- **A2** (3/4 strategies valid, 1 hits): Fast‑path branch executes because `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)` is True.
+- **A3** (4/4 strategies valid, 0 hits): Both base and head versions take the original regex‑based parsing path because the fast‑path guard `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)` evaluates to False.
+- **A4** (4/4 strategies valid, 0 hits): Fast‑path condition fails, execution falls through to the original regex‑based parser (the pre‑change code path).
+- **A5** (4/4 strategies valid, 1 hits): Base version runs the full regex; the pattern fails to match, the constructor raises `InvalidVersion`. Head version takes the fast‑path because the indicator set is disjoint, attempts `tuple(map(int, version.strip().split('.')))`. Converting a component like "3f" to `int` raises `ValueError`, which the fast‑path catches and re‑raises as `InvalidVersion`.
+
+**Cost:** $0.1199 (reasoning $0.1187, volume $0.0013) · **Time:** 101s
+
+### Performance
+
+Screened families (head/base Ir per call at one size; >1 means the change is slower):
+
+- `1.29x` R3.1 [suspected_slowdown, expand:R3, 100% valid] Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded numbers
+- `1.27x` R3 [suspected_slowdown, archive, 100% valid] Each numeric chunk increases digit count linearly while keeping total chunks fixed
+- `1.14x` R4 [suspected_slowdown, archive, 100% valid] Single repeated segment "999." n times plus prerelease c5
+- `1.12x` R3.2 [suspected_slowdown, expand:R3, 100% valid] Zero-padding applied after all chunks are joined by dots rather than per-chunk
+- `1.04x` F5 [suspected_slowdown, plan, 100% valid] correctness
+- `0.45x` F1 [claimed_speedup, plan, 100% valid] performance
+- `0.45x` F3 [suspected_slowdown, plan, 100% valid] correctness
+- `0.37x` F2 [claimed_speedup, plan, 100% valid] Added a fast‑path that detects a "simple" version (only digits and dots) by testing that none of the character
+- `2.09x` R1 [suspected_slowdown, archive, 0% valid] Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a lett
+- `2.09x` R2 [suspected_slowdown, archive, 0% valid] invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. "1.2.x"
+- `1.11x` R4.1 [suspected_slowdown, expand:R4, 0% valid] Trailing underscore after major.minor
+- `0.73x` F6 [suspected_slowdown, plan, 38% valid] The fast‑path code is placed at the very start of `Version.__init__` (before the `isinstance(version, Version)
+- `n/a` F4 [suspected_slowdown, plan, validity ?] The fast‑path only checks that none of the indicator characters appear.  Characters such as '~', '^', '@', '#'
+- `n/a` R3.3 [suspected_slowdown, expand:R3, validity ?] Pre-release part also scales with n via increasing alphabetical repetition
+
+Measured in full:
+
+- **R3.1 [suspected_slowdown, expand:R3] slower**: head/base Ir per call 1.04x–2.44x across sizes; slope 0.67 → 0.75. Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded numbers
+  - ladder (head/base Ir): n=2 (~10 chars): 1.04x, n=4 (~19 chars): 1.07x, n=16 (~157 chars): 1.29x, n=64 (~2149 chars): 1.93x, n=256 (~33157 chars): 2.44x, n=1024 (~525829 chars): 2.23x
+  - search input `["9999.c5c5"]`: CPU 2.31x, Ir 1.05x (both sides raise packaging.version.InvalidVersion)
+  - search input `["999.c5c5"]`: CPU 1.48x, Ir 1.05x (both sides raise packaging.version.InvalidVersion)
+  - error: ladder inputs exceed 2000000 chars at n=4096; ladder stops here
+- **R3 [suspected_slowdown, archive] slower**: head/base Ir per call 1.04x–2.76x across sizes; slope 0.63 → 0.73. Each numeric chunk increases digit count linearly while keeping total chunks fixed
+  - ladder (head/base Ir): n=2 (~10 chars): 1.04x, n=4 (~19 chars): 1.07x, n=16 (~157 chars): 1.27x, n=64 (~2149 chars): 1.89x, n=256 (~33157 chars): 2.50x, n=1024 (~525829 chars): 2.76x
+  - error: ladder inputs exceed 2000000 chars at n=4096; ladder stops here
+- **R4 [suspected_slowdown, archive] slower**: head/base Ir per call 1.05x–1.23x across sizes; slope 0.79 → 0.82. Single repeated segment "999." n times plus prerelease c5
+  - ladder (head/base Ir): n=2 (~13 chars): 1.05x, n=4 (~21 chars): 1.07x, n=16 (~69 chars): 1.14x, n=64 (~261 chars): 1.20x, n=256 (~1029 chars): 1.22x, n=1024 (~4101 chars): 1.23x, n=4096 (~16389 chars): 1.23x
+  - search input `["999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.… (125 chars)`: CPU 2.12x, Ir 1.17x
+  - search input `["999.999.999.999.999.999c5"]`: CPU 2.06x, Ir 1.09x
+- **R3.2 [suspected_slowdown, expand:R3] slower**: head/base Ir per call 1.04x–1.62x across sizes; slope 0.69 → 0.73. Zero-padding applied after all chunks are joined by dots rather than per-chunk
+  - ladder (head/base Ir): n=2 (~10 chars): 1.04x, n=4 (~15 chars): 1.05x, n=16 (~60 chars): 1.12x, n=64 (~252 chars): 1.18x, n=256 (~1305 chars): 1.24x, n=1024 (~6066 chars): 1.27x, n=4096 (~27570 chars): 1.62x
+- **F2 [claimed_speedup, plan] slower**: head/base Ir per call 0.34x–2.20x across sizes; slope n/a → n/a. Added a fast‑path that detects a "simple" version (only digits and dots) by testing that none of the characters in `_NON_SIMPLE_VERSION_INDICATORS` appear in th
+  - ladder (head/base Ir): n=2 (~8 chars): 0.34x, n=4 (~7 chars): 0.46x, n=16 (~6 chars): 0.37x, n=64 (~8 chars): 0.37x, n=256 (~5 chars): 0.36x, n=1024 (~8 chars): 2.20x, n=4096 (~8 chars): 0.37x
+
+**Total Nemotron cost:** $0.2874 (proposer $0.0006, reasoning $0.2849, volume $0.0019)
+
+wrote artifacts/demo/pr1082-61967cca/report.json, report.md and report.html
+still serving http://127.0.0.1:8766/live.html (Ctrl-C to stop)

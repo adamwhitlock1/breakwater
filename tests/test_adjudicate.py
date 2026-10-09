@@ -129,3 +129,25 @@ def test_report_blocks_only_on_likely_bugs():
     assert md.index("base->head load") < md.index("outcome")  # needs-human sorts above intended
     verdicts[PICKLE.signature] = Verdict(PICKLE.signature, LIKELY_BUG, {LIKELY_BUG: 3}, "pickles break")
     assert "**BLOCK:" in render_markdown(rep, verdicts)
+
+
+def test_empty_or_partial_samples_are_topped_up_and_schema_is_pinned():
+    from breakwater.adjudicate import schema_for
+
+    good = [v("C1", LIKELY_BUG, ["component_parts = [c.split"]), v("C2", LIKELY_BUG, ["component_parts = [c.split"])]
+    llm = Scripted([good, [], [v("C1", INTENDED, ["component_parts = [c.split"])]])  # one full, one empty, one half
+
+    class TopUp(Scripted):
+        def complete(self, tier, messages, **kw):
+            if self.calls:  # the top-up returns full samples
+                self.calls.append((tier, kw, messages))
+                texts = [json.dumps({"verdicts": good})] * kw["n"]
+                return SimpleNamespace(texts=texts, text=texts[0], usd=0.0)
+            return super().complete(tier, messages, **kw)
+
+    llm = TopUp(llm.samples)
+    by = adjudicate(llm, CTX, [EXC, PICKLE]).by_signature()
+    assert [kw["n"] for _, kw, _ in llm.calls] == [3, 1]  # the empty sample was refilled; the half one counted
+    assert by[EXC.signature].label == LIKELY_BUG and by[PICKLE.signature].label == LIKELY_BUG
+    arr = schema_for(["C1", "C2"])["json_schema"]["schema"]["properties"]["verdicts"]
+    assert arr["minItems"] == arr["maxItems"] == 2 and arr["items"]["properties"]["id"]["enum"] == ["C1", "C2"]

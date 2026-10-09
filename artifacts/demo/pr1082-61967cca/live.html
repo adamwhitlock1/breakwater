@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live audit · Breakwater</title>
+<meta name="description" content="A Breakwater audit in progress">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="https://github.com/adamwhitlock1/breakwater"><span class="mark" aria-hidden="true"></span>Breakwater</a>
+  <nav><a href="https://github.com/adamwhitlock1/breakwater">Code</a></nav>
+</header>
+<main>
+
+<div id="dev" class="dev-banner" hidden></div>
+<section class="live-head">
+  <p class="eyebrow">Breakwater · live audit <span class="clock" id="clock">00:00</span></p>
+  <h1 id="title">Waiting for the audit to start…</h1>
+  <p class="meta" id="meta"></p>
+  <ol class="steps-bar" id="steps"></ol>
+  <p class="phase-text" id="phase-text">Connecting…</p>
+  <div id="verdict" hidden></div>
+</section>
+<div class="live-grid">
+  <section class="panel feed-panel"><h2>Attack feed</h2><ol class="feed" id="feed"></ol></section>
+  <aside class="panel meters">
+    <h2><span id="cost-title">Nemotron on Token Factory</span> <span class="meter-total" id="cost-total">$0.000</span></h2>
+    <div id="thinking"></div>
+    <div id="cost"></div>
+    <h2 class="sb-title">Sandboxes</h2>
+    <div class="gauge"><span id="sb-gauge"></span></div>
+    <div class="sb-stats"><div><strong id="sb-now">0</strong><span>running now</span></div>
+    <div><strong id="sb-runs">0</strong><span>runs</span></div><div><strong id="sb-cpu">0s</strong><span>CPU</span></div></div>
+  </aside>
+</div>
+<section><h2>Ultra's plan</h2><ol class="attacks" id="attacks"></ol></section>
+<section><h2>Lightning strategy <small class="muted">· first valid one, as written</small></h2>
+<pre class="strategy" id="strategy">Waiting for Lightning…</pre></section>
+<section><h2>Counterexamples <small class="muted">· <span id="card-count">0</span> classes</small></h2>
+<div class="cards" id="cards"></div></section>
+<section><h2>Perf families <small class="muted">· head/base instructions at the screening size</small></h2>
+<ol class="families" id="families"></ol></section>
+<script src="assets/live.js"></script>
+
+</main>
+<footer>
+  <p>Breakwater: a red team for performance PRs. Nemotron 3 Ultra and 3.5 Lightning on Nebius Token Factory plan
+  and write attacks; deterministic probes and cachegrind instruction counts decide. Every number links to the
+  JSON it came from (report.json, events.jsonl).</p>
+</footer>
+</body>
+</html>

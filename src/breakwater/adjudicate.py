@@ -127,6 +127,19 @@ SCHEMA = {
     },
 }
 
+def schema_for(ids: list[str]) -> dict:
+    """SCHEMA pinned to this call's classes: exactly one verdict per id. Without the bounds Token
+    Factory's constrained decoding sometimes returned `{"verdicts": []}`, which is valid JSON and
+    silently cost the sample (2 of 3 on the 2026-10-09 demo run)."""
+    import copy
+
+    s = copy.deepcopy(SCHEMA)
+    arr = s["json_schema"]["schema"]["properties"]["verdicts"]
+    arr["minItems"] = arr["maxItems"] = len(ids)
+    arr["items"]["properties"]["id"] = {"type": "string", "enum": list(ids)}
+    return s
+
+
 # ---------------------------------------------------------------------------------------------------
 # Data
 
@@ -378,14 +391,17 @@ def adjudicate(llm: LLM, ctx: Context, findings: list[Any], *, title: str = "", 
                 break
             res = llm.complete(Tier.REASONING, messages, purpose="adjudicate" + (":top-up" if attempt else ""),
                                thinking=True, template_kwargs=REASONING, max_tokens=24000, n=missing,
-                               response_format=SCHEMA, fallback_no_think=False)
+                               response_format=schema_for(list(ids)), fallback_no_think=False)
             usd += getattr(res, "usd", 0.0) or 0.0
             for text in res.texts:
                 try:
                     rows = extract_json(text).get("verdicts", [])
                 except (json.JSONDecodeError, AttributeError):
                     continue
-                per_sample.append({ids[r["id"]]: r for r in rows if isinstance(r, dict) and r.get("id") in ids})
+                got = {ids[r["id"]]: r for r in rows if isinstance(r, dict) and r.get("id") in ids}
+                # A sample that skips most classes is a lost sample (top it up), not a vote to abstain.
+                if len(got) * 2 >= len(ids):
+                    per_sample.append(got)
         parsed += len(per_sample)
         verdicts += [_vote(sig, per_sample, haystack, samples) for sig in ids.values()]
     return Adjudication(ctx.target, verdicts, parsed, round(usd, 6))

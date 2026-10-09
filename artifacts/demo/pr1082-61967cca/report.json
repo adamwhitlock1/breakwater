@@ -1,0 +1,1146 @@
+{
+  "run_id": "16dbaa098b06",
+  "repo": "https://github.com/pypa/packaging",
+  "base": "59f183fe90da403e41eef339ce9088bda0fe4cd3",
+  "head": "61967cca278dc51389b8973ba65bbbf23eaa3eda",
+  "target": "packaging.version:Version",
+  "title": "perf: fast path for simple versions (intermediate commit 61967cca)",
+  "provider": "tokenfactory",
+  "semantic": {
+    "run_id": "16dbaa098b06",
+    "repo": "https://github.com/pypa/packaging",
+    "base": "59f183fe90da403e41eef339ce9088bda0fe4cd3",
+    "head": "61967cca278dc51389b8973ba65bbbf23eaa3eda",
+    "target": "packaging.version:Version",
+    "image": "bw-pair:348e2d05c100a5f9",
+    "backend": "docker",
+    "attacks": [
+      {
+        "id": "A1",
+        "routing_condition": "Version string consists solely of ASCII digits and the dot character ('.'), i.e. its character set is disjoint from _NON_SIMPLE_VERSION_INDICATORS. Example inputs: \"1\", \"1.0\", \"1.2.3\", \"0.0.0\".",
+        "assumption": "Base version (before change) parses the string via the full PEP‑440 regex (_Version._regex) and builds a Version object. Head version (after change) takes the fast‑path branch because the indicator set is disjoint, splits on '.' and converts each component to int, then returns early.",
+        "why_it_breaks": "Both paths should produce an identical Version object (epoch=0, release tuple of ints, no pre/post/dev/local parts). The only observable difference is performance; observable behaviour (public API, __str__, comparisons) should be identical.",
+        "input_family": "Simple numeric dot‑only versions (PEP‑440 release segments) containing only digits and '.' characters.",
+        "example_args": [
+          [
+            "1"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "1.2.3"
+          ],
+          [
+            "0.0.0"
+          ]
+        ]
+      },
+      {
+        "id": "A2",
+        "routing_condition": "Version string contains only digits and '.' characters (no characters from _NON_SIMPLE_VERSION_INDICATORS). Example families: \"1\", \"1.2\", \"1.2.3\", \"0.0.1\", \"001.02\".",
+        "assumption": "Fast‑path branch executes because `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)` is True.",
+        "why_it_breaks": "The new fast‑path parses the version by `tuple(map(int, version.strip().split('.')))`, sets epoch=0, pre/post/dev/local=None and returns early. The original code took the full PEP‑440 regex path. Both paths produce the same public attributes (epoch=0, release tuple of ints, pre/post/dev/local = None), so observable behavior is identical but the fast‑path is faster.",
+        "input_family": "Simple numeric dotted versions, possibly with leading zeros or surrounding whitespace.",
+        "example_args": [
+          [
+            "1.2.3"
+          ],
+          [
+            "001.02"
+          ],
+          [
+            "  2.3.4  "
+          ],
+          [
+            "10"
+          ],
+          [
+            "0.0.0"
+          ]
+        ]
+      },
+      {
+        "id": "A3",
+        "routing_condition": "Version string contains at least one character from _NON_SIMPLE_VERSION_INDICATORS (e.g. letters a‑z, A‑Z, '!', '+', '-', '_', 'v', 'V', 'epoch' '!', local '+', pre‑release letters, post/dev markers, etc.). Example inputs: \"1.2.3a1\", \"1!2.3.4\", \"1.2.3+local\", \"1.0.dev1\", \"1.2.3.post1\".",
+        "assumption": "Both base and head versions take the original regex‑based parsing path because the fast‑path guard `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)` evaluates to False.",
+        "why_it_breaks": "Behaviour should be identical to the pre‑change implementation: full PEP‑440 parsing, same Version object, same public API, same ordering semantics.",
+        "input_family": "PEP‑440 versions containing any non‑numeric/dot indicator (pre‑release, post‑release, dev, epoch, local version, separators '-', '_', '+', letters, etc.).",
+        "example_args": [
+          [
+            "1.2.3a1"
+          ],
+          [
+            "1!2.3.4"
+          ],
+          [
+            "1.2.3+local"
+          ],
+          [
+            "1.0.dev1"
+          ],
+          [
+            "1.2.3.post1"
+          ]
+        ]
+      },
+      {
+        "id": "A4",
+        "routing_condition": "Version string contains at least one character from `_NON_SIMPLE_VERSION_INDICATORS` (letters a‑z, A‑Z, ‘!’, ‘+’, ‘-’, ‘_’, ‘.’, etc.). Families: pre‑release (\"1.2a1\", \"1.2b2\"), post‑release (\"1.2.post3\"), dev release (\"1.2.dev4\"), epoch (\"2!1.2.3\"), local version (\"1.2+local\"), leading “v\" (\"v1.2\"), separators “-”, “_”.",
+        "assumption": "Fast‑path condition fails, execution falls through to the original regex‑based parser (the pre‑change code path).",
+        "why_it_breaks": "Behavior is unchanged from the original implementation – all PEP‑440 features (epoch, pre, post, dev, local, etc.) are parsed by the regex path exactly as before. The fast‑path is simply bypassed.",
+        "input_family": "All non‑simple PEP 440 versions (pre‑release, post‑release, dev, epoch, local, leading ‘v’, separators).",
+        "example_args": [
+          [
+            "1.2.3a1"
+          ],
+          [
+            "1!2.3.4"
+          ],
+          [
+            "1.2.3+local"
+          ],
+          [
+            "v1.2.3"
+          ],
+          [
+            "1.2-rc1"
+          ]
+        ]
+      },
+      {
+        "id": "A5",
+        "routing_condition": "Version string contains only digits, dots, and characters **not** present in _NON_SIMPLE_VERSION_INDICATORS (e.g. letters f, g, j, k, m, n, q, u, x, y, z in either case). Such strings are not valid PEP‑440 versions. Example inputs: \"1.2.3f\", \"2.0g\", \"3.4.5XYZ\" (uppercase X,Y,Z are not in the set).",
+        "assumption": "Base version runs the full regex; the pattern fails to match, the constructor raises `InvalidVersion`. Head version takes the fast‑path because the indicator set is disjoint, attempts `tuple(map(int, version.strip().split('.')))`. Converting a component like \"3f\" to `int` raises `ValueError`, which the fast‑path catches and re‑raises as `InvalidVersion`.",
+        "why_it_breaks": "Both paths raise `InvalidVersion`, but the exception originates from a `ValueError` in the fast path instead of a regex‑match failure. If user code catches `ValueError` separately, behaviour changes. Also the error message differs (`\"invalid literal for int()\"` vs the original `\"Invalid version\"`).",
+        "input_family": "Invalid version strings composed only of digits, dots, and letters outside the indicator set (letters not used by PEP‑440).",
+        "example_args": [
+          [
+            "1.2.3f"
+          ],
+          [
+            "2.0g"
+          ],
+          [
+            "3.4.5XYZ"
+          ]
+        ]
+      }
+    ],
+    "strategies": [
+      {
+        "id": "A1/s1",
+        "attack": "A1",
+        "valid": false,
+        "error": "imports are not allowed",
+        "examples": 0,
+        "findings": 0,
+        "source": "import st\nstrategy = st.tuples(\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",),\n            blacklist_characters=\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\"\n        ),\n        min_size=1,\n        max_size=4\n    ),\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",),\n            blacklist_characters=\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\"\n        ),\n        min_size=0,\n        max_size=1\n    )\n).filter(lambda args: all(c.isdigit() or c == '.' for c in args[0] + '.' + args[1]))"
+      },
+      {
+        "id": "A1/s2",
+        "attack": "A1",
+        "valid": true,
+        "error": null,
+        "examples": 300,
+        "findings": 0,
+        "source": "strategy = st.tuples(\n    st.integers(min_value=0, max_value=999),\n    st.lists(\n        st.integers(min_value=0, max_value=999),\n        min_size=1,\n        max_size=4\n    )\n).map(lambda parts: \".\".join(str(p) for p in parts))"
+      },
+      {
+        "id": "A1/s3",
+        "attack": "A1",
+        "valid": false,
+        "error": "syntax error: invalid syntax (line 2)",
+        "examples": 0,
+        "findings": 0,
+        "source": "# Generate simple dot-separated numeric version strings.\n// No letters, no special indicators => triggers the fast-path.\nst.text(\n    alphabet=string.digits + \".\",\n    min_size=1,\n    max_size=3,\n).filter(lambda s: s[0] not in \".-\").map(lambda s: [s])"
+      },
+      {
+        "id": "A1/s4",
+        "attack": "A1",
+        "valid": true,
+        "error": null,
+        "examples": 300,
+        "findings": 0,
+        "source": "strategy = st.tuples(\n    st.integers(min_value=0, max_value=999),\n    st.lists(\n        st.integers(min_value=0, max_value=999),\n        min_size=1,\n        max_size=3,\n    ),\n    st.just(\".\"),\n).map(lambda args: \".\".join(str(c) for c in args[1:]) if args[0] == 0 else f\"{args[0]}.{'.'.join(str(c) for c in args[1:])}\")"
+      },
+      {
+        "id": "A2/s1",
+        "attack": "A2",
+        "valid": true,
+        "error": null,
+        "examples": 318,
+        "findings": 1,
+        "source": "strategy = st.tuples(\n    st.text(\n        alphabet=st.characters(whitelist_categories=(\"Nd\",)),\n        min_size=1,\n        max_size=3,\n    ).map(lambda s: s.strip()),\n    st.integers(min_value=0, max_value=999),\n    st.integers(min_value=0, max_value=999),\n    st.integers(min_value=0, max_value=999),\n).map(lambda args: (\".\".join(str(x) for x in args[:3]) if len(args) >= 3 else \".\".join(str(x) for x in args)))"
+      },
+      {
+        "id": "A2/s2",
+        "attack": "A2",
+        "valid": true,
+        "error": null,
+        "examples": 300,
+        "findings": 0,
+        "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.digits + \".\",\n        min_size=1,\n max_size=3,\n    ).map(lambda s: s.strip()),\n    st.integers(min_value=0, max_value=999),\n).map(lambda args: (args[0],) if len(args) == 1 else args)"
+      },
+      {
+        "id": "A2/s3",
+        "attack": "A2",
+        "valid": false,
+        "error": "syntax error: invalid syntax (line 32)",
+        "examples": 0,
+        "findings": 0,
+        "source": "st.one_of(\n    st.text(st.integers(min_value=0, max_value=9999), min_size=1, max_size=1),\n    st.text(st.integers(min_value=0, max_value=9999), min_size=1, max_size=1).map(lambda s: s.lstrip('0') or '0').example(\"with zero strip\"),\n    st.text(st.just('.').map(st.none), st.just('.').map(st.none))  # not used directly but shows tuple structure\n)\n# Simpler and more direct:\nstrategy = st.lists(\n    st.integers(min_value=0, max_value=9999),\n    min_size=1,\n    max_size=4\n).map(lambda parts: \".\".join(str(p) for p in parts))\n# Allow leading zeros by using text for the whole version string\nstrategy = st.text(\n    st.characters(\n        blacklist_categories=('Cs',),\n        blacklist_characters='!+-ABCDEHILOPRSTVW_abcdehiloprstvw'\n    ),\n    min_size=1\n).map(lambda s: s.strip())\n# Refined to exactly match the input family generation needs:\nstrategy = st.text(\n    st.integers(min_value=0, max_value=99999),\n    min_size=1,\n    max_size=5\n).map(lambda n: str(n)).example(\"1.2.3\")  # placeholder, not valid hypothesis\n# Correct final strategy:\nstrategy = st.text(\n    alphabet=st.characters(blacklist_categories=('Cs',)),\n    min_size=1,\n    max_size=30\n).filter(lambda s: s.strip() and all(c.isdigit() or c == '.' for c in s.strip()))\n---"
+      },
+      {
+        "id": "A2/s4",
+        "attack": "A2",
+        "valid": true,
+        "error": "TypeError: characters() got an unexpected keyword argument 'mode'",
+        "examples": 0,
+        "findings": 0,
+        "source": "strategy = st.tuples(\n    st.text(\n        alphabet=st.characters(blacklist_characters=\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\", mode=\"string\"),\n        min_size=1,\n        max_size=4,\n    ).map(lambda s: s.strip()),\n    st.integers(min_value=0, max_value=999),\n    st.integers(min_value=0, max_value=999),\n    st.integers(min_value=0, max_value=999),\n).map(lambda args: (\".\".join(str(n) for n in args),))"
+      },
+      {
+        "id": "A3/s1",
+        "attack": "A3",
+        "valid": true,
+        "error": "UnicodeEncodeError: 'utf-8' codec can't encode character '\\ud800' in position 156: surrogates not allowed",
+        "examples": 278,
+        "findings": 0,
+        "source": "strategy = st.tuples(\n    st.text(\n        alphabet=st.characters(\n            blacklist_categories=(\"Cc\",), whitelist_characters=\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw0123456789.\"\n        ),\n        min_size=1,\n        max_size=40,\n    ),\n    st.just(None),\n)"
+      },
+      {
+        "id": "A3/s2",
+        "attack": "A3",
+        "valid": true,
+        "error": null,
+        "examples": 300,
+        "findings": 0,
+        "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.digits + \"abcdefghijklmnopqrstuvwxyz.-_+!v\",\n        min_size=1,\n        max_size=40,\n    ),\n    st.just(\",\"),\n).map(lambda args: args[0])"
+      },
+      {
+        "id": "A3/s3",
+        "attack": "A3",
+        "valid": true,
+        "error": "TypeError: SearchStrategy.example() takes 1 positional argument but 2 were given",
+        "examples": 0,
+        "findings": 0,
+        "source": "strategy = st.lists(\n    st.one_of(\n        st.text(string.digits),\n        st.text(string.digits, min_size=1, max_size=3).example(\"1.2.3\"),\n        st.text(\"!\").example(\"1!2.3.4\"),\n        st.text(\"-\").example(\"1.2.3a1\"),\n        st.text(\"_\").example(\"1.2.3_dev1\"),\n        st.text(\"+\").example(\"1.2.3+local\"),\n        st.text(\"alpha\").example(\"1.2.3a1\"),\n        st.text(\"beta\").example(\"1.2.3b1\"),\n        st.text(\"rc\").example(\"1.2.3rc1\"),\n        st.text(\"dev\").example(\"1.0.dev1\"),\n        st.text(\"post\").example(\"1.2.3.post1\"),\n        st.text(\"c\").example(\"1.2.3c1\"),\n        st.text(\"pre\").example(\"1.2.3pre1\"),\n        st.text(\"preview\").example(\"1.2.3preview1\"),\n        st.text(\"h\").example(\"1.2.3h1\"),\n        st.text(\"I\").example(\"1I2.3.4\"),\n        st.text(\"L\").example(\"1L2.3.4\"),\n        st.text(\"O\").example(\"1O2.3.4\"),\n        st.text(\"P\").example(\"1P2.3.4\"),\n        st.text(\"R\").example(\"1R2.3.4\"),\n        st.text(\"S\").example(\"1S2.3.4\"),\n        st.text(\"T\").example(\"1T2.3.4\"),\n        st.text(\"V\").example(\"1V2.3.4\"),\n        st.text(\"W\").example(\"1W2.3.4\"),\n        st.text(\"E\").example(\"1E2.3.4\"),\n    ),\n    min_size=1,\n    max_size=1,\n).map(lambda lst: lst[0])"
+      },
+      {
+        "id": "A3/s4",
+        "attack": "A3",
+        "valid": true,
+        "error": null,
+        "examples": 300,
+        "findings": 0,
+        "source": "strategy = st.tuples(\n    st.text(\n        alphabet=string.ascii_letters + string.digits + \"+-._\",\n        min_size=1,\n        max_size=60,\n    ),\n    st.none() | st.integers(min_value=0, max_value=999),\n)"
+      },
+      {
+        "id": "A4/s1",
+        "attack": "A4",
+        "valid": true,
+        "error": null,
+        "examples": 30,
+        "findings": 0,
+        "source": "strategy = st.tuples(\n    st.sampled_from([\n        \"1.2.3a1\",\n        \"1!2.3.4\",\n        \"1.2.3+local\",\n        \"v1.2.3\",\n        \"1.2-rc1\",\n        \"2.0.0.dev1\",\n        \"1.0.post1\",\n        \"1!3.2.1.dev4+local\",\n        \"v0.1.0a0+local.1\",\n        \"1.2.3_abc\",\n    ]),\n    st.integers(0, 2),  # number of extra arguments (not used, kept for structure)\n)"
+      },
+      {
+        "id": "A4/s2",
+        "attack": "A4",
+        "valid": true,
+        "error": null,
+        "examples": 300,
+        "findings": 0,
+        "source": "strategy = st.one_of(\n    st.lists(\n        st.integers(min_value=0, max_value=999),\n        min_size=1,\n        max_size=4,\n    ).map(lambda parts: \".\".join(map(str, parts))),\n    st.text(\n        alphabet=string.ascii_letters + string.digits + \"!+-._\",\n        min_size=1,\n    ).filter(lambda s: any(c in \"_NON_SIMPLE_VERSION_INDICATORS\" for c in s)),\n)"
+      },
+      {
+        "id": "A4/s3",
+        "attack": "A4",
+        "valid": true,
+        "error": "TypeError: SearchStrategy.example() got an unexpected keyword argument 'condition'",
+        "examples": 0,
+        "findings": 0,
+        "source": "strategy = st.one_of(\n    st.text(alphabet=string.ascii_letters + string.digits + \"!+-=._\", min_size=1).example(condition=lambda s: any(c in s for c in \"!+-=._\")),\n    st.text(alphabet=string.digits + \".\", min_size=1).example(lambda s: s.count(\".\") >= 1),\n    st.text(alphabet=string.digits, min_size=1),\n    st.just(\"v1.2.3\"),\n    st.text(alphabet=string.ascii_letters + string.digits + \"-\", min_size=1).example(lambda s: \"-rc\" in s or \"-dev\" in s),\n)"
+      },
+      {
+        "id": "A4/s4",
+        "attack": "A4",
+        "valid": true,
+        "error": "UnicodeEncodeError: 'utf-8' codec can't encode character '\\ud800' in position 162: surrogates not allowed",
+        "examples": 137,
+        "findings": 0,
+        "source": "strategy = st.one_of(\n    # Pre-release tags (alpha, beta, rc, etc.)\n    st.text(alphabet=st.characters(blacklist_characters='!?@#$%^&*(){}[]|\\\\;:\"<>,./ ')).map(lambda s: \"1.2.3\" + s).filter(lambda v: any(c in v for c in \"abrcpP\")),\n    # Epoch indicator\n    st.integers(min_value=1, max_value=99999).map(lambda e: f\"{e}!1.2.3\"),\n    # Local version with '+'\n    st.text(alphabet=st.characters(blacklist_characters='!?@#$%^&*(){}[]|\\\\;:\"<>,./ ')).map(lambda s: \"1.2.3+local\" + s).filter(lambda v: \"+\" in v),\n    # Leading 'v'\n    st.text(alphabet=st.characters(blacklist_characters='!?@#$%^&*(){}[]|\\\\;:\"<>,./ ')).map(lambda s: \"v\" + s).filter(lambda v: v.startswith(\"v\")),\n    # Separators and other non-simple indicators\n    st.text(alphabet=st.characters(blacklist_characters='!?@#$%^&*(){}[]|\\\\;:\"<>,./ ')).map(lambda s: \"1.2.3-\" + s).filter(lambda v: \"-\" in v),\n)"
+      },
+      {
+        "id": "A5/s1",
+        "attack": "A5",
+        "valid": true,
+        "error": null,
+        "examples": 300,
+        "findings": 0,
+        "source": "strategy = st.lists(\n    st.text(\n        alphabet=st.characters(blacklist_characters='\\d.'),\n        min_size=1,\n        max_size=3,\n    ),\n    min_size=1,\n    max_size=1,\n).map(lambda parts: '.'.join(parts))"
+      },
+      {
+        "id": "A5/s2",
+        "attack": "A5",
+        "valid": true,
+        "error": null,
+        "examples": 300,
+        "findings": 0,
+        "source": "strategy = st.lists(\n    st.text(\n        alphabet=string.ascii_letters + string.digits + \".-\",\n        min_size=1,\n        max_size=10,\n    ),\n    min_size=1,\n    max_size=5,\n).map(lambda parts: \".\".join(parts))"
+      },
+      {
+        "id": "A5/s3",
+        "attack": "A5",
+        "valid": true,
+        "error": null,
+        "examples": 304,
+        "findings": 1,
+        "source": "strategy = st.tuples(\n    st.lists(\n        st.sampled_from([\n            \"1.2.3f\", \"2.0g\", \"3.4.5XYZ\", \"1.2.3a\", \"4.5.6b\", \"7.8.9rc1\",\n            \"10.11.12\", \"1.0.0dev1\", \"1.0.0post1\", \"1.0.0alpha\", \"1.0.0beta1\",\n            \"1.0.0c1\", \"1.0.0preview\", \"1.0.0r1\", \"1.0.0rev1\"\n        ])\n    )\n)"
+      },
+      {
+        "id": "A5/s4",
+        "attack": "A5",
+        "valid": true,
+        "error": "TypeError: SearchStrategy.example() takes 1 positional argument but 2 were given",
+        "examples": 0,
+        "findings": 0,
+        "source": "# Strategy generates invalid version strings that trigger the fast‑path ValueError.\n# It covers short/long digit‑only parts, mixed valid/invalid components,\n# and strings with/without leading/trailing dots to exercise the split logic.\nstrategy = st.tuples(\n    st.text(\n        alphabet=string.digits + string.ascii_letters,\n        min_size=1,\n        max_size=20\n    ).filter(lambda s: any(c.isalpha() for c in s)),  # at least one letter\n    st.integers(min_value=1, max_value=3)  # number of dot‑separated components\n).example(lambda a, n: \".\".join(a.split()[:n]) if n <= len(a.split()) else a)\n# The above tuple strategy yields a single string argument; wrap in list for\n# positional arg convention if needed: e.g. strategy = st.lists(...)"
+      }
+    ],
+    "findings": [
+      {
+        "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii",
+        "probe": "P2",
+        "detail": "outcome",
+        "args": [
+          [
+            "١"
+          ]
+        ],
+        "base": {
+          "status": "exc",
+          "exc": "packaging.version.InvalidVersion"
+        },
+        "head": {
+          "status": "ok",
+          "obs": {
+            "str": "1",
+            "repr": "<Version('1')>",
+            "attr:release": [
+              1
+            ],
+            "attr:public": "1"
+          }
+        },
+        "found_by": [
+          "A2/s1",
+          "mutation:unicode-digits",
+          "batch"
+        ]
+      },
+      {
+        "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+        "probe": "P2",
+        "detail": "outcome",
+        "args": [
+          [
+            []
+          ]
+        ],
+        "base": {
+          "status": "exc",
+          "exc": "builtins.TypeError"
+        },
+        "head": {
+          "status": "exc",
+          "exc": "builtins.AttributeError"
+        },
+        "found_by": [
+          "A5/s3"
+        ]
+      },
+      {
+        "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace",
+        "probe": "P2",
+        "detail": "outcome",
+        "args": [
+          [
+            "1. 0"
+          ]
+        ],
+        "base": {
+          "status": "exc",
+          "exc": "packaging.version.InvalidVersion"
+        },
+        "head": {
+          "status": "ok",
+          "obs": {
+            "str": "1.0",
+            "repr": "<Version('1.0')>",
+            "attr:release": [
+              1,
+              0
+            ],
+            "attr:public": "1.0"
+          }
+        },
+        "found_by": [
+          "mutation:whitespace-inner"
+        ]
+      },
+      {
+        "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+        "probe": "P2",
+        "detail": "outcome",
+        "args": [
+          [
+            "10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+          ]
+        ],
+        "base": {
+          "status": "exc",
+          "exc": "builtins.ValueError"
+        },
+        "head": {
+          "status": "exc",
+          "exc": "packaging.version.InvalidVersion"
+        },
+        "found_by": [
+          "mutation:huge-number"
+        ]
+      },
+      {
+        "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+whitespace",
+        "probe": "P2",
+        "detail": "outcome",
+        "args": [
+          [
+            "  10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.3.4  "
+          ]
+        ],
+        "base": {
+          "status": "exc",
+          "exc": "builtins.ValueError"
+        },
+        "head": {
+          "status": "exc",
+          "exc": "packaging.version.InvalidVersion"
+        },
+        "found_by": [
+          "mutation:huge-number"
+        ]
+      }
+    ],
+    "usd_by_tier": {
+      "reasoning": 0.118657,
+      "volume": 0.00125016
+    },
+    "seconds": {
+      "plan": 61.22,
+      "generate": 25.62,
+      "search": 10.62,
+      "batch": 3.94,
+      "total": 101.4
+    }
+  },
+  "adjudication": {
+    "target": "packaging.version:Version",
+    "verdicts": [
+      {
+        "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii",
+        "label": "likely-bug",
+        "votes": {
+          "likely-bug": 3
+        },
+        "rationale": "The fast‑path treats any string that lacks characters in `_NON_SIMPLE_VERSION_INDICATORS` as a simple numeric version and parses each dot‑separated segment with `int()`. The indicator set only contains ASCII letters and symbols; it does not contain Unicode digits such as Arabic‑Indic “١”. Consequently the Arabic digit passes the fast‑path, `int(\"١\")` succeeds, and a Version object is created, whereas the original regex‑based parser rejects it with `InvalidVersion`. This unintended acceptance of non‑ASCII digits is a regression.",
+        "evidence": [
+          "+_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")",
+          "+            if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+          "+                    self._release = tuple(map(int, version.strip().split(\".\")))",
+          "+                except ValueError:",
+          "+                    raise InvalidVersion(f\"Invalid version: {version!r}\") from None",
+          "_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)",
+          "_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")",
+          "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version): ... self._release = tuple(map(int, version.strip().split('.')))"
+        ],
+        "rejected": [
+          "+                try:"
+        ],
+        "reason": ""
+      },
+      {
+        "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+        "label": "likely-bug",
+        "votes": {
+          "likely-bug": 3
+        },
+        "rationale": "The fast‑path does not verify that `version` is a string before calling `isdisjoint` and `strip()`. Passing a non‑string (e.g., a list) makes `isdisjoint` succeed (the iterable contains no indicator characters) and then `version.strip()` raises `AttributeError`. The original code performed a type check and raised `TypeError`. This regression changes the exception type.",
+        "evidence": [
+          "+            if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+          "+                    self._release = tuple(map(int, version.strip().split(\".\")))",
+          "_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)",
+          "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+          "self._release = tuple(map(int, version.strip().split('.')))"
+        ],
+        "rejected": [
+          "+                try:"
+        ],
+        "reason": ""
+      },
+      {
+        "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace",
+        "label": "likely-bug",
+        "votes": {
+          "likely-bug": 3
+        },
+        "rationale": "A version string containing a space (`\"1. 0\"`) contains no characters from `_NON_SIMPLE_VERSION_INDICATORS`, so the fast‑path is taken. `strip().split('.')` yields `[\"1\", \" 0\"]`; `int(\" 0\")` succeeds because Python’s `int` accepts leading spaces, producing a version `(1, 0)`. The original regex rejects the space and raises `InvalidVersion`. Accepting spaces contradicts PEP 440 and the fast‑path comment that only “numbers and dots” are allowed.",
+        "evidence": [
+          "+_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")",
+          "+            if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+          "+                self._release = tuple(map(int, version.strip().split(\".\")))",
+          "_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)",
+          "_NON_SIMPLE_VERSION_INDICATORS = frozenset(\"!+-ABCDEHILOPRSTVW_abcdehiloprstvw\")",
+          "self._release = tuple(map(int, version.strip().split('.')))"
+        ],
+        "rejected": [],
+        "reason": ""
+      },
+      {
+        "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+        "label": "needs-human",
+        "votes": {
+          "likely-bug": 1,
+          "intended": 1,
+          "needs-human": 1
+        },
+        "rationale": "For an extremely long numeric version the fast‑path parses each component with `int()` and builds a huge release tuple, then raises `InvalidVersion` (a subclass of `ValueError`) on any `ValueError`. The original regex path raises a plain `ValueError`. The exception type changes from `ValueError` to its subclass `InvalidVersion`, which is a behavioral change not described in the PR.",
+        "evidence": [],
+        "rejected": [
+          "+                try:"
+        ],
+        "reason": "no majority"
+      },
+      {
+        "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+whitespace",
+        "label": "needs-human",
+        "votes": {
+          "likely-bug": 1,
+          "intended": 1,
+          "needs-human": 1
+        },
+        "rationale": "Passing a list containing a string triggers the fast‑path (the list contains no indicator characters), then `version.strip()` fails with `AttributeError`. The fast‑path catches `ValueError` and re‑raises `InvalidVersion`, but the `AttributeError` propagates unchanged, while the original code raised `TypeError`. The exception type changes, indicating a regression.",
+        "evidence": [],
+        "rejected": [
+          "+                try:"
+        ],
+        "reason": "no majority"
+      }
+    ],
+    "samples": 3,
+    "usd": 0.036722
+  },
+  "perf": {
+    "run_id": "16dbaa098b06",
+    "target": "packaging.version:Version",
+    "image": "bw-pair:348e2d05c100a5f9",
+    "backend": "docker",
+    "families": [
+      {
+        "id": "F1",
+        "kind": "claimed_speedup",
+        "family": "performance",
+        "why": "Added a fast‑path for \"simple\" versions (only digits and dots). The version string is first checked against a frozen set of characters that appear in any non‑simple PEP 440 version (epoch ‘!’, pre‑release letters, post‑release letters, dev markers, local‑version ‘+’, separators ‘‑’, ‘_’, etc.). If the string is disjoint from that set the code skips the heavy PEP 440 regex entirely and parses the version with a cheap `split('.')`/`map(int, …)`; epoch, pre, post, dev and local are all set to their “absent” defaults. This avoids the regex engine for the very common case of plain numeric versions such as \"1.2.3\".",
+        "size_meaning": "O(N) character scan vs. regex compilation + match; measurable speed‑up for the common simple‑version case.",
+        "make_source": "\ndef make(n):\n    versions = [\"1.2.3\"]\n    for i in range(1, n):\n        v = \"10.\" + str(i) + \".30.40\"\n        versions.append(v)\n    return [[v] for v in versions]",
+        "example_args": [
+          [
+            "1.2.3"
+          ],
+          [
+            "10.20.30.40"
+          ]
+        ],
+        "origin": "plan",
+        "screen_ratio": 0.4507125050731476,
+        "valid_fraction": 1.0,
+        "error": null
+      },
+      {
+        "id": "F2",
+        "kind": "claimed_speedup",
+        "family": "Added a fast‑path that detects a \"simple\" version (only digits and dots) by testing that none of the characters in `_NON_SIMPLE_VERSION_INDICATORS` appear in th",
+        "why": "Added a fast‑path that detects a \"simple\" version (only digits and dots) by testing that none of the characters in `_NON_SIMPLE_VERSION_INDICATORS` appear in the input.  For the very common case of pure numeric dotted versions (e.g. \"1.2.3\") the code now avoids the full PEP 440 regex validation and instead does a cheap `str.split('.')` + `map(int, …)`.  This replaces a relatively heavyweight regex match with a linear scan of the input string and a fast integer conversion, giving a measurable speed‑up for the common case.",
+        "size_meaning": "large",
+        "make_source": "def make(n):\n    args = []\n    for _ in range(1 + (n % 8)):\n        s = \"\".join(random.choice(string.digits + \".\") for _ in range(random.randint(1, 5)))\n        args.append([s])\n    return args",
+        "example_args": [],
+        "origin": "plan",
+        "screen_ratio": 0.36565253333051617,
+        "valid_fraction": 1.0,
+        "error": null
+      },
+      {
+        "id": "F3",
+        "kind": "suspected_slowdown",
+        "family": "correctness",
+        "why": "The fast‑path does `version.strip().split('.')`. The original regex‑based parser rejects any surrounding whitespace (PEP 440 does not allow it). Stripping leading/trailing spaces now makes strings like \" 1.2.3 \" parse successfully, which is a behavioural change – it accepts technically invalid versions instead of raising `InvalidVersion`. This does not affect performance negatively but is a correctness regression.",
+        "size_meaning": "Behavioural deviation from the specification; could hide user errors.",
+        "make_source": "def make(n):\n    # Generate 1 to 8 boundary cases that expose the stripping regression.\n    # n controls the number of arguments; larger n includes more whitespace variants.\n    args = []\n    # Always include the \"obvious\" invalid-with-whitespace cases first.\n    if n >= 1:\n        args.append([\" 1.2.3 \"])\n    if n >= 2:\n        args.append([\"\\t10.20\\n\"])\n    # Add positional variants that exercise the split behaviour for various segment counts.\n    for i in range(3, min(n, 8) + 1):\n        # Build a version with i segments surrounded by a space and a trailing newline.\n        segs = \".\".join(str(j) for j in range(1, i + 1))\n        args.append([f\" {segs}\\n\"])\n    return args",
+        "example_args": [
+          [
+            " 1.2.3 "
+          ],
+          [
+            "\t10.20\n"
+          ]
+        ],
+        "origin": "plan",
+        "screen_ratio": 0.44865222356634454,
+        "valid_fraction": 1.0,
+        "error": null
+      },
+      {
+        "id": "F4",
+        "kind": "suspected_slowdown",
+        "family": "The fast‑path only checks that none of the indicator characters appear.  Characters such as '~', '^', '@', '#', '$', '%', '`', '|', '\\', ':', ';', '\"', \"'\", '<'",
+        "why": "The fast‑path only checks that none of the indicator characters appear.  Characters such as '~', '^', '@', '#', '$', '%', '`', '|', '\\', ':', ';', '\"', \"'\", '<', '>', ',', '?', '/', and many letters (f,g,j,k,m,n,q,u,x,y,z and their uppercase forms) are *not* in the indicator set.  A non‑PEP 440 version like \"1.2~3\" or \"1.2.3q\" will pass the disjoint test, then `split('.')` + `map(int, …)` will raise `ValueError`, which is caught and re‑raised as `InvalidVersion`.  This adds an extra linear scan + split + failed `int` conversion before the normal validation path would have rejected the string, a small but measurable slowdown for malformed inputs.",
+        "size_meaning": "small",
+        "make_source": "def make(n):\n    # The indicator characters that trigger immediate rejection by the fast‑path.\n    # These are exactly the characters from PEP 440 that are *not* allowed in a plain numeric version.\n    indicators = set('~@#$%`|\\\\:;'\"'<>?,/')\n    # Build a list of argument lists. Each argument list is a single‑element list containing a version string\n    # that either contains one of the indicator characters (fast‑path reject) or is a well‑formed numeric version\n    # that will pass through the fast‑path and then be parsed successfully.\n    args = []\n    # 1‑8 argument lists as required by the specification.\n    for i in range(1, min(n, 8) + 1):\n        # Create a deterministic version string using only allowed characters.\n        # We use a pattern that includes a disallowed indicator character so the fast‑path rejects it immediately.\n        # The character '~' is an indicator and will cause the fast‑path to short‑circuit.\n        v = f\"1.2.{i}~3\"\n        args.append([v])\n    return args",
+        "example_args": [],
+        "origin": "plan",
+        "screen_ratio": null,
+        "valid_fraction": null,
+        "error": "make(n) rejected: syntax error: unterminated string literal (detected at line 5) (line 5)"
+      },
+      {
+        "id": "F5",
+        "kind": "suspected_slowdown",
+        "family": "correctness",
+        "why": "The fast‑path is disabled only when a character from `_NON_SIMPLE_VERSION_INDICATORS` appears. The set covers all PEP 440 special characters *except* the dot ‘.’ (which is allowed in simple versions) and a few upper‑case letters (F,G,J,K,M,N,Q,U,X,Y,Z). Those letters can appear only in a local‑version segment, but a local version must be prefixed by ‘+’, which *is* in the indicator set. Therefore any valid PEP 440 version containing such letters will also contain ‘+’ and the fast‑path will be correctly bypassed. No valid version can slip through the fast‑path incorrectly, so this is not a real regression, but it is a subtle corner‑case worth noting.",
+        "size_meaning": "No functional impact; only a note for future maintainers if the indicator set is edited.",
+        "make_source": "def make(n):\n    return [[\"1.2.3+FOO\"]]",
+        "example_args": [
+          [
+            "1.2.3+FOO"
+          ]
+        ],
+        "origin": "plan",
+        "screen_ratio": 1.038385853336385,
+        "valid_fraction": 1.0,
+        "error": null
+      },
+      {
+        "id": "F6",
+        "kind": "suspected_slowdown",
+        "family": "The fast‑path code is placed at the very start of `Version.__init__` (before the `isinstance(version, Version)` guard that the original code had).  If a `Versio",
+        "why": "The fast‑path code is placed at the very start of `Version.__init__` (before the `isinstance(version, Version)` guard that the original code had).  If a `Version` instance is passed to the constructor, `version` is an object, not a string; `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version)` will iterate over the object, and `version.strip()` will raise `AttributeError`.  This would turn a previously‑fast copy‑construction path into an exception, a functional regression and a performance regression for the copy case.",
+        "size_meaning": "medium",
+        "make_source": "def make(n):\n    \n    # Deterministic string generators using provided modules\n    def gen_alpha(l):\n        return ''.join(random.choice(string.ascii_letters) for _ in range(l))\n    \n    def gen_digits(l):\n        return ''.join(random.choice(string.digits) for _ in range(l))\n    \n    def gen_alphanum(l):\n        return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(l))\n    \n    def gen_dot_sep(l):\n        # generates strings like \"1.2.3\" or \"a.b.c\"\n        parts = [gen_digits(random.randint(1, 3)) for _ in range(random.randint(1, l))]\n        return '.'.join(parts)\n    \n    inputs = []\n    \n    # n controls the medium-complexity variety of inputs\n    # We generate a mix of string inputs and Version-object-like dicts to exercise the fast-path edge case.\n    \n    # 1. Plain string versions (normal fast path)\n    for _ in range(min(n, 3)):\n        length = random.randint(1, 20)\n        inputs.append([gen_alphanum(length)])\n    \n    # 2. Version-like strings with dots (common real-world case)\n    for _ in range(min(n, 3)):\n        inputs.append([gen_dot_sep(random.randint(1, 5))])\n    \n    # 3. Edge case: empty string\n    inputs.append([''])\n    \n    # 4. Edge case: single character\n    inputs.append(['a'])\n    \n    # 5. Edge case: very long string (stress test)\n    if n > 8:\n        inputs.append([gen_alphanum(100)])\n    \n    # Deduplicate while preserving order (using itertools for variety control)\n    seen = set()\n    uniq = []\n    for arg_list in inputs:\n        key = tuple(arg_list)\n        if key not in seen:\n            seen.add(key)\n            uniq.append(arg_list)\n    \n    # Limit to at most 8 argument lists as required\n    return uniq[:8]",
+        "example_args": [],
+        "origin": "plan",
+        "screen_ratio": 0.7294628021392376,
+        "valid_fraction": 0.375,
+        "error": null
+      },
+      {
+        "id": "R1",
+        "kind": "suspected_slowdown",
+        "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.",
+        "why": "Even though the version is invalid, the extra disjoint check runs; the regex then fails. This is the single allowed invalid family.",
+        "size_meaning": "Number of dotted segments before the malformed tail.",
+        "make_source": "def make(n):\n    # \"1.\" repeated n times then an alphabetic tail – not a valid PEP‑440 version\n    version = \"1.\" * n + \"x\"\n    return [(version,)]",
+        "example_args": [],
+        "origin": "archive",
+        "screen_ratio": 2.0933183121944663,
+        "valid_fraction": 0.0,
+        "error": null
+      },
+      {
+        "id": "R2",
+        "kind": "suspected_slowdown",
+        "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"",
+        "why": "The indicator set is disjoint, so the fast path is entered. The code then executes `tuple(map(int, version.strip().split('.')))`, which raises `ValueError` on the bad segment; the exception is caught and re‑raised as `InvalidVersion`. Exception handling is considerably slower than the original regex‑only failure path.",
+        "size_meaning": "n = number of leading numeric segments before the bad segment; larger n makes the split and the failed `int` conversion traverse more items before the exception.",
+        "make_source": "def make(n):\n    # build \"1.1.1....1.x\" with n numeric parts then a non‑numeric \"x\"\n    good = \".\".join(\"1\" for _ in range(n))\n    version = f\"{good}.x\"\n    return [[version]]",
+        "example_args": [],
+        "origin": "archive",
+        "screen_ratio": 2.0933183121944663,
+        "valid_fraction": 0.0,
+        "error": null
+      },
+      {
+        "id": "R3",
+        "kind": "suspected_slowdown",
+        "family": "Each numeric chunk increases digit count linearly while keeping total chunks fixed",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+        "make_source": "def make(n):\n    chunks = []\n    for i in range(1, n+1):\n        chunks.append(str(i).zfill(i))\n    version = '.'.join(chunks) + 'c5'\n    return [(version,)]",
+        "example_args": [],
+        "origin": "archive",
+        "screen_ratio": 1.2735706618996405,
+        "valid_fraction": 1.0,
+        "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+      },
+      {
+        "id": "R4",
+        "kind": "suspected_slowdown",
+        "family": "Single repeated segment \"999.\" n times plus prerelease c5",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+        "make_source": "def make(n):\n    release = \".\".join([\"999\"] * n)\n    version = f\"{release}c5\"\n    return [(version,)]",
+        "example_args": [],
+        "origin": "archive",
+        "screen_ratio": 1.1387213463857293,
+        "valid_fraction": 1.0,
+        "error": null
+      },
+      {
+        "id": "R3.1",
+        "kind": "suspected_slowdown",
+        "family": "Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded numbers",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+        "make_source": "def make(n):\n    chunks = []\n    for i in range(1, n+1):\n        chunks.append('9' * i)\n    version = '.'.join(chunks) + 'c5'\n    return [(version,)]",
+        "example_args": [],
+        "origin": "expand:R3",
+        "screen_ratio": 1.2879795827846565,
+        "valid_fraction": 1.0,
+        "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+      },
+      {
+        "id": "R3.2",
+        "kind": "suspected_slowdown",
+        "family": "Zero-padding applied after all chunks are joined by dots rather than per-chunk",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+        "make_source": "def make(n):\n    base_chunks = [str(i) for i in range(1, n+1)]\n    s = '.'.join(base_chunks)\n    padded = s.zfill(len(s) + n*len(str(n))//2)\n    version = padded + 'c5'\n    return [(version,)]",
+        "example_args": [],
+        "origin": "expand:R3",
+        "screen_ratio": 1.118065858740977,
+        "valid_fraction": 1.0,
+        "error": null
+      },
+      {
+        "id": "R3.3",
+        "kind": "suspected_slowdown",
+        "family": "Pre-release part also scales with n via increasing alphabetical repetition",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+        "make_source": "def make(n):\n    chunks = []\n    for i in range(1, n+1):\n        chunks.append(str(i).zfill(i))\n    prerelease = ''.chr((ord(\"a\") - 97 + j) % 26 + 97)*j for j in range(1, min(n, 4)+1))\n    version = \".\".join(chunks) + \"-\" + prerelease\n    return [(version,)]}], ",
+        "example_args": [],
+        "origin": "expand:R3",
+        "screen_ratio": null,
+        "valid_fraction": null,
+        "error": "make(n) rejected: syntax error: unmatched ')' (line 6)"
+      },
+      {
+        "id": "R4.1",
+        "kind": "suspected_slowdown",
+        "family": "Trailing underscore after major.minor",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+        "make_source": "\ndef make(n):\n    for i in range(min(n, 6)):\n        yield ('0.' + '0.' * i + '_',)",
+        "example_args": [],
+        "origin": "expand:R4",
+        "screen_ratio": 1.1067961622393214,
+        "valid_fraction": 0.0,
+        "error": null
+      }
+    ],
+    "findings": [
+      {
+        "family_id": "R3.1",
+        "kind": "suspected_slowdown",
+        "family": "Each numeric chunk consists of repeated digits (`'9'*i`) instead of zero-padded numbers",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "origin": "expand:R3",
+        "screen_ratio": 1.2879795827846565,
+        "valid_fraction": 1.0,
+        "ladder": [
+          {
+            "n": 2,
+            "base_ir": 27936.985,
+            "head_ir": 29086.02,
+            "input_chars": 10.0,
+            "ratio": 1.0411295277568429
+          },
+          {
+            "n": 4,
+            "base_ir": 31591.67,
+            "head_ir": 33728.855,
+            "input_chars": 19.0,
+            "ratio": 1.0676502698337886
+          },
+          {
+            "n": 16,
+            "base_ir": 58996.488,
+            "head_ir": 75986.272,
+            "input_chars": 157.0,
+            "ratio": 1.2879795827846565
+          },
+          {
+            "n": 64,
+            "base_ir": 248572.66666666666,
+            "head_ir": 478975.6666666667,
+            "input_chars": 2149.0,
+            "ratio": 1.9269040039264174
+          },
+          {
+            "n": 256,
+            "base_ir": 2470897.0,
+            "head_ir": 6020064.0,
+            "input_chars": 33157.0,
+            "ratio": 2.4363880809276957
+          },
+          {
+            "n": 1024,
+            "base_ir": 45670109.0,
+            "head_ir": 101941964.0,
+            "input_chars": 525829.0,
+            "ratio": 2.232137523472957
+          }
+        ],
+        "slope_base": 0.666129439197062,
+        "slope_head": 0.7492835783592665,
+        "top_inputs": [
+          {
+            "args": [
+              "9999.c5c5"
+            ],
+            "cpu_ratio": 2.315,
+            "base_ir": 26210.53,
+            "head_ir": 27493.53,
+            "ir_ratio": 1.0489497923162943,
+            "outcome": "exc:packaging.version.InvalidVersion"
+          },
+          {
+            "args": [
+              "999.c5c5"
+            ],
+            "cpu_ratio": 1.484,
+            "base_ir": 21989.53,
+            "head_ir": 23165.53,
+            "ir_ratio": 1.0534799970713336,
+            "outcome": "exc:packaging.version.InvalidVersion"
+          }
+        ],
+        "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+        "verdict": "slower",
+        "worst_ratio": 2.4363880809276957,
+        "worst_search": {
+          "args": [
+            "999.c5c5"
+          ],
+          "cpu_ratio": 1.484,
+          "base_ir": 21989.53,
+          "head_ir": 23165.53,
+          "ir_ratio": 1.0534799970713336,
+          "outcome": "exc:packaging.version.InvalidVersion"
+        }
+      },
+      {
+        "family_id": "R3",
+        "kind": "suspected_slowdown",
+        "family": "Each numeric chunk increases digit count linearly while keeping total chunks fixed",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "origin": "archive",
+        "screen_ratio": 1.2735706618996405,
+        "valid_fraction": 1.0,
+        "ladder": [
+          {
+            "n": 2,
+            "base_ir": 27941.985,
+            "head_ir": 29085.02,
+            "input_chars": 10.0,
+            "ratio": 1.040907437320577
+          },
+          {
+            "n": 4,
+            "base_ir": 31576.09,
+            "head_ir": 33673.275,
+            "input_chars": 19.0,
+            "ratio": 1.0664168679529353
+          },
+          {
+            "n": 16,
+            "base_ir": 58978.488,
+            "head_ir": 75113.272,
+            "input_chars": 157.0,
+            "ratio": 1.2735706618996405
+          },
+          {
+            "n": 64,
+            "base_ir": 244281.66666666666,
+            "head_ir": 460916.6666666667,
+            "input_chars": 2149.0,
+            "ratio": 1.88682463549591
+          },
+          {
+            "n": 256,
+            "base_ir": 2211036.0,
+            "head_ir": 5533576.0,
+            "input_chars": 33157.0,
+            "ratio": 2.5027073281484338
+          },
+          {
+            "n": 1024,
+            "base_ir": 29878285.0,
+            "head_ir": 82492661.0,
+            "input_chars": 525829.0,
+            "ratio": 2.7609570294948322
+          }
+        ],
+        "slope_base": 0.6331471846857833,
+        "slope_head": 0.7317994287174469,
+        "top_inputs": [],
+        "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+        "verdict": "slower",
+        "worst_ratio": 2.7609570294948322,
+        "worst_search": null
+      },
+      {
+        "family_id": "R4",
+        "kind": "suspected_slowdown",
+        "family": "Single repeated segment \"999.\" n times plus prerelease c5",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "origin": "archive",
+        "screen_ratio": 1.1387213463857293,
+        "valid_fraction": 1.0,
+        "ladder": [
+          {
+            "n": 2,
+            "base_ir": 28645.505,
+            "head_ir": 30119.56,
+            "input_chars": 13.0,
+            "ratio": 1.0514585098080833
+          },
+          {
+            "n": 4,
+            "base_ir": 32239.23,
+            "head_ir": 34590.415,
+            "input_chars": 21.0,
+            "ratio": 1.072929316239873
+          },
+          {
+            "n": 16,
+            "base_ir": 54598.915,
+            "head_ir": 62172.95,
+            "input_chars": 69.0,
+            "ratio": 1.1387213463857293
+          },
+          {
+            "n": 64,
+            "base_ir": 144412.6447368421,
+            "head_ir": 172900.6447368421,
+            "input_chars": 261.0,
+            "ratio": 1.197268044303964
+          },
+          {
+            "n": 256,
+            "base_ir": 507487.4736842105,
+            "head_ir": 618946.4736842106,
+            "input_chars": 1029.0,
+            "ratio": 1.2196290662917064
+          },
+          {
+            "n": 1024,
+            "base_ir": 1929765.25,
+            "head_ir": 2375286.25,
+            "input_chars": 4101.0,
+            "ratio": 1.2308679773355853
+          },
+          {
+            "n": 4096,
+            "base_ir": 7609809.0,
+            "head_ir": 9395658.5,
+            "input_chars": 16389.0,
+            "ratio": 1.2346773092465264
+          }
+        ],
+        "slope_base": 0.793054745693273,
+        "slope_head": 0.8161811608548126,
+        "top_inputs": [
+          {
+            "args": [
+              "999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999c5"
+            ],
+            "cpu_ratio": 2.119,
+            "base_ir": 80568.35031847133,
+            "head_ir": 94232.35031847133,
+            "ir_ratio": 1.1695951319095998,
+            "outcome": "ok"
+          },
+          {
+            "args": [
+              "999.999.999.999.999.999c5"
+            ],
+            "cpu_ratio": 2.061,
+            "base_ir": 35833.0,
+            "head_ir": 39052.185,
+            "ir_ratio": 1.0898385566377362,
+            "outcome": "ok"
+          }
+        ],
+        "error": null,
+        "verdict": "slower",
+        "worst_ratio": 1.2346773092465264,
+        "worst_search": {
+          "args": [
+            "999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999.999c5"
+          ],
+          "cpu_ratio": 2.119,
+          "base_ir": 80568.35031847133,
+          "head_ir": 94232.35031847133,
+          "ir_ratio": 1.1695951319095998,
+          "outcome": "ok"
+        }
+      },
+      {
+        "family_id": "R3.2",
+        "kind": "suspected_slowdown",
+        "family": "Zero-padding applied after all chunks are joined by dots rather than per-chunk",
+        "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+        "origin": "expand:R3",
+        "screen_ratio": 1.118065858740977,
+        "valid_fraction": 1.0,
+        "ladder": [
+          {
+            "n": 2,
+            "base_ir": 28099.985,
+            "head_ir": 29243.02,
+            "input_chars": 10.0,
+            "ratio": 1.0406774238491587
+          },
+          {
+            "n": 4,
+            "base_ir": 31253.09,
+            "head_ir": 32950.275,
+            "input_chars": 15.0,
+            "ratio": 1.0543045503660597
+          },
+          {
+            "n": 16,
+            "base_ir": 54503.775,
+            "head_ir": 60938.81,
+            "input_chars": 60.0,
+            "ratio": 1.118065858740977
+          },
+          {
+            "n": 64,
+            "base_ir": 151491.1923076923,
+            "head_ir": 178527.1923076923,
+            "input_chars": 252.0,
+            "ratio": 1.1784658209375463
+          },
+          {
+            "n": 256,
+            "base_ir": 578006.7333333333,
+            "head_ir": 716583.7333333333,
+            "input_chars": 1305.0,
+            "ratio": 1.239749802222604
+          },
+          {
+            "n": 1024,
+            "base_ir": 2351396.6666666665,
+            "head_ir": 2988030.6666666665,
+            "input_chars": 6066.0,
+            "ratio": 1.2707471729567816
+          },
+          {
+            "n": 4096,
+            "base_ir": 4730205.0,
+            "head_ir": 7642070.5,
+            "input_chars": 27570.0,
+            "ratio": 1.6155897048859404
+          }
+        ],
+        "slope_base": 0.685416282377542,
+        "slope_head": 0.7320408755097492,
+        "top_inputs": [],
+        "error": null,
+        "verdict": "slower",
+        "worst_ratio": 1.6155897048859404,
+        "worst_search": null
+      },
+      {
+        "family_id": "F2",
+        "kind": "claimed_speedup",
+        "family": "Added a fast‑path that detects a \"simple\" version (only digits and dots) by testing that none of the characters in `_NON_SIMPLE_VERSION_INDICATORS` appear in th",
+        "why": "Added a fast‑path that detects a \"simple\" version (only digits and dots) by testing that none of the characters in `_NON_SIMPLE_VERSION_INDICATORS` appear in the input.  For the very common case of pure numeric dotted versions (e.g. \"1.2.3\") the code now avoids the full PEP 440 regex validation and instead does a cheap `str.split('.')` + `map(int, …)`.  This replaces a relatively heavyweight regex match with a linear scan of the input string and a fast integer conversion, giving a measurable speed‑up for the common case.",
+        "origin": "plan",
+        "screen_ratio": 0.36565253333051617,
+        "valid_fraction": 1.0,
+        "ladder": [
+          {
+            "n": 2,
+            "base_ir": 22196.533333333333,
+            "head_ir": 7602.173333333333,
+            "input_chars": 8.333333333333334,
+            "ratio": 0.3424937227434915
+          },
+          {
+            "n": 4,
+            "base_ir": 20700.535,
+            "head_ir": 9613.963,
+            "input_chars": 6.6,
+            "ratio": 0.46443065360388025
+          },
+          {
+            "n": 16,
+            "base_ir": 22717.92,
+            "head_ir": 8306.865,
+            "input_chars": 6.0,
+            "ratio": 0.36565253333051617
+          },
+          {
+            "n": 64,
+            "base_ir": 23152.285,
+            "head_ir": 8579.23,
+            "input_chars": 8.0,
+            "ratio": 0.37055651310443005
+          },
+          {
+            "n": 256,
+            "base_ir": 22469.92,
+            "head_ir": 8139.865,
+            "input_chars": 5.0,
+            "ratio": 0.36225607389790443
+          },
+          {
+            "n": 1024,
+            "base_ir": 8492.53,
+            "head_ir": 18664.07,
+            "input_chars": 8.0,
+            "ratio": 2.1977043354571606
+          },
+          {
+            "n": 4096,
+            "base_ir": 23152.285,
+            "head_ir": 8624.23,
+            "input_chars": 8.0,
+            "ratio": 0.3725001657503784
+          }
+        ],
+        "slope_base": null,
+        "slope_head": null,
+        "top_inputs": [],
+        "error": null,
+        "verdict": "slower",
+        "worst_ratio": 2.1977043354571606,
+        "worst_search": null
+      }
+    ],
+    "seconds": {
+      "plan": 66.71,
+      "screen": 103.15,
+      "full": 167.93,
+      "total": 337.79
+    }
+  },
+  "usd_by_tier": {
+    "reasoning": 0.284864,
+    "volume": 0.0019059600000000002,
+    "proposer": 0.0005841
+  }
+}

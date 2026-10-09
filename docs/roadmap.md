@@ -63,7 +63,9 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 ### WS4: Product, story and submission
 - [ ] `breakwater audit <repo> --base <ref> --head <ref> --target <symbol>` → JSON + Markdown report.
 - [x] Static web report v1 (`breakwater site`, `src/breakwater/site/`): overview with arms vs known regressions, a page per PR with verdict, counterexample cards (adjudication label, votes, quoted evidence, reproduce command), perf ladder charts (inline SVG), receipts and image tags; source JSON under `data/`. Stdlib only, no network requests, deterministic. GitHub Pages workflow (manual trigger; publish only at submission) builds it from committed artifacts.
-- [ ] Report v2: audit-run pages (`breakwater audit` output), wall-clock CIs once finalist timing exists, cost by tier, generated pytest per card, merge near-duplicate classes.
+- [x] Audit-run pages for the demo: `breakwater audit` writes `events.jsonl` (`events.py`), `live.html` (attack feed, phase stepper, "thinking" indicator, cost meter by tier, sandbox gauge, cards landing, perf families) and `report.html` at the end (plan, cards, perf, receipt by tier). `--live` serves it on localhost; `breakwater replay <run> --speed 4` replays a recorded run, labelled as a replay; `breakwater site --run <dir>` adds runs to the site.
+- [ ] Record the demo run on Token Factory (#1082 intermediate commit) and keep its run dir for the video and the site.
+- [ ] Report v2: wall-clock CIs once finalist timing exists, generated pytest per card, merge near-duplicate classes.
 - [ ] Judge box: in-browser Pyodide "try your own version string" against base / PR / merged.
 - [ ] GitHub Action that runs the CLI and posts a check + comment.
 - [ ] README "For judges" table ([judging-map.md](judging-map.md)), limitations, the real bill.

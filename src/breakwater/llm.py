@@ -127,6 +127,8 @@ class Nemotron:
         self.client = OpenAI(api_key=key, base_url=base_url or cfg.base_url, max_retries=0, default_headers=headers)
         self.max_n = cfg.max_n
         self.run_id = run_id
+        self.on_call: Any = None  # called with each ledger.Entry (the live page's cost meter)
+        self.on_start: Any = None  # called with (tier, purpose, requests) before sending (the live "thinking")
 
     def _create(self, **kw: Any) -> Any:
         for delay in (*RETRY_DELAYS_S, None):
@@ -166,6 +168,8 @@ class Nemotron:
                                 temperature=temperature, top_p=top_p, response_format=response_format,
                                 template_kwargs=template_kwargs, service_tier=service_tier)
         batches = [min(self.max_n, n - i) for i in range(0, n, self.max_n)]
+        if self.on_start:
+            self.on_start(tier.value, purpose, len(batches))
 
         def one(batch: int) -> tuple[list[str], int, int, int, float, int, Any]:
             t0 = time.perf_counter()
@@ -181,11 +185,14 @@ class Nemotron:
             # A "length" finish with thinking on means content is truncated reasoning, not an answer.
             good = [strip_think(c.message.content) for c in resp.choices
                     if not (thinking and c.finish_reason == "length")]
-            ledger.append(ledger.Entry(
+            entry = ledger.Entry(
                 tier=tier.value, model=model.id, purpose=purpose, tokens_in=c_in, tokens_out=c_out,
                 reasoning_tokens=c_reason, usd=c_usd, latency_ms=call_ms, ok=any(good), run_id=self.run_id,
                 provider=self.provider.value,
-            ))
+            )
+            ledger.append(entry)
+            if self.on_call:
+                self.on_call(entry)
             return [t for t in good if t], c_in, c_out, c_reason, c_usd, call_ms, resp
 
         if len(batches) == 1:

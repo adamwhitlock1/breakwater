@@ -25,8 +25,9 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from breakwater.adversary import LLM, PLAN_REASONING, extract_code, extract_json, validate_strategy
+from breakwater.adversary import LLM, PLAN_REASONING, _parse_args, extract_code, extract_json, validate_strategy
 from breakwater.backends import Backend
+from breakwater.events import NULL, Events
 from breakwater.images import PairImage
 from breakwater.models import Tier
 from breakwater.probes import Target
@@ -285,13 +286,7 @@ seeded), `math` and `itertools`. No imports. Deterministic and fast."""
 def _families_from(data: dict, n: int) -> list[Family]:
     fams = []
     for i, f in enumerate(data.get("families", [])[:n]):
-        examples = []
-        for s in f.get("example_args_json", []):
-            try:
-                v = json.loads(s)
-                examples.append(v if isinstance(v, list) else [v])
-            except (json.JSONDecodeError, TypeError):
-                pass
+        examples = _parse_args(f.get("example_args_json", []))
         fams.append(Family(f"F{i + 1}", f.get("kind", "suspected_slowdown"), f.get("family", ""), f.get("why", ""),
                            f.get("size_meaning", ""), strip_provided_imports(unescape_code(f.get("make_source", ""))),
                            examples))
@@ -570,10 +565,11 @@ def full_measure(backend: Backend, image: PairImage, target: Target, fam: Family
 
 def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Target, *, run_id: str,
                n_families: int = 6, strategies_per_family: int = 2, max_examples: int = 120, seed: int = 0,
-               use_archive: bool = True, log=print) -> PerfReport:
+               use_archive: bool = True, log=print, events: Events = NULL) -> PerfReport:
     """plan (3 samples merged) + archive -> screen every family at one size -> expand the slowest ->
     screen the variants -> full ladders and search for the slowest few plus the main speedup family."""
     t0 = time.perf_counter()
+    events("phase", name="perf-plan")
     families = plan_families(llm, ctx, n_families)
     archived = load_archive(ctx) if use_archive else []
     known = {f.make_source for f in families}
@@ -586,8 +582,11 @@ def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, targe
     def prepare(f: Family) -> None:
         ladders[f.id] = make_ladder(backend, image, f, seed)
         screen(backend, image, target, f, ladders[f.id])
+        events("family", id=f.id, family_kind=f.kind, family=f.family, origin=f.origin, screen_ratio=f.screen_ratio,
+               valid_fraction=f.valid_fraction, error=(f.error or "")[:200] or None)
 
     t1 = time.perf_counter()
+    events("phase", name="perf-screen")
     with cf.ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(prepare, families))
     def rank(fams: list[Family]) -> list[Family]:
@@ -595,6 +594,7 @@ def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, targe
         return sorted((f for f in fams if f.screen_ratio and f.screen_ratio > SCREEN_SLOWER),
                       key=lambda f: (not f.realistic, -f.screen_ratio))
 
+    events("phase", name="perf-expand")
     variants = [v for f in rank(families)[:EXPAND_TOP] for v in expand(llm, ctx, f)]
     with cf.ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(prepare, variants))
@@ -611,10 +611,18 @@ def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, targe
                       key=lambda f: f.screen_ratio)[:1]
     selected = slower + [f for f in speedups if f not in slower]
     t2 = time.perf_counter()
+    events("phase", name="perf-full")
+
+    def measure(f: Family) -> PerfFinding:
+        res = full_measure(backend, image, target, f, ladders[f.id], llm, ctx, strategies=strategies_per_family,
+                           max_examples=max_examples, seed=seed)
+        events("measured", family_id=res.family_id, family=res.family, family_kind=res.kind, verdict=res.verdict,
+               valid_fraction=res.valid_fraction, slope_base=res.slope_base, slope_head=res.slope_head,
+               ladder=[{"input_chars": p.input_chars, "ratio": p.ratio} for p in res.ladder])
+        return res
+
     with cf.ThreadPoolExecutor(max_workers=2) as pool:
-        findings = list(pool.map(lambda f: full_measure(backend, image, target, f, ladders[f.id], llm, ctx,
-                                                        strategies=strategies_per_family,
-                                                        max_examples=max_examples, seed=seed), selected))
+        findings = list(pool.map(measure, selected))
     timings["full"] = time.perf_counter() - t2
     if use_archive:
         save_archive(ctx, families, run_id)

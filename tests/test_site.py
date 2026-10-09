@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from breakwater.site.build import build, ladder_chart, show_args
+from breakwater.display import show_args
+from breakwater.site.build import build, ladder_chart
 
 BACKTEST = Path("artifacts/backtest/packaging-v2")
 ADJUDICATION = Path("artifacts/adjudication/packaging-v2")
@@ -73,3 +74,52 @@ def test_chart_needs_two_points_and_marks_the_one_x_line():
     svg = ladder_chart([{"family_id": "F", "ladder": [{"input_chars": 10, "ratio": 1.2},
                                                       {"input_chars": 1000, "ratio": 2.4}]}])
     assert 'class="axis-one"' in svg and "head slower" in svg
+
+
+def _run_report(provider="tokenfactory"):
+    finding = {"signature": "P2|outcome|exc:pkg.Invalid|ok|non-ascii", "probe": "P2", "detail": "outcome",
+               "args": [["\u0661"]], "base": {"status": "exc", "exc": "pkg.Invalid"}, "head": {"status": "ok"},
+               "found_by": ["A1/s1", "seed"]}
+    return {"run_id": "abc123", "repo": "https://github.com/o/r", "base": "a" * 40, "head": "b" * 40,
+            "target": "pkg:Version", "title": "perf: fast path", "provider": provider,
+            "semantic": {"image": "bw-pair:x", "backend": "docker", "findings": [finding], "seconds": {"plan": 3.0},
+                         "attacks": [{"id": "A1", "assumption": "trusts int()", "why_it_breaks": "Unicode digits",
+                                      "input_family": "digits", "example_args": [["1.0"]]}],
+                         "strategies": [{"id": "A1/s1", "attack": "A1", "valid": True, "findings": 1}]},
+            "adjudication": {"verdicts": [{"signature": finding["signature"], "label": "likely-bug",
+                                           "votes": {"likely-bug": 3}, "rationale": "<b>no</b>", "evidence": [],
+                                           "rejected": [], "reason": ""}]},
+            "usd_by_tier": {"reasoning": 0.05, "volume": 0.001}}
+
+
+def test_audit_run_page_and_live_page(tmp_path):
+    from breakwater.site.build import write_live_page, write_run_page
+
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "report.json").write_text(json.dumps(_run_report()))
+    html = write_run_page(run).read_text()
+    assert "BLOCK" in html and "trusts int()" in html and "1/1 valid, 1 hits" in html
+    assert "Nemotron 3 Ultra" in html and "$0.051" in html  # cost by tier, with total
+    assert "&lt;b&gt;no&lt;/b&gt;" in html and "no baseline" not in html  # escaped; no backtest arms here
+    assert "https://github.com/o/r/commit/" + "a" * 40 in html
+    assert 'href="index.html' not in html  # standalone: no links into a site that isn't there
+    assert "Model (Nebius Token Factory)" in html
+    (run / "report.json").write_text(json.dumps(_run_report("openrouter")))
+    dev = write_run_page(run).read_text()
+    assert "Model (openrouter)" in dev and "Development build (provider: openrouter)" in dev
+    live = write_live_page(run).read_text()
+    assert '<script src="assets/live.js"></script>' in live and (run / "assets" / "live.js").exists()
+
+
+def test_site_includes_audit_runs_and_gates_dev_runs(tmp_path):
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "report.json").write_text(json.dumps(_run_report("openrouter")))
+    src = _mini(tmp_path, "tokenfactory", "perf: x")
+    with pytest.raises(ValueError, match="only Token Factory"):
+        build(src, None, tmp_path / "out", runs=[run])
+    (run / "report.json").write_text(json.dumps(_run_report()))
+    build(src, None, tmp_path / "out", runs=[run])
+    assert 'href="runs/abc123.html"' in (tmp_path / "out" / "index.html").read_text()
+    assert (tmp_path / "out" / "runs" / "abc123.html").exists() and (tmp_path / "out" / "data" / "runs" / "abc123.json").exists()

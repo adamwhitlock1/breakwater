@@ -29,6 +29,7 @@ from typing import Any
 
 from breakwater.adjudicate import describe
 from breakwater.adversary import Finding
+from breakwater.display import card_text, short, sources
 
 ASSETS = Path(__file__).parent / "assets"
 REPO_URL = "https://github.com/adamwhitlock1/breakwater"
@@ -40,8 +41,6 @@ ARM_NAMES = {
 }
 LABEL_ORDER = {"likely-bug": 0, "needs-human": 1, "intended": 2, None: 3}
 LABEL_TEXT = {"likely-bug": "Likely bug", "needs-human": "Needs a human", "intended": "Intended", None: "Unlabelled"}
-PROBE_TEXT = {"P1": "Output changed", "P2": "Exception behaviour changed", "P3": "Equality / ordering changed",
-              "P4": "Old pickles break", "P4down": "New pickles break on old version"}
 
 
 def esc(v: Any) -> str:
@@ -57,11 +56,21 @@ class Card:
     finding: Finding
     verdict: dict | None
     known: list[str]
-    arms: list[str]  # backtest arms whose classes include this one
+    arms: list[str] | None  # backtest arms whose classes include this one; None outside a backtest
 
     @property
     def label(self) -> str | None:
         return self.verdict["label"] if self.verdict else None
+
+
+def verdict_of(cards: list[Card]) -> str:
+    """BLOCK on any likely bug; REVIEW if anything is unsettled or unlabelled; otherwise PASS."""
+    labels = {c.label for c in cards}
+    if "likely-bug" in labels:
+        return "BLOCK"
+    if "needs-human" in labels or None in labels and cards:
+        return "REVIEW"
+    return "PASS"
 
 
 @dataclass
@@ -90,12 +99,7 @@ class ItemView:
 
     @property
     def verdict(self) -> str:
-        labels = {c.label for c in self.cards}
-        if "likely-bug" in labels:
-            return "BLOCK"
-        if "needs-human" in labels or None in labels and self.cards:
-            return "REVIEW"
-        return "PASS"
+        return verdict_of(self.cards)
 
     @property
     def caught(self) -> list[str]:
@@ -141,67 +145,6 @@ def _matches(sig: str, rule: dict) -> bool:
 # Formatting helpers
 
 
-def short(s: str, limit: int = 64) -> str:
-    """Long adversarial strings (4,300-digit versions) stay readable: head…tail plus a length."""
-    if len(s) <= limit:
-        return s
-    return f"{s[:limit - 22]}…{s[-10:]}"
-
-
-def show_args(args: list[Any], fn: str) -> str:
-    """`Version("1. 0")`, with JSON escapes for control characters and long strings shortened."""
-    parts = []
-    for a in args:
-        if isinstance(a, str):
-            note = f" ({len(a):,} chars)" if len(a) > 64 else ""
-            parts.append(json.dumps(short(a), ensure_ascii=False) + note)
-        else:
-            parts.append(short(json.dumps(a, ensure_ascii=False)))
-    return f"{fn}({', '.join(parts)})"
-
-
-def exc_name(qualified: str) -> str:
-    """`packaging.version.InvalidVersion` -> `InvalidVersion`; the page shows the full name on hover."""
-    return qualified.rsplit(".", 1)[-1]
-
-
-def show_outcome(v: Any) -> str:
-    if isinstance(v, dict):
-        if v.get("status") == "ok":
-            return "returns normally"
-        if v.get("status") == "exc":
-            return f"raises {exc_name(v.get('exc', ''))}"
-        if v.get("status") == "timeout":
-            return "times out"
-    if isinstance(v, str) and v.startswith("<exc:"):
-        return f"raises {exc_name(v[5:-1])}"
-    if isinstance(v, str):
-        return json.dumps(short(v), ensure_ascii=False)
-    return short(json.dumps(v, ensure_ascii=False))
-
-
-def sources(found_by: list[str]) -> list[str]:
-    """Collapse per-strategy credits into the kinds of search that found a class."""
-    kinds = []
-    for name, test in (("Nemotron strategy search", lambda s: s.startswith("A") and "/s" in s),
-                       ("Ultra's planned example", lambda s: s == "seed"),
-                       ("project's test strings", lambda s: s == "tests"),
-                       ("hostile mutation", lambda s: s.startswith("mutation:")),
-                       ("relations pass", lambda s: s == "focus"),
-                       ("search sample", lambda s: s == "batch")):
-        if any(test(s) for s in found_by):
-            kinds.append(name)
-    return kinds
-
-
-def full_exc(v: Any) -> str:
-    if isinstance(v, dict) and v.get("status") == "exc":
-        return v.get("exc", "")
-    if isinstance(v, str) and v.startswith("<exc:"):
-        return v[5:-1]
-    return ""
-
-
 _TICKS = re.compile(r"`([^`]+)`")
 
 
@@ -214,12 +157,15 @@ def money(usd: float) -> str:
     return f"${usd:.2f}" if usd >= 0.1 else f"${usd:.3f}"
 
 
-def gh_pr(pr: int | str) -> str:
-    return f"https://github.com/pypa/packaging/pull/{pr}"
+PACKAGING = "https://github.com/pypa/packaging"
 
 
-def gh_commit(sha: str) -> str:
-    return f"https://github.com/pypa/packaging/commit/{sha}"
+def gh_pr(pr: int | str, repo: str = PACKAGING) -> str:
+    return f"{repo.removesuffix('.git')}/pull/{pr}"
+
+
+def gh_commit(sha: str, repo: str = PACKAGING) -> str:
+    return f"{repo.removesuffix('.git')}/commit/{sha}"
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -284,8 +230,11 @@ def ladder_chart(findings: list[dict]) -> str:
 # Page shell
 
 
-def page(title: str, body: str, *, depth: int, dev: str | None, description: str) -> str:
+def page(title: str, body: str, *, depth: int, dev: str | None, description: str, site_nav: bool = True) -> str:
+    """`site_nav=False` for pages that live outside the site (an audit's run directory)."""
     root = "../" * depth
+    nav = (f'<a href="{root}index.html#prs">PRs</a><a href="{root}index.html#method">Method</a>' if site_nav else "")
+    brand = f'{root}index.html' if site_nav else REPO_URL
     banner = (f'<div class="dev-banner">Development build (provider: {esc(dev)}). Not from Nebius Token Factory; '
               "do not cite these numbers.</div>") if dev else ""
     return f"""<!doctype html>
@@ -300,9 +249,8 @@ def page(title: str, body: str, *, depth: int, dev: str | None, description: str
 <body>
 {banner}
 <header class="top">
-  <a class="brand" href="{root}index.html"><span class="mark" aria-hidden="true"></span>Breakwater</a>
-  <nav><a href="{root}index.html#prs">PRs</a><a href="{root}index.html#method">Method</a>
-  <a href="{REPO_URL}">Code</a></nav>
+  <a class="brand" href="{brand}"><span class="mark" aria-hidden="true"></span>Breakwater</a>
+  <nav>{nav}<a href="{REPO_URL}">Code</a></nav>
 </header>
 <main>
 {body}
@@ -310,7 +258,7 @@ def page(title: str, body: str, *, depth: int, dev: str | None, description: str
 <footer>
   <p>Breakwater: a red team for performance PRs. Nemotron 3 Ultra and 3.5 Lightning on Nebius Token Factory plan
   and write attacks; deterministic probes and cachegrind instruction counts decide. Every number links to the
-  JSON it came from in <a href="{root}data/">data/</a>.</p>
+  JSON it came from{f' in <a href="{root}data/">data/</a>' if site_nav else " (report.json, events.jsonl)"}.</p>
 </footer>
 </body>
 </html>
@@ -330,7 +278,8 @@ def verdict_chip(v: str) -> str:
 # Index
 
 
-def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: str | None) -> str:
+def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: str | None,
+                 runs: list[dict] | None = None) -> str:
     s = results["summary"]
     arms = [a for a in results["arms"] if a in ARM_NAMES]
     nv, nc = s["known_verified"], s["known_candidate"]
@@ -419,6 +368,7 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
   <ul class="notes">{"".join(f"<li>{n}</li>" for n in notes)}</ul>
 </section>
 
+{render_runs_list(runs or [])}
 <section id="method" class="method">
   <h2>How a verdict is made</h2>
   <ol class="steps">
@@ -440,6 +390,23 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
                 description="A Nemotron red team for performance PRs, backtested on pypa/packaging.")
 
 
+def render_runs_list(runs: list[dict]) -> str:
+    if not runs:
+        return ""
+    rows = []
+    for r in runs:
+        cards = run_cards(r)
+        v = verdict_of(cards)
+        rows.append(f'<tr><td><a href="runs/{esc(r["run_id"])}.html"><code>{esc(r["run_id"])}</code></a></td>'
+                    f'<td class="title-cell">{inline(r.get("title") or r["target"])}<small><code>{esc(r["target"])}</code></small></td>'
+                    f'<td>{verdict_chip(v) if cards else "<span class=\'muted nowrap\'>no divergence</span>"}</td>'
+                    f'<td class="num">{len(cards)}</td><td class="num">{money(sum(r.get("usd_by_tier", {}).values()))}</td></tr>')
+    return (f'<section id="runs"><h2>Audit runs</h2><p class="section-lede">Single audits from <code>breakwater audit</code>, '
+            'as shown in the demo.</p><div class="table-wrap"><table class="items"><thead><tr><th>Run</th><th>Change</th>'
+            f'<th>Verdict</th><th class="num">Classes</th><th class="num">Cost</th></tr></thead><tbody>{"".join(rows)}'
+            '</tbody></table></div></section>')
+
+
 # ---------------------------------------------------------------------------------------------------
 # PR page
 
@@ -450,21 +417,9 @@ def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: st
     # exception types relate).
     facts = (v or {}).get("facts") or describe(f)
     rel = facts[facts.rfind("(") + 1:].rstrip(".)") if f.probe == "P2" and facts.endswith(".)") else ""
-    if f.probe == "P3" and len(f.args) == 2:
-        inputs = (f'<div class="io"><span class="k">a</span><code>{esc(show_args(f.args[0], fn))}</code></div>'
-                  f'<div class="io"><span class="k">b</span><code>{esc(show_args(f.args[1], fn))}</code></div>')
-        rel = {"eq": "a == b", "lt": "a < b", "gt": "a > b", "hash_eq": "hash(a) == hash(b)"}.get(f.detail, f.detail)
-        base_s, head_s = f"{rel} → {f.base}", f"{rel} → {f.head}"
-    else:
-        inputs = f'<div class="io"><span class="k">input</span><code>{esc(show_args(f.args[0], fn))}</code></div>'
-        if f.probe in ("P4", "P4down"):
-            base_s = "pickled object loads and compares equal" if f.probe == "P4" else show_outcome(f.base)
-            head_s = f"load: {show_outcome(f.head)}" if f.detail.endswith("load") else \
-                f"compare with fresh object: {show_outcome(f.head)}"
-        else:
-            base_s, head_s = show_outcome(f.base), show_outcome(f.head)
-            if f.probe == "P1":
-                base_s, head_s = f"{f.detail}: {base_s}", f"{f.detail}: {head_s}"
+    text = card_text(f.probe, f.detail, f.args, f.base, f.head, fn)
+    inputs = "".join(f'<div class="io"><span class="k">{esc(k)}</span><code>{esc(v_)}</code></div>'
+                     for k, v_ in text["inputs"])
     known = "".join(f'<span class="known">known regression: {esc(k)}</span>' for k in card.known)
     adj = ""
     if v:
@@ -477,7 +432,8 @@ def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: st
     else:
         adj = f'<div class="adj">{chip(None)}</div>'
     how = ", ".join(sources(f.found_by)) or "—"
-    arms = ", ".join(ARM_NAMES[a][0] for a in card.arms if a in ARM_NAMES and a != "breakwater")
+    arms = ", ".join(ARM_NAMES[a][0] for a in card.arms or [] if a in ARM_NAMES and a != "breakwater")
+    baseline = "" if card.arms is None else f" · also caught by: {esc(arms)}" if arms else " · no baseline found it"
     single = (len(f.args) == 1 and isinstance(f.args[0], list) and len(f.args[0]) == 1
               and isinstance(f.args[0][0], str) and len(f.args[0][0]) <= 200)
     repro = ""
@@ -486,13 +442,13 @@ def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: st
                f"--target {target} --input {json.dumps(f.args[0][0], ensure_ascii=False)}")
         repro = f'<details><summary>Reproduce</summary><pre><code>{esc(cmd)}</code></pre></details>'
     return f"""<article class="card {"card-" + (card.label or "none")}">
-  <header><span class="probe">{esc(f.probe)}</span><h3>{esc(PROBE_TEXT.get(f.probe, f.probe))}</h3>{known}</header>
+  <header><span class="probe">{esc(f.probe)}</span><h3>{esc(text["title"])}</h3>{known}</header>
   {inputs}
-  <div class="sides"><div class="side base" title="{esc(full_exc(f.base))}"><span class="k">base</span>{esc(base_s)}</div>
-  <div class="side head" title="{esc(full_exc(f.head))}"><span class="k">head</span>{esc(head_s)}</div></div>
+  <div class="sides"><div class="side base" title="{esc(text["base_exc"])}"><span class="k">base</span>{esc(text["base"])}</div>
+  <div class="side head" title="{esc(text["head_exc"])}"><span class="k">head</span>{esc(text["head"])}</div></div>
   {f'<p class="facts">{esc(rel[0].upper() + rel[1:])}.</p>' if rel else ""}
   {adj}
-  <p class="found">Found by: {esc(how)}{f" · also caught by: {esc(arms)}" if arms else " · no baseline found it"}</p>
+  <p class="found">Found by: {esc(how)}{baseline}</p>
   {repro}
 </article>"""
 
@@ -586,14 +542,186 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
 
 
 # ---------------------------------------------------------------------------------------------------
+# Audit-run page (`breakwater audit` output)
+
+TIER_TEXT = {"reasoning": "Nemotron 3 Ultra", "proposer": "Nemotron 3 Super", "volume": "Nemotron 3.5 Lightning"}
+VERDICT_TEXT = {
+    "BLOCK": "At least one behaviour change looks like an unintended regression.",
+    "REVIEW": "Behaviour changed; the evidence does not settle whether it was intended.",
+    "PASS": "No unintended behaviour change found.",
+}
+
+
+def perf_summary(perf: dict | None) -> dict | None:
+    """Same summary the backtest stores: worst ladder ratio over slower families with mostly valid inputs."""
+    if not perf:
+        return None
+    slower = [f for f in perf.get("findings", []) if f.get("verdict") in ("slower", "complexity-regression")
+              and (f.get("valid_fraction") or 0) >= 0.5]
+    worst = max(slower, key=lambda f: max((p["ratio"] for p in f["ladder"] if p.get("ratio")), default=0),
+                default=None)
+    ratio = max((p["ratio"] for p in worst["ladder"] if p.get("ratio")), default=None) if worst else None
+    return {"report": perf, "worst_valid_ratio": ratio, "worst_family": worst["family"] if worst else None}
+
+
+def run_cards(report: dict) -> list[Card]:
+    sem = report.get("semantic") or {}
+    verdicts = {v["signature"]: v for v in (report.get("adjudication") or {}).get("verdicts", [])}
+    cards = [Card(Finding(**f), verdicts.get(f["signature"]), [], None) for f in sem.get("findings", [])]
+    cards.sort(key=lambda c: (LABEL_ORDER.get(c.label, 3), c.finding.probe, len(json.dumps(c.finding.args)),
+                              c.finding.signature))
+    return cards
+
+
+def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = None, site_nav: bool = True) -> str:
+    repo, base, head, target = report["repo"], report["base"], report["head"], report["target"]
+    sem = report.get("semantic") or {}
+    cards = run_cards(report)
+    verdict = verdict_of(cards)
+    fn = target.split(":")[1].split("#")[0]
+    image = sem.get("image") or (report.get("perf") or {}).get("image", "")
+    title = report.get("title") or f"Audit of {target}"
+    provider = report.get("provider", "tokenfactory")
+    provider_name = "Nebius Token Factory" if provider == "tokenfactory" else provider
+    crumbs = f'<p class="crumbs"><a href="{home}">Report</a> / run {esc(report["run_id"])}</p>' if home else ""
+
+    plan = ""
+    if sem.get("attacks"):
+        lis = []
+        for a in sem["attacks"]:
+            ran = [j for j in sem.get("strategies", []) if j["attack"] == a["id"]]
+            hits = sum(j.get("findings", 0) for j in ran)
+            ex = ", ".join(show_args_short(x, fn) for x in a.get("example_args", [])[:3])
+            lis.append(f'<li><div class="attack-head"><code>{esc(a["id"])}</code><strong>{esc(a["assumption"])}</strong></div>'
+                       f'<p>{esc(a["why_it_breaks"])}</p>'
+                       f'<p class="muted small">Inputs: {esc(a["input_family"])}' + (f' · e.g. <code class="bidi">{esc(ex)}</code>' if ex else "")
+                       + f' · Lightning strategies: {sum(j["valid"] for j in ran)}/{len(ran)} valid, {hits} hits</p></li>')
+        plan = (f'<section><h2>Ultra\'s plan <small class="muted">· {len(sem["attacks"])} attacks</small></h2>'
+                '<p class="section-lede">Nemotron 3 Ultra read the diff and named the assumptions the change makes. '
+                'Nothing here is trusted: each attack only counts through the counterexamples below.</p>'
+                f'<ol class="attacks">{"".join(lis)}</ol></section>')
+    counts = {k: sum(c.label == k for c in cards) for k in LABEL_ORDER}
+    summary = ", ".join(f"{n} {LABEL_TEXT[k].lower()}" for k, n in counts.items() if n)
+    cards_html = "".join(render_card(c, fn, repo, base, head, target) for c in cards)
+    cards_section = (f'<section><h2>Counterexamples <small class="muted">· {len(cards)} classes: {esc(summary)}</small>'
+                     f'</h2><div class="cards">{cards_html}</div></section>') if cards else ""
+    perf = perf_summary(report.get("perf"))
+    perf_html = render_perf(TargetView(target, image, report["run_id"], 0.0, 0.0, [], perf)) if perf else ""
+    usd = report.get("usd_by_tier", {})
+    tiers = "".join(f'<tr><td>{esc(TIER_TEXT.get(t, t))}</td><td class="num">{money(u)}</td></tr>'
+                    for t, u in sorted(usd.items(), key=lambda kv: -kv[1]))
+    secs = {**{f"semantic {k}": v for k, v in (sem.get("seconds") or {}).items() if k != "total"},
+            **{f"perf {k}": v for k, v in ((report.get("perf") or {}).get("seconds") or {}).items() if k != "total"}}
+    times = " · ".join(f"{esc(k)} {v:.0f}s" for k, v in secs.items())
+    verdict_box = (f'<div class="verdict-box {verdict.lower()}">{verdict_chip(verdict)}<p>{esc(VERDICT_TEXT[verdict] if cards else "No behaviour divergence found by any probe.")}'
+                   f'{"" if report.get("adjudication") or not cards else " (not adjudicated)"}</p></div>')
+    body = f"""
+{crumbs}
+<section class="pr-head">
+  <p class="eyebrow">Breakwater audit · {esc(report.get("provider", "tokenfactory"))}</p>
+  <h1>{inline(title)}</h1>
+  <p class="meta"><a href="{esc(repo)}">{esc(repo.removeprefix("https://github.com/"))}</a> ·
+  base <a href="{gh_commit(base, repo)}"><code>{esc(base[:10])}</code></a> →
+  head <a href="{gh_commit(head, repo)}"><code>{esc(head[:10])}</code></a> · target <code>{esc(target)}</code></p>
+  {verdict_box}
+</section>
+{plan}
+{cards_section}
+{perf_html}
+<section>
+  <h2>Receipt</h2>
+  <div class="receipt-grid">
+  <div class="table-wrap"><table class="receipt"><thead><tr><th>Model ({esc(provider_name)})</th><th class="num">Cost</th></tr></thead>
+  <tbody>{tiers}<tr><td><strong>Total</strong></td><td class="num"><strong>{money(sum(usd.values()))}</strong></td></tr></tbody></table></div>
+  <div class="receipt-facts"><p><span class="k">run</span><code>{esc(report["run_id"])}</code></p>
+  <p><span class="k">image</span><code>{esc(image)}</code></p>
+  <p><span class="k">backend</span>{esc(sem.get("backend") or (report.get("perf") or {}).get("backend", ""))}</p>
+  <p class="muted small">{times}</p></div>
+  </div>
+</section>
+"""
+    return page(f"{title} · Breakwater audit", body, depth=depth, dev=dev,
+                description=f"Breakwater audit of {target}: {verdict}", site_nav=site_nav)
+
+
+LIVE_BODY = """
+<div id="dev" class="dev-banner" hidden></div>
+<section class="live-head">
+  <p class="eyebrow">Breakwater · live audit <span class="clock" id="clock">00:00</span></p>
+  <h1 id="title">Waiting for the audit to start…</h1>
+  <p class="meta" id="meta"></p>
+  <ol class="steps-bar" id="steps"></ol>
+  <p class="phase-text" id="phase-text">Connecting…</p>
+  <div id="verdict" hidden></div>
+</section>
+<div class="live-grid">
+  <section class="panel feed-panel"><h2>Attack feed</h2><ol class="feed" id="feed"></ol></section>
+  <aside class="panel meters">
+    <h2><span id="cost-title">Nemotron on Token Factory</span> <span class="meter-total" id="cost-total">$0.000</span></h2>
+    <div id="thinking"></div>
+    <div id="cost"></div>
+    <h2 class="sb-title">Sandboxes</h2>
+    <div class="gauge"><span id="sb-gauge"></span></div>
+    <div class="sb-stats"><div><strong id="sb-now">0</strong><span>running now</span></div>
+    <div><strong id="sb-runs">0</strong><span>runs</span></div><div><strong id="sb-cpu">0s</strong><span>CPU</span></div></div>
+  </aside>
+</div>
+<section><h2>Ultra's plan</h2><ol class="attacks" id="attacks"></ol></section>
+<section><h2>Lightning strategy <small class="muted">· first valid one, as written</small></h2>
+<pre class="strategy" id="strategy">Waiting for Lightning…</pre></section>
+<section><h2>Counterexamples <small class="muted">· <span id="card-count">0</span> classes</small></h2>
+<div class="cards" id="cards"></div></section>
+<section><h2>Perf families <small class="muted">· head/base instructions at the screening size</small></h2>
+<ol class="families" id="families"></ol></section>
+<script src="assets/live.js"></script>
+"""
+
+
+def write_live_page(run_dir: Path) -> Path:
+    """live.html: polls events.jsonl in the same directory (serve the directory over HTTP)."""
+    copy_assets(run_dir)
+    out = run_dir / "live.html"
+    out.write_text(page("Live audit · Breakwater", LIVE_BODY, depth=0, dev=None,
+                        description="A Breakwater audit in progress", site_nav=False))
+    return out
+
+
+def show_args_short(args: Any, fn: str) -> str:
+    from breakwater.display import show_args
+
+    return show_args(args if isinstance(args, list) else [args], fn)
+
+
+def write_run_page(run_dir: Path, *, allow_dev: bool = True) -> Path:
+    """report.html next to an audit's report.json, with its own copy of the assets."""
+    report = json.loads((run_dir / "report.json").read_text())
+    provider = report.get("provider", "tokenfactory")
+    if provider != "tokenfactory" and not allow_dev:
+        raise ValueError(f"run {report['run_id']} used {provider}; only Token Factory results may be published")
+    copy_assets(run_dir)
+    out = run_dir / "report.html"
+    out.write_text(render_run(report, depth=0, dev=None if provider == "tokenfactory" else provider, site_nav=False))
+    return out
+
+
+def copy_assets(root: Path) -> None:
+    (root / "assets").mkdir(parents=True, exist_ok=True)
+    for f in sorted(ASSETS.iterdir()):
+        shutil.copy(f, root / "assets" / f.name)
+
+
+# ---------------------------------------------------------------------------------------------------
 # Build
 
 
-def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bool = False) -> list[Path]:
+def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bool = False,
+          runs: list[Path] | None = None) -> list[Path]:
     results, adj, items = load(backtest, adjudication)
+    run_reports = [json.loads((r / "report.json").read_text()) for r in runs or []]
     providers = {results.get("summary", {}).get("provider", results.get("provider", "tokenfactory"))}
     if adj:
         providers.add(adj.get("provider", "tokenfactory"))
+    providers |= {r.get("provider", "tokenfactory") for r in run_reports}
     dev_providers = sorted(p for p in providers if p != "tokenfactory")
     if dev_providers and not allow_dev:
         raise ValueError(f"inputs come from {dev_providers}; only Token Factory results may be published "
@@ -605,16 +733,23 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
     if out.exists():
         shutil.rmtree(out)
     (out / "pr").mkdir(parents=True)
-    (out / "assets").mkdir()
-    shutil.copy(ASSETS / "style.css", out / "assets" / "style.css")
+    copy_assets(out)
     written = [out / "index.html"]
-    (out / "index.html").write_text(render_index(results, adj, items, dev))
+    (out / "index.html").write_text(render_index(results, adj, items, dev, run_reports))
+    if run_reports:
+        (out / "runs").mkdir()
+        (out / "data" / "runs").mkdir(parents=True)
+    for r, src in zip(run_reports, runs or [], strict=True):
+        p = out / "runs" / f"{r['run_id']}.html"
+        p.write_text(render_run(r, depth=1, dev=dev, home="../index.html"))
+        shutil.copy(src / "report.json", out / "data" / "runs" / f"{r['run_id']}.json")
+        written.append(p)
     for it in items:
         p = out / "pr" / f"{it.slug}.html"
         p.write_text(render_item(it, repo, dev))
         written.append(p)
     data = out / "data"
-    (data / "backtest").mkdir(parents=True)
+    (data / "backtest").mkdir(parents=True, exist_ok=True)
     shutil.copy(backtest / "results.json", data / "backtest.json")
     for f in sorted(backtest.glob("*.json")):
         if f.name != "results.json":

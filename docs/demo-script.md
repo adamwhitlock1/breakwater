@@ -8,6 +8,17 @@ Rules from the organizers:
 
 `[x]` marks a number to fill from real runs. Never ship a placeholder.
 
+**Recording the live audit (0:35–1:15).** Run it on Token Factory with the live page, then reuse that run:
+
+```bash
+uv run breakwater audit --live --open --target packaging.version:Version --observe str,repr,attr:release,attr:public \
+  --repo https://github.com/pypa/packaging --base 59f183fe90da --head 61967cca278d \
+  --title "perf: fast path for simple versions (intermediate commit 61967cca)"
+uv run breakwater replay artifacts/runs/<run_id> --speed 8 --open   # re-record the screen without re-spending
+```
+
+The replay page shows "replay ×8 of run <id>" next to the clock and the feed shows recorded times. Say on camera that the footage is sped up.
+
 | Time | Beat | On screen |
 |---|---|---|
 | 0:00–0:12 | "Breakwater is a red team for performance pull requests. Before your code is called faster, a Nemotron adversary tries to make it slower, or wrong." | A GitHub PR check turning red: `BLOCK — speedup reverses on non-simple versions; 2 behavior divergences` |

@@ -99,3 +99,25 @@ def test_ledger_splits_by_provider(tmp_path):
     assert ledger.providers(path) == ["tokenfactory", "openrouter"]
     assert ledger.summarize(path, provider="tokenfactory")["volume"]["usd"] == pytest.approx(0.5)
     assert ledger.summarize(path, provider="openrouter")["volume"]["calls"] == 1
+
+
+def test_events_are_ordered_and_reserved_fields_cannot_be_overwritten(tmp_path):
+    import json
+    import threading
+
+    import pytest
+
+    from breakwater.events import NULL, Events
+
+    ev = Events(tmp_path / "e.jsonl")
+    threads = [threading.Thread(target=lambda i=i: ev("x", i=i)) for i in range(20)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    lines = [json.loads(x) for x in (tmp_path / "e.jsonl").read_text().splitlines()]
+    assert [e["seq"] for e in lines] == list(range(1, 21)) and {e["kind"] for e in lines} == {"x"}
+    with pytest.raises(ValueError, match="reserved"):
+        ev("family", kind="claimed_speedup")  # a perf family's kind once crashed a live run
+    with pytest.raises(ValueError, match="reserved"):
+        NULL("x", t=1)  # checked even when not recording, so tests catch it

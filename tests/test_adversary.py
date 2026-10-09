@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from breakwater.adversary import audit, extract_code, extract_json, render_markdown, validate_strategy
+from breakwater.adversary import _parse_args, audit, extract_code, extract_json, render_markdown, validate_strategy
 from breakwater.models import Tier
 
 
@@ -58,7 +58,7 @@ def _harness() -> bool:
 
 
 @pytest.mark.skipif(not _harness(), reason="needs Docker and the breakwater-harness image")
-def test_audit_pipeline_finds_pr1082_bug_with_scripted_llm():
+def test_audit_pipeline_finds_pr1082_bug_with_scripted_llm(tmp_path):
     from breakwater.backends.docker import DockerBackend
     from breakwater.images import build_pair, git_req
     from breakwater.probes import Target
@@ -67,15 +67,29 @@ def test_audit_pipeline_finds_pr1082_bug_with_scripted_llm():
     repo = "https://github.com/pypa/packaging"
     ctx = gather(repo, "59f183fe90da", "61967cca278d", "packaging.version:Version")
     image = build_pair(git_req(repo, "59f183fe90da"), git_req(repo, "61967cca278d"))
+    from breakwater.events import Events, ObservedBackend
+
     llm = ScriptedLLM()
-    report = audit(ctx, image, llm, DockerBackend(), Target("packaging.version:Version"),
-                   n_attacks=1, strategies_per_attack=2, max_examples=200, log=lambda *_: None)
+    events = Events(tmp_path / "events.jsonl")
+    backend = ObservedBackend(DockerBackend(), events)
+    report = audit(ctx, image, llm, backend, Target("packaging.version:Version"),
+                   n_attacks=1, strategies_per_attack=2, max_examples=200, log=lambda *_: None, events=events)
 
     assert [s.valid for s in report.strategies] == [True, False]
     accepts = [f for f in report.findings if f.signature == "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii"]
     assert accepts, render_markdown(report)
     assert "A1/s1" in accepts[0].found_by or "seed" in accepts[0].found_by
     assert (Tier.REASONING, "plan") in llm.calls
+
+    # The live feed sees the same run: phases in order, every class once, sandbox runs balanced.
+    evs = [json.loads(line) for line in (tmp_path / "events.jsonl").read_text().splitlines()]
+    assert [e["name"] for e in evs if e["kind"] == "phase"] == ["plan", "generate", "search", "batch"]
+    assert [e["seq"] for e in evs] == list(range(1, len(evs) + 1))
+    assert sorted(e["signature"] for e in evs if e["kind"] == "finding") == sorted(f.signature for f in report.findings)
+    card = next(e for e in evs if e["kind"] == "finding" and e["signature"] == accepts[0].signature)
+    assert card["head"] == "returns normally" and card["inputs"][0][1].startswith("Version(")
+    sandbox = [e for e in evs if e["kind"] == "sandbox"]
+    assert sandbox and sandbox[-1]["in_flight"] == 0 and backend.runs == sandbox[-1]["runs"]
 
 
 def test_strip_provided_imports_keeps_other_imports_for_validation():
@@ -130,3 +144,11 @@ def test_equivalents_keep_numeric_value():
 
     assert equivalents("1.2") == ["1.2.0", "01.2"]
     assert equivalents(">=1.0,!=2.0") == [">=1.0.0,!=2.0", ">=01.0,!=2.0", ">=1.0,!=2.0,>=1.0", ">=1.0,!=2.0,>=1.0.0"]
+
+
+def test_parse_args_accepts_the_shapes_models_actually_return():
+    assert _parse_args(['["1.0"]', '["1. 0", 2]', "not json"]) == [["1.0"], ["1. 0", 2]]
+    assert _parse_args('["[\\"\\u0661\\"]", "[\\"1 . 2\\"]"]') == [["\u0661"], ["1 . 2"]]  # one JSON string
+    assert _parse_args('[["1.0"], ["2.0"]]') == [["1.0"], ["2.0"]]
+    assert _parse_args('["1 . 2", "x"]') == [["1 . 2"], ["x"]]  # plain strings are the arguments
+    assert _parse_args([["1.0"], 3]) == [["1.0"], [3]]

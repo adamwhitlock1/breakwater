@@ -85,56 +85,106 @@ def probe(args: argparse.Namespace) -> int:
     return 1 if classes else 0
 
 
+def _serve(directory, port: int):
+    """Serve the run directory on localhost for the live page. Returns the server (daemon thread)."""
+    import functools
+    import http.server
+    import threading
+
+    class Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a):  # the live page polls every 0.8 s; keep the terminal readable
+            pass
+
+        def end_headers(self):  # files change while the run goes on; never serve a cached copy
+            self.send_header("Cache-Control", "no-store")
+            super().end_headers()
+
+    handler = functools.partial(Quiet, directory=str(directory))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
 def audit(args: argparse.Namespace) -> int:
     import uuid
     from pathlib import Path
 
     from breakwater import adversary, ledger, perf
     from breakwater.backends import get_backend
+    from breakwater.events import Events, ObservedBackend
     from breakwater.images import build_pair, git_req
     from breakwater.llm import Nemotron
     from breakwater.models import Provider
     from breakwater.probes import Target
     from breakwater.repo import gather
+    from breakwater.site.build import run_cards, verdict_of, write_live_page, write_run_page
 
     run_id = uuid.uuid4().hex[:12]
-    llm = Nemotron(run_id=run_id)
-    backend = get_backend(args.backend)
-    ctx = gather(args.repo, args.base, args.head, args.target)
-    image = build_pair(git_req(args.repo, args.base), git_req(args.repo, args.head))
-    target = Target(args.target, tuple(args.observe.split(",")))
     out = Path(args.out or f"artifacts/runs/{run_id}")
     out.mkdir(parents=True, exist_ok=True)
+    events = Events(out / "events.jsonl")
+    write_live_page(out)
+    server = None
+    if args.live:
+        server = _serve(out, args.port)
+        url = f"http://127.0.0.1:{args.port}/live.html"
+        print(f"live view: {url}")
+        if args.open:
+            import webbrowser
+
+            webbrowser.open(url)
+
+    llm = Nemotron(run_id=run_id)
+    llm.on_call = lambda e: events("llm", tier=e.tier, model=e.model, purpose=e.purpose, tokens_in=e.tokens_in,
+                                   tokens_out=e.tokens_out, reasoning_tokens=e.reasoning_tokens, usd=e.usd,
+                                   latency_ms=e.latency_ms, ok=e.ok)
+    llm.on_start = lambda tier, purpose, requests: events("llm-start", tier=tier, purpose=purpose, requests=requests)
+    backend = ObservedBackend(get_backend(args.backend), events)
     report: dict = {"run_id": run_id, "repo": args.repo, "base": args.base, "head": args.head, "target": args.target,
-                    "provider": llm.provider.value}
+                    "title": args.title or "", "provider": llm.provider.value}
+    events("run", **report)
     sections: list[str] = [] if llm.provider is Provider.TOKENFACTORY else [DEV_BANNER.format(llm.provider.value)]
     found = False
+    try:
+        events("phase", name="build")
+        ctx = gather(args.repo, args.base, args.head, args.target)
+        image = build_pair(git_req(args.repo, args.base), git_req(args.repo, args.head))
+        target = Target(args.target, tuple(args.observe.split(",")))
 
-    if args.mode in ("semantic", "both"):
-        sem = adversary.audit(ctx, image, llm, backend, target, n_attacks=args.attacks,
-                              strategies_per_attack=args.strategies, max_examples=args.max_examples,
-                              seed=args.seed, run_id=run_id)
-        report["semantic"] = sem.to_json()
-        verdicts = None
-        if sem.findings and not args.no_adjudicate:
-            from breakwater import adjudicate as adj
-            from breakwater.repo import intent_diff
+        if args.mode in ("semantic", "both"):
+            sem = adversary.audit(ctx, image, llm, backend, target, n_attacks=args.attacks,
+                                  strategies_per_attack=args.strategies, max_examples=args.max_examples,
+                                  seed=args.seed, run_id=run_id, events=events)
+            report["semantic"] = sem.to_json()
+            verdicts = None
+            if sem.findings and not args.no_adjudicate:
+                from breakwater import adjudicate as adj
+                from breakwater.repo import intent_diff
 
-            res = adj.adjudicate(llm, ctx, sem.findings, title=args.title or "",
-                                 intent=intent_diff(args.repo, args.base, args.head),
-                                 mros=adj.exception_facts(backend, image, sem.findings))
-            report["adjudication"] = res.to_json()
-            verdicts = res.by_signature()
-        sections.append(adversary.render_markdown(sem, verdicts))
-        # BLOCK on likely bugs only once adjudicated; unadjudicated, every divergence counts.
-        found = found or (any(v.label == "likely-bug" for v in verdicts.values()) if verdicts else bool(sem.findings))
-    if args.mode in ("perf", "both"):
-        pr = perf.perf_audit(ctx, image, llm, backend, target, run_id=run_id, n_families=args.families,
-                             seed=args.seed, use_archive=not args.no_archive)
-        report["perf"] = pr.to_json()
-        sections.append(perf.render_markdown(pr))
-        found = found or any(f.verdict in ("slower", "complexity-regression") for f in pr.findings)
+                events("phase", name="adjudicate")
+                res = adj.adjudicate(llm, ctx, sem.findings, title=args.title or "",
+                                     intent=intent_diff(args.repo, args.base, args.head),
+                                     mros=adj.exception_facts(backend, image, sem.findings))
+                report["adjudication"] = res.to_json()
+                verdicts = res.by_signature()
+                for v in res.verdicts:
+                    events("verdict", signature=v.signature, label=v.label, votes=v.votes, rationale=v.rationale,
+                           evidence=v.evidence[:2])
+            sections.append(adversary.render_markdown(sem, verdicts))
+            # BLOCK on likely bugs only once adjudicated; unadjudicated, every divergence counts.
+            found = found or (any(v.label == "likely-bug" for v in verdicts.values()) if verdicts
+                              else bool(sem.findings))
+        if args.mode in ("perf", "both"):
+            pr = perf.perf_audit(ctx, image, llm, backend, target, run_id=run_id, n_families=args.families,
+                                 seed=args.seed, use_archive=not args.no_archive, events=events)
+            report["perf"] = pr.to_json()
+            sections.append(perf.render_markdown(pr))
+            found = found or any(f.verdict in ("slower", "complexity-regression") for f in pr.findings)
+    except BaseException as e:
+        events("error", message=f"{type(e).__name__}: {str(e)[:300]}")
+        raise
 
+    events("phase", name="report")
     usd = {tier: t["usd"] for tier, t in ledger.summarize(run_id=run_id).items()}
     report["usd_by_tier"] = usd
     sections.append(f"**Total Nemotron cost:** ${sum(usd.values()):.4f} "
@@ -142,8 +192,76 @@ def audit(args: argparse.Namespace) -> int:
     md = "\n\n".join(sections)
     (out / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False, default=str))
     (out / "report.md").write_text(md)
-    print("\n" + md + f"\n\nwrote {out}/report.json and report.md")
+    write_run_page(out)
+    cards = run_cards(report)
+    events("done", verdict=verdict_of(cards) if cards else "PASS", classes=len(cards), report="report.html",
+           usd=round(sum(usd.values()), 6), usd_by_tier=usd)
+    print("\n" + md + f"\n\nwrote {out}/report.json, report.md and report.html")
+    if server:
+        print(f"still serving http://127.0.0.1:{args.port}/live.html (Ctrl-C to stop)")
+        try:
+            import time
+
+            while True:
+                time.sleep(3600)
+        except KeyboardInterrupt:
+            server.shutdown()
     return 1 if found else 0
+
+
+def replay(args: argparse.Namespace) -> int:
+    """Replay a recorded audit's events into the live page at a stated speed (for the demo video).
+    Nothing is re-run: the page shows the recorded run, labelled as a replay."""
+    import shutil
+    import time
+    from pathlib import Path
+
+    from breakwater.site.build import write_live_page
+
+    src = Path(args.run)
+    lines = [json.loads(x) for x in (src / "events.jsonl").read_text().splitlines() if x.strip()]
+    if not lines:
+        print(f"{src}/events.jsonl is empty")
+        return 2
+    out = Path(args.out or src / "replay")
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    write_live_page(out)
+    for name in ("report.html", "report.json"):
+        if (src / name).exists():
+            shutil.copy(src / name, out / name)
+    log = out / "events.jsonl"
+    log.write_text("")
+    server = _serve(out, args.port)
+    url = f"http://127.0.0.1:{args.port}/live.html"
+    print(f"replaying {len(lines)} events at {args.speed:g}x: {url}")
+    if args.open:
+        import webbrowser
+
+        webbrowser.open(url)
+    time.sleep(args.delay)
+    t0, seq = time.monotonic(), 0
+
+    def emit(ev: dict) -> None:
+        nonlocal seq
+        seq += 1
+        with log.open("a") as f:
+            f.write(json.dumps({**ev, "seq": seq}, ensure_ascii=False) + "\n")
+
+    emit({"t": 0, "kind": "replay", "speed": args.speed, "run_id": lines[0].get("run_id")})
+    for ev in lines:
+        wait = ev["t"] / args.speed - (time.monotonic() - t0)
+        if wait > 0:
+            time.sleep(wait)
+        emit({**ev, "t": round(ev["t"] / args.speed, 2)})
+    print(f"done; still serving {url} (Ctrl-C to stop)")
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        server.shutdown()
+    return 0
 
 
 def backtest(args: argparse.Namespace) -> int:
@@ -187,7 +305,8 @@ def site(args: argparse.Namespace) -> int:
 
     adj = Path(args.adjudication) if args.adjudication else None
     try:
-        pages = build(Path(args.backtest), adj, Path(args.out), allow_dev=args.allow_dev)
+        pages = build(Path(args.backtest), adj, Path(args.out), allow_dev=args.allow_dev,
+                      runs=[Path(r) for r in args.run])
     except ValueError as e:
         print(e)
         return 2
@@ -246,9 +365,20 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--no-archive", action="store_true", help="ignore and do not update the perf family archive")
     a.add_argument("--no-adjudicate", action="store_true", help="skip labelling divergences (likely-bug/intended/...)")
     a.add_argument("--title", help="PR title, given to the adjudicator as a statement of intent")
+    a.add_argument("--live", action="store_true", help="serve a live view of the run on localhost while it runs")
+    a.add_argument("--open", action="store_true", help="with --live: open the live view in a browser")
+    a.add_argument("--port", type=int, default=8766, help="with --live: port (default 8766)")
     a.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     a.add_argument("--out", help="output dir (default artifacts/runs/<run_id>)")
     a.set_defaults(fn=audit)
+    r = sub.add_parser("replay", help="replay a recorded audit in the live page at a stated speed")
+    r.add_argument("run", help="audit run dir (with events.jsonl)")
+    r.add_argument("--speed", type=float, default=4.0, help="playback speed; shown on the page (default 4x)")
+    r.add_argument("--delay", type=float, default=3.0, help="seconds before playback starts")
+    r.add_argument("--port", type=int, default=8767)
+    r.add_argument("--open", action="store_true")
+    r.add_argument("--out", help="where to write the replay (default <run>/replay)")
+    r.set_defaults(fn=replay)
     t = sub.add_parser("backtest", help="run arms (baselines + Breakwater) over a corpus of merged perf PRs")
     t.add_argument("corpus")
     t.add_argument("--only", help="comma list of item ids or PR numbers")
@@ -271,6 +401,7 @@ def main(argv: list[str] | None = None) -> int:
     w.add_argument("--adjudication", default="artifacts/adjudication/packaging-v2")
     w.add_argument("--out", default="site")
     w.add_argument("--allow-dev", action="store_true", help="allow non-Token-Factory inputs (pages get a dev banner)")
+    w.add_argument("--run", action="append", default=[], help="audit run dir to include (repeatable)")
     w.set_defaults(fn=site)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")

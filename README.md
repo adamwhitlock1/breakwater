@@ -63,6 +63,8 @@ uv run breakwater audit --target packaging.version:Version \
   --repo https://github.com/pypa/packaging --base 59f183fe90da --head 61967cca278d
 ```
 
+Add `--live` to watch it run: the audit serves a live page on localhost (attack feed, Nemotron cost by tier, sandbox runs, counterexamples as they land) and writes `report.html` next to `report.json` when it finishes. `breakwater replay <run dir> --speed 4` replays a recorded run, labelled as a replay.
+
 The audit labels each divergence class `likely-bug`, `intended` or `needs-human` (Ultra, 3 votes; a vote counts only if its quoted evidence is found in the PR). The report says BLOCK only for likely bugs. To label a finished backtest and score the labels against its known issues:
 
 ```bash

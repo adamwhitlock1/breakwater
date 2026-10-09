@@ -27,6 +27,8 @@ from typing import Any, Protocol
 
 from breakwater import ledger
 from breakwater.backends import Backend
+from breakwater.display import card_text, sources
+from breakwater.events import NULL, Events
 from breakwater.images import PairImage
 from breakwater.models import Tier
 from breakwater.mutate import equivalents, mutate_args
@@ -242,12 +244,31 @@ def validate_strategy(src: str) -> str | None:
     return None if assigns else "code must assign `strategy`"
 
 
-def _parse_args(items: list[str]) -> list[list[Any]]:
+def _parse_args(items: Any) -> list[list[Any]]:
+    """Planner examples: a list of JSON-array strings, e.g. ['["1.0"]', '["1. 0"]']. Routes without
+    structured output (schema in the prompt) sometimes return the whole list as ONE JSON string; it
+    used to be iterated character by character, turning '["\\u0661"]' into the digits 0, 6, 6, 1."""
+    loose = isinstance(items, str)
+    if loose:
+        try:
+            items = json.loads(items)
+        except json.JSONDecodeError:
+            items = [items]
+    if not isinstance(items, list):
+        items = [items]
     out = []
     for s in items:
+        if isinstance(s, list):
+            out.append(s)
+            continue
+        if not isinstance(s, str):
+            out.append([s])
+            continue
         try:
             v = json.loads(s)
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError:
+            if loose:  # a plain string inside a decoded list is the argument itself
+                out.append([s])
             continue
         out.append(v if isinstance(v, list) else [v])
     return out
@@ -333,7 +354,7 @@ def run_strategy(backend: Backend, image: PairImage, target: Target, src: str, *
 def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Target, *,
           n_attacks: int = 5, strategies_per_attack: int = 4, max_examples: int = 300, seed: int = 0,
           run_id: str | None = None, workers: int = 4, extra_seeds: list[list[Any]] | None = None,
-          log=print) -> AuditReport:
+          log=print, events: Events = NULL) -> AuditReport:
     """`extra_seeds`: inputs the project already has (e.g. string literals from its tests). They are
     mutated and probed alongside the planner's examples, so the full audit covers everything the
     no-LLM baseline does and the difference between them is what Nemotron adds."""
@@ -341,8 +362,13 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
     timings: dict[str, float] = {}
     t0 = time.perf_counter()
 
+    fn = target.callable.split(":")[1].split("#")[0]
+    events("phase", name="plan")
     attacks = plan_attacks(llm, ctx, target.observe, n_attacks)
     timings["plan"] = time.perf_counter() - t0
+    events("plan", attacks=[{"id": a.id, "assumption": a.assumption, "why_it_breaks": a.why_it_breaks,
+                             "input_family": a.input_family, "examples": a.example_args[:5]} for a in attacks])
+    events("phase", name="generate")
     log(f"plan: {len(attacks)} attacks ({timings['plan']:.1f}s)")
     for a in attacks:
         log(f"  {a.id}: {a.assumption[:110]}")
@@ -354,6 +380,9 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
             err = validate_strategy(src)
             jobs.append(StrategyRun(f"{a.id}/s{i + 1}", a.id, err is None, err, source=src))
     timings["generate"] = time.perf_counter() - t1
+    events("strategies", jobs=[{"id": j.id, "attack": j.attack, "valid": j.valid, "error": j.error,
+                                "source": j.source[:1500]} for j in jobs])
+    events("phase", name="search")
     log(f"generate: {sum(j.valid for j in jobs)}/{len(jobs)} strategies valid ({timings['generate']:.1f}s)")
 
     t2 = time.perf_counter()
@@ -364,6 +393,8 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
         f = classes.get(sig)
         if f is None:
             classes[sig] = Finding(sig, probe, detail, args, base, head, [by])
+            events("finding", signature=sig, probe=probe, found_by=", ".join(sources([by])) or by,
+                   **card_text(probe, detail, args, base, head, fn))
             return
         if by not in f.found_by:
             f.found_by.append(by)
@@ -380,11 +411,13 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
             j.error, j.examples, j.findings = res.get("error"), res.get("examples", 0), len(res.get("findings", []))
             for f in res.get("findings", []):
                 record(f["signature"], f["probe"], f["detail"], [f["args"]], f["base"], f["head"], j.id)
+            events("strategy", id=j.id, examples=j.examples, findings=j.findings, error=j.error)
             samples.extend(res.get("samples", []))
     timings["search"] = time.perf_counter() - t2
     log(f"search: {sum(j.examples for j in valid)} examples, {len(classes)} classes ({timings['search']:.1f}s)")
 
     t3 = time.perf_counter()
+    events("phase", name="batch")
 
     def key(args: Any) -> str:
         return json.dumps(args, ensure_ascii=False, sort_keys=True)
@@ -433,6 +466,7 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
     timings["total"] = time.perf_counter() - t0
     log(f"batch probes: {len(batch)} inputs incl. {len(mutants)} mutations ({timings['batch']:.1f}s); "
         f"total {len(classes)} classes")
+    events("batch", inputs=len(batch), mutations=len(mutants), focus=len(focus), classes=len(classes))
 
     usd = {tier: t["usd"] for tier, t in ledger.summarize(run_id=run_id).items()}
     findings = sorted(classes.values(), key=lambda f: (f.probe, f.detail))

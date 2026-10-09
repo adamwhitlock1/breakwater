@@ -2,6 +2,27 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-08: Adjudication = Ultra votes, checked by deterministic guards
+- **What:** `adjudicate.py` labels every divergence class `likely-bug`, `intended` or `needs-human`. One Ultra call per target covers all its classes, with 3 samples, `medium_effort` and a JSON schema. The audit report says BLOCK only on `likely-bug`.
+- **What the model sees:** what a reviewer has at PR time:
+  - the PR title and code diff;
+  - the PR's own test, doc and changelog changes (`repo.intent_diff`). The planner never sees these; for adjudication they are the author's statement of intent;
+  - the head module source with its docstrings;
+  - the facts for each class, including how the two exception types relate, resolved in the sandbox.
+  It never sees later fixes, issue threads or the known-issue list.
+- **Guards (deterministic):**
+  - a label needs a strict majority of the samples *requested*, so a lost sample can't create one;
+  - a likely-bug or intended vote must quote evidence that is found verbatim (whitespace- and diff-marker-normalised) in the material it was given, otherwise it counts as needs-human;
+  - the model can only add labels; it cannot drop, merge or edit a finding.
+- **Why:** an `intended` label waves a divergence through, so a hallucinated reason is the costly failure. Quote checks and majority voting make that failure need agreement across samples plus real text.
+- **Scoring:** known issues were all fixed upstream, so their classes should be `likely-bug`. `needs-human` is a safe miss; `intended` is the dangerous one.
+- **Lessons from the development runs (free OpenRouter routes; numbers not published):**
+  - **The adjudicator can't catch probe artifacts.** It labelled the P4 int-digit artifacts (see `backtest.md`, P4 control fix) `likely-bug`, with confident rationales and real quotes. Fixing those facts is the probes' job, which is why facts come first.
+  - **Facts state relations without interpreting them.** "`InvalidVersion` subclasses `ValueError`" is a fact. "…so `except ValueError` still catches it" argues one side and nudged votes toward `intended`.
+  - **Free routes drop samples.** One top-up call refills them, so an abstention means disagreement, not a lost response.
+- **Lessons from the Token Factory runs:** put long context first and the facts and task last, restating the evidence rule there. With the task first, Ultra sometimes answered a different task about the code. The quote guard demoted those votes, which is the guard doing its job. Results and run history: `backtest.md`, Adjudication.
+- **Reverse if:** the backtest shows guards demoting most correct votes (too strict), or `intended` on a known issue survives them (too weak).
+
 ## 2026-10-08: OpenRouter as a development-only provider
 - **What:** `BREAKWATER_PROVIDER=openrouter` routes the same three Nemotron tiers to OpenRouter's free routes (`nvidia/nemotron-3.5-lightning:free`, `nemotron-3-super-120b-a12b:free`, `nemotron-3-ultra-550b-a55b:free`). The default stays `tokenfactory`.
 - **Why:** Token Factory credit is $26 in total and ~$6.44 was spent by the end of day 1, almost all on Ultra planning. Prompt tuning and debugging should not spend it.

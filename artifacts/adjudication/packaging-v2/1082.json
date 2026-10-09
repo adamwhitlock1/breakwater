@@ -1,0 +1,61 @@
+{
+  "id": "#1082",
+  "pr": 1082,
+  "title": "perf: Add fast path for parsing simple versions (digits and dots only)",
+  "merged": "2026-02-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "oversized-int-exception",
+      "match": {
+        "probe": "P2",
+        "traits": "long-digits"
+      },
+      "fixed_by": 1155,
+      "status": "verified"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "bw-pair:53b50a069e664704",
+      "run_id": "adj-1082-cf524e",
+      "samples": 3,
+      "usd": 0.0209,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "The PR adds a fast‑path that parses simple “digit‑and‑dot” version strings. It catches a ValueError from the fast parse and re‑raises packaging.version.InvalidVersion, turning a generic ValueError into the project’s own InvalidVersion type. The added tests (e.g. \"1..0\", \"1.0.\", \"1..2.3\", \" .1.0\", \"1.0a 1\", etc.) expect InvalidVersion to be raised, confirming the new behavior is intended.",
+          "evidence": [
+            "_SIMPLE_VERSION_INDICATORS = frozenset(\".0123456789\")",
+            "+            # Invalid versions that trigger the fast path (digits/dots only)",
+            "if _SIMPLE_VERSION_INDICATORS.issuperset(version):",
+            "        self._release = tuple(map(int, version.split(\".\")))",
+            "    except ValueError:",
+            "        raise InvalidVersion(f\"Invalid version: {version!r}\") from None",
+            "except ValueError:\n                raise InvalidVersion(f\"Invalid version: {version!r}\") from None",
+            "            # Invalid versions that trigger the fast path (digits/dots only)\n            \".\",\n            \"..\",\n            \"1..0\",\n            \"1.0.\",\n            \".1.0\",\n            \"1..2.3\""
+          ],
+          "rejected": [
+            "if _SIMPLE_VERSION_INDICATORS.issuperset(version):\\n            try:\\n                self._release = tuple(map(int, version.split(\".\")))\\n            except ValueError:\\n                raise InvalidVersion(f\"Invalid version: {version!r}\") from None",
+            "\"1..0\",\\n            \"1.0.\",\\n            \".1.0\",\\n            \"1..2.3\",",
+            "def test_invalid_versions(self, version: str) -> None:\\n        with pytest.raises(InvalidVersion):\\n            Version(version)",
+            "\"10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4305 chars)\"",
+            "            \"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4305 chars)\",",
+            "    try:"
+          ],
+          "reason": "",
+          "known": [
+            "oversized-int-exception"
+          ],
+          "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4305 chars): base raises builtins.ValueError, head raises packaging.version.InvalidVersion. (packaging.version.InvalidVersion is a subclass of builtins.ValueError.)"
+        }
+      ]
+    }
+  ]
+}

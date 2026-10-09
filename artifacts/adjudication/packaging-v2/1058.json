@@ -1,0 +1,10 @@
+{
+  "id": "#1058",
+  "pr": 1058,
+  "title": "perf:  10% faster stripping zeros",
+  "merged": "2026-01-14",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

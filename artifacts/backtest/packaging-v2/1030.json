@@ -33,8 +33,7 @@
             "P1|value|differs|non-ascii",
             "P1|value|differs|non-ascii+whitespace",
             "P3|gt|False|True",
-            "P3|lt|True|False",
-            "P4|base->head eq-fresh|True|False"
+            "P3|lt|True|False"
           ],
           "known": [
             "unicode-lowercase"
@@ -44,8 +43,7 @@
         },
         "mutations": {
           "classes": [
-            "P1|value|differs|non-ascii",
-            "P4|base->head eq-fresh|True|False"
+            "P1|value|differs|non-ascii"
           ],
           "known": [
             "unicode-lowercase"
@@ -62,8 +60,7 @@
             "P3|gt|False|True",
             "P3|gt|True|False",
             "P3|lt|False|True",
-            "P3|lt|True|False",
-            "P4|base->head eq-fresh|True|False"
+            "P3|lt|True|False"
           ],
           "known": [
             "unicode-lowercase"
@@ -77,8 +74,7 @@
             "P3|gt|False|True",
             "P3|gt|True|False",
             "P3|lt|False|True",
-            "P3|lt|True|False",
-            "P4|base->head eq-fresh|True|False"
+            "P3|lt|True|False"
           ],
           "known": [
             "unicode-lowercase"
@@ -239,28 +235,6 @@
           "found_by": [
             "seed",
             "focus"
-          ]
-        },
-        {
-          "signature": "P4|base->head eq-fresh|True|False",
-          "probe": "P4",
-          "detail": "base->head eq-fresh",
-          "args": [
-            [
-              "İ"
-            ]
-          ],
-          "base": true,
-          "head": false,
-          "found_by": [
-            "seed",
-            "mutation:whitespace-outer",
-            "mutation:whitespace-inner",
-            "mutation:separators",
-            "mutation:signs",
-            "mutation:edges",
-            "mutation:case",
-            "batch"
           ]
         }
       ],
@@ -892,7 +866,8 @@
             "total": 722.74
           }
         }
-      }
+      },
+      "image_rescored": "bw-pair:d09088ff31a7e098"
     }
   ]
 }

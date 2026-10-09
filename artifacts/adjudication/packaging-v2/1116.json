@@ -1,0 +1,54 @@
+{
+  "id": "#1116",
+  "pr": 1116,
+  "title": "perf: Overhaul `_cmpkey` to remove use of custom objects",
+  "merged": "2026-03-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "old-pickles-fail-to-load",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1163,
+      "status": "verified"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "bw-pair:127ca274fc70935b",
+      "run_id": "adj-1116-726281",
+      "samples": 3,
+      "usd": 0.1183,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.ModuleNotFoundError",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Unpickling a previously pickled Version object fails with a ModuleNotFoundError after a refactor that only claims to improve comparison performance and keep internal backward compatibility. No changelog, test, or documentation mentions breaking pickle compatibility, which callers reasonably rely on.",
+          "evidence": [
+            "# Backward compatibility for internals before 26.0. Do not use.",
+            "Override comparison methods to use direct _key_cache access... This is faster than property access, especially before Python 3.12",
+            "@_deprecated(\"Version._version is private and will be removed soon\")",
+            "@_deprecated(\"Version._version is private and will be removed soon\")\n    def _version(self, value: _Version) -> None:",
+            "# Backward compatibility for internals before 26.0. Do not use.\nclass _Version(NamedTuple):",
+            "class Version(_BaseVersion):\n    …\n    @property\n    @_deprecated(\"Version._version is private and will be removed soon\")\n    def _version(self) -> _Version:",
+            "if other._key_cache is None:\n                other._key_cache = _cmpkey(\n                    other._epoch,\n                    other._release,\n                    other._pre,\n                    other._post,\n                    other._dev,\n                    other._local,\n                )",
+            "return self._key_cache != other._key_cache",
+            "def __replace__(self, **kwargs: Unpack[_VersionReplace]) -> Self:"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [
+            "old-pickles-fail-to-load"
+          ],
+          "facts": "An object built by base from [\"0\"], pickled, then unpickled by head fails to load: builtins.ModuleNotFoundError."
+        }
+      ]
+    }
+  ]
+}

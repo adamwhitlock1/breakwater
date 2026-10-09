@@ -45,7 +45,9 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Plan stabilisation (semantic): 3 plan samples; deterministic hostile-string mutations of planner examples and search samples (`mutate.py`); input traits in finding signatures so distinct root causes are distinct classes.
 - [ ] **Ablation for honesty:** mutations alone on the PR's own test/benchmark inputs (no LLM) vs planner examples + mutations vs planner + search. On #1082 most class hits come via mutations of planner examples; the backtest must show what Nemotron adds.
 - [ ] Merge near-duplicate classes (e.g. `long-digits` vs `long-digits+whitespace`) in the report.
-- [ ] Ultra adjudication: likely-bug / intended-change / needs-human, may abstain; never overrides deterministic facts.
+- [x] Ultra adjudication (`adjudicate.py`, `breakwater adjudicate <backtest-dir>`, on by default in `audit`): likely-bug / intended / needs-human. 3 samples with strict majority; votes must quote evidence found verbatim in the PR material; exception relations are computed in the sandbox; never drops or edits a finding.
+- [x] Adjudication on Token Factory over the packaging backtest: 8/10 known issues labelled likely-bug; the miss is #1082's oversized-int exception (`docs/backtest.md`).
+- [ ] PR body as extra intent evidence (needs a pre-merge snapshot to avoid post-hoc edits).
 - [ ] Tavily recon (spec + bug-tracker facts) behind an ablation flag. Keep it only if the ablation shows it adds classes.
 - [ ] Each finding becomes a ready-to-commit pytest regression test.
 

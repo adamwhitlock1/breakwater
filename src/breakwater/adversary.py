@@ -11,7 +11,7 @@
   5. Dedupe     findings are grouped by signature; each class keeps its smallest input.
 
 The planner never sees tests, PR discussion or which bug (if any) is known to exist.
-Adjudication (likely-bug / intended / needs-human) and perf attacks come in v2.
+Adjudication (likely-bug / intended / needs-human) is adjudicate.py; perf attacks are perf.py.
 """
 
 from __future__ import annotations
@@ -440,23 +440,39 @@ def audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, target: Ta
                        attacks, jobs, findings, usd, {k: round(v, 2) for k, v in timings.items()})
 
 
-def render_markdown(r: AuditReport) -> str:
+_LABEL_ORDER = {"likely-bug": 0, "needs-human": 1, "intended": 2}
+
+
+def render_markdown(r: AuditReport, verdicts: dict[str, Any] | None = None) -> str:
+    """`verdicts`: adjudicate.Verdict by signature. Without them, findings are listed unadjudicated."""
+    if verdicts:
+        counts = {k: sum(v.label == k for v in verdicts.values()) for k in _LABEL_ORDER}
+        status = "BLOCK" if counts["likely-bug"] else "REVIEW" if counts["needs-human"] else "PASS"
+        summary = (f"**{status}: {len(r.findings)} behavior divergence class(es)**: "
+                   + ", ".join(f"{n} {k}" for k, n in counts.items() if n) + ".")
+    else:
+        summary = f"**{len(r.findings)} behavior divergence class(es)** (unadjudicated)."
     lines = [
         f"## Breakwater audit: `{r.target}`",
         f"{r.repo} `{r.base[:10]}` → `{r.head[:10]}` · backend `{r.backend}` · image `{r.image}` · run `{r.run_id}`",
         "",
-        f"**{len(r.findings)} behavior divergence class(es)** (unadjudicated).",
+        summary,
         "",
     ]
-    for f in r.findings:
+    findings = sorted(r.findings, key=lambda f: _LABEL_ORDER.get(verdicts[f.signature].label, 1)
+                      if verdicts and f.signature in verdicts else 1)
+    for f in findings:
         args = json.dumps(f.args, ensure_ascii=False)
         args = args if len(args) <= 120 else args[:100] + f"… ({len(args)} chars)"
+        v = (verdicts or {}).get(f.signature)
         lines += [
-            f"- **[{f.probe}] {f.detail}**: input `{args}`",
+            f"- {f'**{v.label}** ' if v else ''}**[{f.probe}] {f.detail}**: input `{args}`",
             f"  - base: `{json.dumps(f.base, ensure_ascii=False)[:160]}`",
             f"  - head: `{json.dumps(f.head, ensure_ascii=False)[:160]}`",
             f"  - found by: {', '.join(f.found_by)}",
         ]
+        if v and v.rationale:
+            lines.append(f"  - why: {v.rationale}" + (f" ({v.reason})" if v.reason else ""))
     lines += ["", "### Attacks planned"]
     for a in r.attacks:
         ran = [s for s in r.strategies if s.attack == a.id]

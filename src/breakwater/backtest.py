@@ -283,3 +283,135 @@ def render(results: list[dict], arms: tuple[str, ...], s: dict) -> str:
                          f"{t['usd']:.3f} |")
     lines += ["", "Cells are distinct divergence classes per arm. † merged after Nemotron 3 Ultra's release (2026-06-04)."]
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------------------------------
+# Adjudication over a finished backtest
+
+
+def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, out_dir: Path, workers: int = 3,
+                   log=print) -> dict:
+    """Label the breakwater arm's finding classes of a finished backtest, then score the labels
+    against the corpus's known issues. Reads `src_dir`, writes only to `out_dir`.
+
+    Facts are re-derived in the sandbox from the recorded image (exception relations); the model
+    sees the PR as a reviewer would at merge time, never the known-issue list."""
+    from breakwater import adjudicate as adj
+    from breakwater.images import PairImage, _exists
+    from breakwater.repo import intent_diff
+
+    meta = json.loads((src_dir / "results.json").read_text())
+    repo = json.loads(Path(meta["corpus"]).read_text())["repo"]
+    items = [json.loads(p.read_text()) for p in sorted(src_dir.glob("*.json")) if p.name != "results.json"]
+    items = [it for it in items if not only or it["id"] in only or str(it["pr"]) in only]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    provider = active_provider().value
+
+    def one(item: dict) -> dict:
+        targets = []
+        for t in item["targets"]:
+            if not t.get("findings"):
+                continue
+            run_id = f"adj-{item['id'].strip('#').replace('@', '-')}-{uuid.uuid4().hex[:6]}"
+            llm = Nemotron(run_id=run_id)
+            findings = [adversary.Finding(**f) for f in t["findings"]]
+            ctx = gather(repo, item["base"], item["head"], t["target"])
+            base_req, head_req = git_req(repo, item["base"]), git_req(repo, item["head"])
+            image = PairImage(t["image"], base_req, head_req) if _exists(t["image"]) else build_pair(base_req, head_req)
+            mros = adj.exception_facts(backend, image, findings)
+            res = adj.adjudicate(llm, ctx, findings, title=item["title"],
+                                 intent=intent_diff(repo, item["base"], item["head"]), mros=mros)
+            rows = []
+            for v in res.verdicts:
+                f = next(x for x in findings if x.signature == v.signature)
+                rows.append({**vars(v), "known": [k["id"] for k in item["known"] if matches(v.signature, k["match"])],
+                             "facts": adj.describe(f, mros)})
+            usd = sum(x["usd"] for x in ledger.summarize(run_id=run_id).values())
+            targets.append({"target": t["target"], "image": image.ref, "run_id": run_id, "samples": res.samples,
+                            "usd": round(usd, 4), "verdicts": rows})
+            log(f"{item['id']:>15s} {t['target'].split(':')[1]:22s} {res.counts()} ${usd:.3f}")
+        res_item = {**{k: item[k] for k in ("id", "pr", "title", "merged", "after_ultra_release", "known")},
+                    "provider": provider, "targets": targets}
+        (out_dir / f"{item['id'].strip('#').replace('@', '-')}.json").write_text(
+            json.dumps(res_item, indent=2, ensure_ascii=False))
+        return res_item
+
+    results: list[dict] = []
+    with cf.ThreadPoolExecutor(max_workers=workers) as pool:
+        for fut in cf.as_completed([pool.submit(one, it) for it in items]):
+            results.append(fut.result())
+    results.sort(key=lambda r: (r["pr"], r["id"]))
+    summary = score_adjudication(results)
+    summary["provider"] = provider
+    (out_dir / "adjudication.json").write_text(json.dumps({"source": str(src_dir), "provider": provider,
+                                                           "summary": summary, "items": results},
+                                                          indent=2, ensure_ascii=False))
+    (out_dir / "adjudication.md").write_text(render_adjudication(results, summary))
+    return summary
+
+
+def score_adjudication(results: list[dict]) -> dict:
+    """Known issues are fixed upstream, so their classes should be likely-bug. needs-human on one
+    is a safe miss; intended is the dangerous one (it would wave a real regression through)."""
+    from breakwater.adjudicate import INTENDED, LABELS, LIKELY_BUG
+
+    issues = []
+    for r in results:
+        for k in r["known"]:
+            labels = [v["label"] for t in r["targets"] for v in t["verdicts"] if k["id"] in v["known"]]
+            if not labels:
+                continue  # the breakwater arm did not find it, so there is nothing to adjudicate
+            outcome = LIKELY_BUG if LIKELY_BUG in labels else INTENDED if all(x == INTENDED for x in labels) else "needs-human"
+            issues.append({"item": r["id"], "issue": k["id"], "status": k["status"], "labels": labels, "outcome": outcome})
+    known_cls = [v for r in results for t in r["targets"] for v in t["verdicts"] if v["known"]]
+    other_cls = [v for r in results for t in r["targets"] for v in t["verdicts"] if not v["known"]]
+
+    def dist(rows) -> dict[str, int]:
+        return {label: sum(v["label"] == label for v in rows) for label in LABELS}
+
+    return {
+        "issues": issues,
+        "issues_likely_bug": sum(i["outcome"] == LIKELY_BUG for i in issues),
+        "issues_intended": sum(i["outcome"] == INTENDED for i in issues),
+        # Stricter view: an issue with any class labelled intended had at least one instance waved through.
+        "issues_with_intended_class": sum(INTENDED in i["labels"] for i in issues),
+        "known_classes": dist(known_cls),
+        "other_classes": dist(other_cls),
+        "usd": round(sum(t["usd"] for r in results for t in r["targets"]), 4),
+    }
+
+
+def render_adjudication(results: list[dict], s: dict) -> str:
+    provider = s.get("provider", "tokenfactory")
+    dev = ([f"> **Development run (provider: {provider}).** Not from Nebius Token Factory; do not publish.", ""]
+           if provider != "tokenfactory" else [])
+    kc, oc = s["known_classes"], s["other_classes"]
+    lines = [
+        "# Breakwater adjudication", "", *dev,
+        f"Known issues the audit found: {len(s['issues'])} · labelled likely-bug {s['issues_likely_bug']} · "
+        f"labelled intended (dangerous miss) {s['issues_intended']} · with at least one class labelled intended "
+        f"{s['issues_with_intended_class']} · total Nemotron cost ${s['usd']:.2f}", "",
+        "| classes | likely-bug | intended | needs-human |", "|---|---|---|---|",
+        f"| matching a known issue | {kc['likely-bug']} | {kc['intended']} | {kc['needs-human']} |",
+        f"| all others (no ground truth) | {oc['likely-bug']} | {oc['intended']} | {oc['needs-human']} |",
+        "", "| item | known issue | status | class labels | outcome |", "|---|---|---|---|---|",
+    ]
+    lines += [f"| {i['item']} | {i['issue']} | {i['status']} | {', '.join(i['labels'])} | **{i['outcome']}** |"
+              for i in s["issues"]]
+    lines += ["", "## Every class", ""]
+    for r in results:
+        for t in r["targets"]:
+            late = " †" if r["after_ultra_release"] else ""
+            lines += [f"### {r['id']}{late} `{t['target'].split(':')[1]}`: {r['title']}", ""]
+            for v in t["verdicts"]:
+                votes = ", ".join(f"{k} {n}" for k, n in sorted(v["votes"].items()))
+                known = f" · known: {', '.join(v['known'])}" if v["known"] else ""
+                why = f" ({v['reason']})" if v["reason"] else ""
+                lines.append(f"- **{v['label']}**{why} [{votes}]{known}: {v['facts']}")
+                if v["rationale"]:
+                    lines.append(f"  - {v['rationale']}")
+                for q in v["evidence"][:2]:
+                    lines.append(f"  - > {q}")
+            lines.append("")
+    lines.append("† merged after Nemotron 3 Ultra's release (2026-06-04): no training-data contamination possible.")
+    return "\n".join(lines)

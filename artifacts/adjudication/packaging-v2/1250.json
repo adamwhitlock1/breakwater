@@ -1,0 +1,10 @@
+{
+  "id": "#1250",
+  "pr": 1250,
+  "title": "perf(markers): cache the default environment",
+  "merged": "2026-07-10",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

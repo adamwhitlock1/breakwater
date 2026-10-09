@@ -63,6 +63,12 @@ uv run breakwater audit --target packaging.version:Version \
   --repo https://github.com/pypa/packaging --base 59f183fe90da --head 61967cca278d
 ```
 
+The audit labels each divergence class `likely-bug`, `intended` or `needs-human` (Ultra, 3 votes; a vote counts only if its quoted evidence is found in the PR). The report says BLOCK only for likely bugs. To label a finished backtest and score the labels against its known issues:
+
+```bash
+uv run breakwater adjudicate artifacts/backtest/packaging-v2
+```
+
 Day-1 checks (see [docs/day1-checklist.md](docs/day1-checklist.md)):
 
 ```bash

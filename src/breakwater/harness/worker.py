@@ -223,7 +223,9 @@ def run(req):
             if kind == "pickle_dump":
                 blobs = []
                 for o in objs:
-                    if o is None:
+                    # Builtin values (str, int, tuple, ...) pickle identically in every version, so
+                    # P4 on them would only restate a P1 output difference.
+                    if o is None or type(o).__module__ == "builtins":
                         blobs.append(None)
                         continue
                     if op.get("warm"):
@@ -252,6 +254,11 @@ def run(req):
                 if fresh is not None:
                     kk, eq = _guard(lambda obj=obj, fresh=fresh: obj == fresh, timeout_s)
                     entry["eq_fresh"] = eq if kk == "ok" else f"<{kk}{':' + eq if eq else ''}>"
+                    # Control: two fresh objects from this version. If they don't compare equal
+                    # either, an eq_fresh failure says nothing about the pickle.
+                    twin, _ = _construct(target, args, observe, timeout_s)
+                    kk, ctl = _guard(lambda fresh=fresh, twin=twin: fresh == twin, timeout_s)
+                    entry["eq_control"] = ctl if kk == "ok" else f"<{kk}{':' + ctl if ctl else ''}>"
                     kk, lt = _guard(lambda obj=obj, fresh=fresh: obj < fresh or obj > fresh, timeout_s)
                     entry["cmp_fresh"] = lt if kk == "ok" else f"<{kk}{':' + lt if lt else ''}>"
                 loads.append(entry)

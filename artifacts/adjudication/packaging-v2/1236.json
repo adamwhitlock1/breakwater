@@ -1,0 +1,153 @@
+{
+  "id": "#1236",
+  "pr": 1236,
+  "title": "perf: simply work done in parse_tag a bit",
+  "merged": "2026-06-09",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.tags:parse_tag",
+      "image": "bw-pair:6d11476928904c1e",
+      "run_id": "adj-1236-5f70ca",
+      "samples": 3,
+      "usd": 0.0274,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+          "label": "intended",
+          "votes": {
+            "intended": 2,
+            "needs-human": 1
+          },
+          "rationale": "The docstring for parse_tag states \".. versionadded:: 26.3 Raises :class:`InvalidTag` on empty tag components.\" and the code change replaces the ValueError with raising InvalidTag for empty components.",
+          "evidence": [
+            ".. versionadded:: 26.3\n   Raises :class:`InvalidTag` on empty tag components.",
+            "raise InvalidTag(f\"Tag {tag!r} has an empty component: {component!r}\")",
+            "class InvalidTag(ValueError):",
+            "Raises :class:`InvalidTag` on empty tag components."
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"-\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace",
+          "label": "intended",
+          "votes": {
+            "intended": 2,
+            "needs-human": 1
+          },
+          "rationale": "Same reasoning as C1: the versionadded note documents the new InvalidTag exception for empty components, and the code now raises InvalidTag.",
+          "evidence": [
+            ".. versionadded:: 26.3\n   Raises :class:`InvalidTag` on empty tag components.",
+            "raise InvalidTag(f\"Tag {tag!r} has an empty component: {component!r}\")",
+            "class InvalidTag(ValueError):",
+            "Raises :class:`InvalidTag` on empty tag components."
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"- \"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+          "label": "intended",
+          "votes": {
+            "intended": 2,
+            "needs-human": 1
+          },
+          "rationale": "Same reasoning; the new InvalidTag exception is documented as intended behavior for empty components.",
+          "evidence": [
+            ".. versionadded:: 26.3\n   Raises :class:`InvalidTag` on empty tag components.",
+            "raise InvalidTag(f\"Tag {tag!r} has an empty component: {component!r}\")",
+            "class InvalidTag(ValueError):",
+            "Raises :class:`InvalidTag` on empty tag components."
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"-\\u001b\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+          "label": "intended",
+          "votes": {
+            "intended": 2,
+            "needs-human": 1
+          },
+          "rationale": "Same reasoning; the change intentionally raises InvalidTag for an empty tag string.",
+          "evidence": [
+            ".. versionadded:: 26.3\n   Raises :class:`InvalidTag` on empty tag components.",
+            "raise InvalidTag(f\"Tag {tag!r} has an empty component: {component!r}\")",
+            "class InvalidTag(ValueError):",
+            "Raises :class:`InvalidTag` on empty tag components."
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii",
+          "label": "intended",
+          "votes": {
+            "intended": 2,
+            "needs-human": 1
+          },
+          "rationale": "Same reasoning; the new InvalidTag exception is documented as intended for empty components.",
+          "evidence": [
+            ".. versionadded:: 26.3\n   Raises :class:`InvalidTag` on empty tag components.",
+            "raise InvalidTag(f\"Tag {tag!r} has an empty component: {component!r}\")",
+            "class InvalidTag(ValueError):",
+            "Raises :class:`InvalidTag` on empty tag components."
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"-񠞝\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|long-digits",
+          "label": "intended",
+          "votes": {
+            "intended": 2,
+            "needs-human": 1
+          },
+          "rationale": "Same reasoning; the exception type change is documented as intentional.",
+          "evidence": [
+            ".. versionadded:: 26.3\n   Raises :class:`InvalidTag` on empty tag components.",
+            "raise InvalidTag(f\"Tag {tag!r} has an empty component: {component!r}\")",
+            "class InvalidTag(ValueError):",
+            "Raises :class:`InvalidTag` on empty tag components."
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"py1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4307 chars): base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii+whitespace",
+          "label": "intended",
+          "votes": {
+            "intended": 2,
+            "needs-human": 1
+          },
+          "rationale": "Same reasoning; the change deliberately raises InvalidTag instead of ValueError for empty components.",
+          "evidence": [
+            ".. versionadded:: 26.3\n   Raises :class:`InvalidTag` on empty tag components.",
+            "raise InvalidTag(f\"Tag {tag!r} has an empty component: {component!r}\")",
+            "class InvalidTag(ValueError):",
+            "Raises :class:`InvalidTag` on empty tag components."
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"-\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        }
+      ]
+    }
+  ]
+}

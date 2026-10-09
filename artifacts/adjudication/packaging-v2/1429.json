@@ -1,0 +1,43 @@
+{
+  "id": "#1429",
+  "pr": 1429,
+  "title": "perf(parser): avoid literal_eval for plain marker strings",
+  "merged": "2026-10-05",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "image": "bw-pair:11c432119443010a",
+      "run_id": "adj-1429-bbf38f",
+      "samples": 3,
+      "usd": 0.0309,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.TypeError",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The head version fails to unpickle a Marker that was pickled by the base version, raising a TypeError from the new Marker.__reduce__ implementation. The diff shows the new __reduce__ method raising TypeError when the pickled state does not match the expected '_markers' slot structure (see the added `raise TypeError(f\"Cannot restore Marker from {state!r}\")` and the strict `isinstance(markers, list)` check). This regression is unrelated to the parser performance change and indicates a bug introduced by the marker pickling changes.",
+          "evidence": [
+            "raise TypeError(f\"Cannot restore Marker from {state!r}\")",
+            "if isinstance(markers, list):",
+            "self._markers = markers",
+            "def __setstate__(self, state: object) -> None:\n        ...\n        raise TypeError(f\"Cannot restore Marker from {state!r}\")",
+            "def __setstate__(self, state: object) -> None:",
+            "if isinstance(slot_dict, dict) and \"_markers\" in slot_dict:"
+          ],
+          "rejected": [
+            "return",
+            "if isinstance(state, tuple) and len(state) == 2:\n            _, slot_dict = state\n            if isinstance(slot_dict, dict) and \"_markers\" in slot_dict:\n                markers = slot_dict[\"_markers\"]\n                if isinstance(markers, list):\n                    self._markers = markers\n                    return"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "An object built by base from [\"python_version == '3.\\\\n11'\"], pickled, then unpickled by head fails to load: builtins.TypeError."
+        }
+      ]
+    }
+  ]
+}

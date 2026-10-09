@@ -115,8 +115,19 @@ def audit(args: argparse.Namespace) -> int:
                               strategies_per_attack=args.strategies, max_examples=args.max_examples,
                               seed=args.seed, run_id=run_id)
         report["semantic"] = sem.to_json()
-        sections.append(adversary.render_markdown(sem))
-        found = found or bool(sem.findings)
+        verdicts = None
+        if sem.findings and not args.no_adjudicate:
+            from breakwater import adjudicate as adj
+            from breakwater.repo import intent_diff
+
+            res = adj.adjudicate(llm, ctx, sem.findings, title=args.title or "",
+                                 intent=intent_diff(args.repo, args.base, args.head),
+                                 mros=adj.exception_facts(backend, image, sem.findings))
+            report["adjudication"] = res.to_json()
+            verdicts = res.by_signature()
+        sections.append(adversary.render_markdown(sem, verdicts))
+        # BLOCK on likely bugs only once adjudicated; unadjudicated, every divergence counts.
+        found = found or (any(v.label == "likely-bug" for v in verdicts.values()) if verdicts else bool(sem.findings))
     if args.mode in ("perf", "both"):
         pr = perf.perf_audit(ctx, image, llm, backend, target, run_id=run_id, n_families=args.families,
                              seed=args.seed, use_archive=not args.no_archive)
@@ -149,6 +160,23 @@ def backtest(args: argparse.Namespace) -> int:
                      seed=args.seed, workers=args.workers, out_dir=out)
     print(json.dumps(summary, indent=2))
     print(f"wrote {out}/results.json and {out}/table.md")
+    return 0
+
+
+def adjudicate(args: argparse.Namespace) -> int:
+    import time as _time
+    from pathlib import Path
+
+    from breakwater import backtest as bt
+    from breakwater.backends import get_backend
+    from breakwater.models import active_provider
+
+    src = Path(args.backtest)
+    out = Path(args.out or f"artifacts/adjudication/{_time.strftime('%Y%m%d-%H%M%S')}-{active_provider().value}")
+    only = args.only.split(",") if args.only else None
+    summary = bt.adjudicate_run(src, get_backend(args.backend), only=only, out_dir=out, workers=args.workers)
+    print(json.dumps({k: v for k, v in summary.items() if k != "issues"}, indent=2))
+    print(f"wrote {out}/adjudication.json and {out}/adjudication.md")
     return 0
 
 
@@ -201,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--mode", choices=("semantic", "perf", "both"), default="both")
     a.add_argument("--families", type=int, default=6, help="perf families to plan")
     a.add_argument("--no-archive", action="store_true", help="ignore and do not update the perf family archive")
+    a.add_argument("--no-adjudicate", action="store_true", help="skip labelling divergences (likely-bug/intended/...)")
+    a.add_argument("--title", help="PR title, given to the adjudicator as a statement of intent")
     a.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     a.add_argument("--out", help="output dir (default artifacts/runs/<run_id>)")
     a.set_defaults(fn=audit)
@@ -214,6 +244,13 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     t.add_argument("--out")
     t.set_defaults(fn=backtest)
+    j = sub.add_parser("adjudicate", help="label a finished backtest's divergences and score them against known issues")
+    j.add_argument("backtest", help="backtest output dir (with results.json)")
+    j.add_argument("--only", help="comma list of item ids or PR numbers")
+    j.add_argument("--workers", type=int, default=3)
+    j.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    j.add_argument("--out", help="output dir (default artifacts/adjudication/<time>-<provider>)")
+    j.set_defaults(fn=adjudicate)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")
     b.add_argument("--provider", help="tokenfactory or openrouter (default: each provider in the ledger)")

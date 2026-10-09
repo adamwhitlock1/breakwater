@@ -1,0 +1,42 @@
+{
+  "id": "#1115",
+  "pr": 1115,
+  "title": "perf: skip hash property",
+  "merged": "2026-03-11",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "bw-pair:c5e7d6dc99b58cc8",
+      "run_id": "adj-1115-7aeb9a",
+      "samples": 3,
+      "usd": 0.0325,
+      "verdicts": [
+        {
+          "signature": "P4|base->head eq-fresh|True|False",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The PR changes __hash__ to cache the comparison key in _key_cache, but __eq__ (inherited from _BaseVersion) still compares self._key == other._key. The base class's __hash__ used self._key, implying _key is a property that computes the key. The new __hash__ bypasses that property, so an unpickled object (which has _key_cache == None and never had __hash__ called) will compare unequal to a freshly constructed object whose __hash__ has populated _key_cache. This breaks pickling compatibility, an unintended regression.",
+          "evidence": [
+            "    def __eq__(self, other: object) -> bool:\n        if not isinstance(other, _BaseVersion):\n            return NotImplemented\n\n        return self._key == other._key",
+            "    def __hash__(self) -> int:\n        return hash(self._key)",
+            "    def __hash__(self) -> int:\n-        return hash(self._key)\n+        if self._key_cache is None:\n+            self._key_cache = _cmpkey(\n+                self._epoch,\n+                self._release,\n+                self._pre,\n+                self._post,\n+                self._dev,\n+                self._local,\n+            )\n+        return hash(self._key_cache)",
+            "-        return hash(self._key)\n+        if self._key_cache is None:\n+            self._key_cache = _cmpkey(\n+                self._epoch,\n+                self._release,\n+                self._pre,\n+                self._post,\n+                self._dev,\n+                self._local,\n+            )\n+        return hash(self._key_cache)",
+            "    _key_cache: CmpKey | None\n\n    def __init__(self, version: str) -> None:\n        ...\n        self._key_cache = None",
+            "perf: skip hash property",
+            "def __hash__(self) -> int:\n        if self._key_cache is None:\n            self._key_cache = _cmpkey(\n                self._epoch,\n                self._release,\n                self._pre,\n                self._post,\n                self._dev,\n                self._local,\n            )\n        return hash(self._key_cache)",
+            "None: this PR changes no tests, docs or changelog."
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "An object built by base from [\"0\"], pickled, then unpickled by head loads, but no longer equals a freshly built head object (== gives False)."
+        }
+      ]
+    }
+  ]
+}

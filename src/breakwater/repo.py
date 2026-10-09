@@ -2,7 +2,9 @@
 
 Uses a blobless clone cached under artifacts/cache/. Nothing here executes repo code.
 Tests and docs are excluded from the diff on purpose: the adversary should find behavior changes
-from the implementation, not from tests that might already hint at the bug.
+from the implementation, not from tests that might already hint at the bug. The adjudicator gets
+them separately (`intent_diff`): what a PR changes in its tests, docs and changelog is the author's
+own statement of which behavior changes are deliberate.
 """
 
 from __future__ import annotations
@@ -14,6 +16,8 @@ from pathlib import Path
 
 CACHE = Path("artifacts/cache/repos")
 EXCLUDE = (":(exclude)tests/**", ":(exclude)test/**", ":(exclude)docs/**", ":(exclude)*.md", ":(exclude)*.rst")
+INTENT = ("tests/**", "test/**", "docs/**", "*.md", "*.rst")  # the complement of EXCLUDE
+MAX_INTENT_CHARS = 20_000
 MAX_DIFF_CHARS = 40_000
 MAX_SOURCE_CHARS = 60_000
 
@@ -78,3 +82,13 @@ def gather(repo: str, base: str, head: str, target: str) -> Context:
     if len(source) > MAX_SOURCE_CHARS:
         source = source[:MAX_SOURCE_CHARS] + "\n# ... [source truncated]"
     return Context(repo, base, head, target, diff, match, source, stat)
+
+
+def intent_diff(repo: str, base: str, head: str) -> str:
+    """The PR's changes to tests, docs and changelog: evidence of which behavior changes it intends."""
+    path = checkout(repo)
+    _ensure(path, base, head)
+    diff = _git(path, "diff", base, head, "--", *(f":(glob){p}" for p in INTENT))
+    if len(diff) > MAX_INTENT_CHARS:
+        diff = diff[:MAX_INTENT_CHARS] + f"\n... [diff truncated at {MAX_INTENT_CHARS} chars]"
+    return diff

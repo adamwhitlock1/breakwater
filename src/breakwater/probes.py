@@ -7,7 +7,10 @@ inputs; this module only compares what the workers report.
   P3 dunder     ==, <, > or hash-equality between two inputs differ across sides; also a head-side
                 violation of the eq/hash contract
   P4 state      an object pickled by base (after warming its lazy caches) fails to load on head, or
-                loads but no longer equals a freshly built one: the upgrade path users actually hit
+                loads but no longer equals a freshly built one: the upgrade path users actually hit.
+                Controlled: two fresh head objects must compare equal, otherwise the comparison itself
+                is broken (e.g. Python's int-digit limit) and the pickle is not to blame. Builtin
+                values are skipped: they pickle the same everywhere, so P4 would restate P1
   P4down        the same check in the downgrade direction (head -> base). Opt-in: libraries rarely
                 promise it, so it is noisy by default
 """
@@ -140,7 +143,8 @@ def run_probes(runner: Runner, inputs: list[list[Any]], probes: tuple[str, ...] 
                 probe_name = "P4" if src == "base" else "P4down"
                 if ld["status"] != "ok":
                     divs.append(Divergence(probe_name, f"{direction} load", [args], "loads", ld))
-                elif "eq_fresh" in ld and ld["eq_fresh"] is not True:
+                # Only a pickle divergence if two fresh objects on this side do compare equal.
+                elif "eq_fresh" in ld and ld["eq_fresh"] is not True and ld.get("eq_control", True) is True:
                     divs.append(Divergence(probe_name, f"{direction} eq-fresh", [args], True, ld["eq_fresh"]))
 
     report.cpu_s = dict(runner.cpu_s)

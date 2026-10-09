@@ -1,0 +1,19 @@
+{
+  "id": "#1320",
+  "pr": 1320,
+  "title": "perf: add __slots__ to Requirement",
+  "merged": "2026-07-07",
+  "after_ultra_release": true,
+  "known": [
+    {
+      "id": "requirement-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": []
+}

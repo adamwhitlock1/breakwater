@@ -18,3 +18,6 @@ artifacts/archive/
 # Backtest scratch runs; only published results are committed
 artifacts/backtest/*
 !artifacts/backtest/packaging-v2/
+# Adjudication runs; only Token Factory runs that feed published numbers get committed
+artifacts/adjudication/*
+!artifacts/adjudication/packaging-v2/

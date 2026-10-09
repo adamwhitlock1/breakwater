@@ -1,0 +1,19 @@
+{
+  "id": "#1118",
+  "pr": 1118,
+  "title": "perf: Cache `Version` hash value in dedicated slot",
+  "merged": "2026-03-13",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "hash-cache-copy",
+      "match": {
+        "probe": "P3"
+      },
+      "fixed_by": 1242,
+      "status": "candidate"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": []
+}

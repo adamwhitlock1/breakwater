@@ -164,3 +164,38 @@ def test_eq_hash_contract_violation_present_on_both_sides_is_not_a_divergence(tm
     backend = InProcessBackend("bw_hash_bug:Both", "bw_hash_bug:Both")
     runner = Runner(backend, PairImage("fake", "base", "head"), Target("ignored", ("str",)))
     assert run_probes(runner, [["2"], ["02"]], ("P3",)).divergences == []
+
+
+class _Picky:
+    """Equality raises for long inputs on both sides (like Python's int-digit limit), so a
+    pickled-then-loaded object can't equal a fresh one, and neither can another fresh one."""
+
+    def __init__(self, s):
+        self.s = s
+
+    def __eq__(self, other):
+        if len(self.s) > 5:
+            raise ValueError("too long to compare")
+        return self.s == other.s
+
+    __hash__ = None
+
+
+def test_p4_eq_fresh_needs_fresh_objects_to_compare_equal(monkeypatch):
+    import sys
+    import types
+
+    mod = types.ModuleType("bw_picky")
+    mod.Picky = _Picky
+    _Picky.__module__ = "bw_picky"
+    monkeypatch.setitem(sys.modules, "bw_picky", mod)
+    backend = InProcessBackend("bw_picky:Picky", "bw_picky:Picky")
+    runner = Runner(backend, PairImage("fake", "base", "head"), Target("ignored", ("str",)))
+    assert run_probes(runner, [["1"], ["1234567890"]], ("P4",)).divergences == []
+
+
+def test_p4_skips_builtin_values():
+    backend = InProcessBackend("builtins:str", "builtins:repr")  # head "changes" the value
+    runner = Runner(backend, PairImage("fake", "base", "head"), Target("ignored", ("str",)))
+    divs = run_probes(runner, [["abc"]], ("P1", "P4")).divergences
+    assert [d.probe for d in divs] == ["P1"]  # the output change, reported once

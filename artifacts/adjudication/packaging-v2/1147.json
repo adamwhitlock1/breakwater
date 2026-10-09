@@ -1,0 +1,50 @@
+{
+  "id": "#1147",
+  "pr": 1147,
+  "title": "perf: add __slots__ to Marker",
+  "merged": "2026-04-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "marker-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "image": "bw-pair:50aa962c18a1f597",
+      "run_id": "adj-1147-256137",
+      "samples": 3,
+      "usd": 0.0092,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Adding __slots__ to Marker changes its pickle representation. Objects pickled by the old version (without __slots__) cannot be unpickled by the new version, raising AttributeError. The PR is a performance refactor with no mention of pickling, tests, or changelog updates, so this regression is unintended.",
+          "evidence": [
+            "+    __slots__ = (\"_markers\",)",
+            "class Marker:",
+            "    \"\"\"Represents a parsed dependency marker expression.",
+            "perf: add __slots__ to Marker",
+            "__slots__ = (\"_markers\",)"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [
+            "marker-pickle"
+          ],
+          "facts": "An object built by base from [\"\\\"b\\\" > \\\"a\\\"\"], pickled, then unpickled by head fails to load: builtins.AttributeError."
+        }
+      ]
+    }
+  ]
+}

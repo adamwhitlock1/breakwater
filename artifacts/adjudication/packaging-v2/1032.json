@@ -1,0 +1,42 @@
+{
+  "id": "#1032",
+  "pr": 1032,
+  "title": "perf: add __slots__ to Nodes",
+  "merged": "2026-01-02",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "image": "bw-pair:810a13228d4ca505",
+      "run_id": "adj-1032-ca564d",
+      "samples": 3,
+      "usd": 0.015,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The PR adds __slots__ to the internal node classes (Node, Variable, Value, Op) for performance, but does not address pickle compatibility. Existing pickled Marker objects (which contain these node instances) now raise AttributeError when unpickled because the new __slots__ prevent restoration of the instance __dict__. No tests, docs, or changelog mention this change, indicating it is an unintended regression.",
+          "evidence": [
+            "perf: add __slots__ to Nodes",
+            "    __slots__ = (\"value\",)",
+            "None: this PR changes no tests, docs or changelog.",
+            "class Node:\n    __slots__ = (\"value\",)",
+            "class Variable(Node):\n    __slots__ = ()",
+            "self._markers = _normalize_extra_values(_parse_marker(marker))",
+            "+    __slots__ = (\"value\",)",
+            "+    __slots__ = ()"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "An object built by base from [\"extra== 'test'\"], pickled, then unpickled by head fails to load: builtins.AttributeError."
+        }
+      ]
+    }
+  ]
+}

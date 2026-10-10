@@ -56,6 +56,35 @@ Every known issue was fixed upstream, so its classes should be `likely-bug`.
 2. The verbatim-quote check was too strict for multi-line code and `...` elisions. Fix: whitespace-insensitive matching, and elided quotes pass if every fragment is found.
 3. With the task moved to the end, the "copy evidence verbatim" instruction was far from it, so samples paraphrased and correct votes were demoted. Fix: the instruction is restated in the task.
 
+## v3: planner v3 (2026-10-09, Token Factory)
+
+Same corpus, the four semantic arms re-run with planner v3 (see `decisions.md`). Perf was not re-run: it doesn't use the semantic planner, so the perf numbers below are from v2. Full results: `artifacts/backtest/packaging-v3/` and `artifacts/adjudication/packaging-v3/`. Cost: $1.58 for the backtest, and $1.39 for adjudication including two superseded attempts (details below).
+
+| Arm | Verified (9), v2 → v3 | Candidates (3) | PRs with any divergence, v2 → v3 |
+|---|---|---|---|
+| hypothesis | 2 → 2 | 0 | 4 → 4 |
+| mutations | 7 → 7 | 1 | 10 → 10 |
+| llm-plan | 5 → **6** | 1 | 10 → 7 |
+| **breakwater** | 9 → **9** | 1 | 11 → 10 |
+
+- **The no-LLM arms reproduced v2 exactly.** They are deterministic, so this is a check that nothing else changed.
+- **Plan only, 5 → 6:**
+  - gained #1108's equality and `str`/`len` regressions;
+  - lost 1082@61967cca's inner whitespace.
+
+  Each item is one sample, so +1 is within run-to-run noise. Read it as "no worse, possibly slightly better". The plan-only eval (0/15 → 7/15 productive attacks) is the clearer evidence.
+- **Full pipeline: still 9/9.** It flags fewer classes with no ground truth: three of #1236's seven exception-type classes, the #1429 pickle class, and two #1064 equality classes.
+
+**Adjudication (v3 classes): 8 of 10 known issues labelled likely-bug, the same as v2.**
+- 19 of the 22 classes that match a known issue are labelled likely-bug, 3 intended and none needs-human.
+- The misses are #1082's oversized-int exception change, labelled `intended` on both the merged PR and the intermediate commit (in v2: intended and needs-human). As before, the PR's own tests expect `InvalidVersion`.
+- Two classes on the intermediate commit carry both the non-ASCII and long-digits traits, so they match two known issues at once. Labelled `intended` because of the long digits, they show up as "with an intended class" under unicode-digits too: an artifact of trait matching, not a separate miss.
+
+**Adjudication run history:**
+1. #1108 abstained on all 15 classes. One sample ran away to 51k output tokens, and some quotes used literal `\n` escapes that the checker rejected.
+2. After bounding the schema and accepting escaped whitespace, #1108 still lost samples to runaways. All three hit the 24k cap with little reasoning, which suggests runaway output outside the bounded fields.
+3. Fix: at most 8 classes per call and a 16k-token cap, which only changes items with more than 8 classes. #1108 was re-adjudicated alone (12 likely-bug, 3 needs-human) and the summary re-computed with no model calls. Every other item comes from attempt 2.
+
 ## Performance (worst valid input family per PR, head/base Ir per call)
 
 | PR | Worst valid family | Ratio | Corroboration |

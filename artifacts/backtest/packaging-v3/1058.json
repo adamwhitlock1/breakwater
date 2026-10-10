@@ -1,0 +1,47 @@
+{
+  "id": "#1058",
+  "pr": 1058,
+  "title": "perf:  10% faster stripping zeros",
+  "base": "350a2306700b738f487f251efa278f532b263dee",
+  "head": "716beb1c0a5d7a398bf57fbd80bc2501811e616b",
+  "merged": "2026-01-14",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1058-8ed63a",
+      "image": "bw-pair:a09f8c41211f55ec",
+      "usd": 0.0454,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.7,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.5,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 98.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

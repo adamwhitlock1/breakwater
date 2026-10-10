@@ -1,0 +1,151 @@
+{
+  "id": "#1236",
+  "pr": 1236,
+  "title": "perf: simply work done in parse_tag a bit",
+  "base": "e6cd4be75370b9730d70c7397ca2f873dae18f54",
+  "head": "1529771b80cf6a327afdf33a8a0e7a96ac3f428f",
+  "merged": "2026-06-09",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.tags:parse_tag",
+      "run_id": "bt-1236-831e4b",
+      "image": "bw-pair:d9b82063b49a1e43",
+      "usd": 0.1321,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 7.0,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 3.2,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 93.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "Ensure platform tags normalize spaces to underscores."
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "tests",
+            "mutation:case",
+            "mutation:signs"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "."
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "tests",
+            "mutation:signs",
+            "mutation:separators",
+            "mutation:case"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              ""
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "mutation:edges"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              ".\u0000"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "mutation:edges"
+          ]
+        }
+      ],
+      "perf": null
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "id": "#1253",
+  "pr": 1253,
+  "title": "perf(specifiers): keep range caches across canonicalization",
+  "base": "26b89a05f6f404dbfd808f6ac60d744e8a5e0386",
+  "head": "e64c20eb7a854c72710d4c962bc8a95f343230e6",
+  "merged": "2026-06-16",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet#contains",
+      "run_id": "bt-1253-4ad193",
+      "image": "bw-pair:6fade3cf7634d561",
+      "usd": 0.0559,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.9,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 57.3,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

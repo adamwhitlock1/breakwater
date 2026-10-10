@@ -1,0 +1,47 @@
+{
+  "id": "#1083",
+  "pr": 1083,
+  "title": "perf: Add fast path for `Version` to `Version` comparison by skipping `_key` property",
+  "base": "cd1520c475213d45df1cfe0e7b9d27e3166ef660",
+  "head": "659955c8a0f6025b4dd27dd0a4bce7e640b40bfe",
+  "merged": "2026-03-06",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1083-ec6668",
+      "image": "bw-pair:4c94589505b32cde",
+      "usd": 0.0352,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 12.7,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.8,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 49.0,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.7,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

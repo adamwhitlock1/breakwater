@@ -1,0 +1,54 @@
+{
+  "id": "#1116",
+  "pr": 1116,
+  "title": "perf: Overhaul `_cmpkey` to remove use of custom objects",
+  "merged": "2026-03-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "old-pickles-fail-to-load",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1163,
+      "status": "verified"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "bw-pair:ee5fda034cdd7462",
+      "run_id": "adj-1116-b66fdc",
+      "samples": 3,
+      "usd": 0.0303,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.ModuleNotFoundError",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The change is a performance‑focused refactor (new __slots__, cached _key_cache, faster comparison methods) and the only backward‑compatibility note is a comment about internal _Version usage, not about pickling. No test or changelog entry mentions preserving pickle compatibility, so the unpickling failure is an unintended regression.",
+          "evidence": [
+            "# Backward compatibility for internals before 26.0. Do not use.",
+            "# This is a hot function, so not calling self.base_version",
+            "Override comparison methods to use direct _key_cache access ... This is faster than property access, especially before Python 3.12",
+            "@_deprecated('Version._version is private and will be removed soon')",
+            "class _Version(NamedTuple):",
+            "__slots__ = (..., '_key_cache', ...)",
+            "self._key_cache = None"
+          ],
+          "rejected": [
+            "self._key_cache = _cmpkey(...); other._key_cache = _cmpkey(...)"
+          ],
+          "reason": "",
+          "known": [
+            "old-pickles-fail-to-load"
+          ],
+          "facts": "An object built by base from [\"0\"], pickled, then unpickled by head fails to load: builtins.ModuleNotFoundError."
+        }
+      ]
+    }
+  ]
+}

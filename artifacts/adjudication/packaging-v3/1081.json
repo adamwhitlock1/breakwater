@@ -1,0 +1,10 @@
+{
+  "id": "#1081",
+  "pr": 1081,
+  "title": "perf: Skip `__replace__` in Specifier comparison if not needed",
+  "merged": "2026-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

@@ -1,0 +1,47 @@
+{
+  "id": "#1106",
+  "pr": 1106,
+  "title": "perf: simply Specifier regex",
+  "base": "e3af78f17a5230ffdc846e0b08f3e6e47b3edcfe",
+  "head": "e839d73030b410d4156e6a496249fbdb1e498fab",
+  "merged": "2026-03-09",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:Specifier",
+      "run_id": "bt-1106-bb45d9",
+      "image": "bw-pair:6c9a610c08b433b1",
+      "usd": 0.0896,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.9,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.5,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 92.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.9,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

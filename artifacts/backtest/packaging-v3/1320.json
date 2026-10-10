@@ -1,0 +1,56 @@
+{
+  "id": "#1320",
+  "pr": 1320,
+  "title": "perf: add __slots__ to Requirement",
+  "base": "2b6726cec7bd55fd3adda07054d0a41288d44eba",
+  "head": "d5fedc90bba333ed0962ba5dfb7072d38f2c1d84",
+  "merged": "2026-07-07",
+  "after_ultra_release": true,
+  "known": [
+    {
+      "id": "requirement-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.requirements:Requirement",
+      "run_id": "bt-1320-9c396e",
+      "image": "bw-pair:f8d0aa2a4ebfdaf6",
+      "usd": 0.1076,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.3,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.0,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 85.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

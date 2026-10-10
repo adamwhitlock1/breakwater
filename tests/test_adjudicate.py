@@ -52,6 +52,7 @@ def test_quotes_must_occur_in_the_material():
     assert quote_found("component_parts = [c.split('.')\n    for c in tag.split('-')]", hay)  # re-flowed
     assert quote_found("component_parts = [c.split('.') ... tag.split('-')]", hay)  # elided
     assert not quote_found("component_parts = [c.split('.') ... raise SystemExit(1)", hay)  # elided + invented
+    assert quote_found("class InvalidTag(ValueError):\\n    \"\"\"Raised when a tag", hay)  # literal \\n escapes
 
 
 def test_majority_label_with_verified_evidence_wins():
@@ -151,3 +152,5 @@ def test_empty_or_partial_samples_are_topped_up_and_schema_is_pinned():
     assert by[EXC.signature].label == LIKELY_BUG and by[PICKLE.signature].label == LIKELY_BUG
     arr = schema_for(["C1", "C2"])["json_schema"]["schema"]["properties"]["verdicts"]
     assert arr["minItems"] == arr["maxItems"] == 2 and arr["items"]["properties"]["id"]["enum"] == ["C1", "C2"]
+    assert arr["items"]["properties"]["rationale"]["maxLength"] == 600
+    assert arr["items"]["properties"]["evidence"]["maxItems"] == 3

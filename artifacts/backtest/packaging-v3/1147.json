@@ -1,0 +1,96 @@
+{
+  "id": "#1147",
+  "pr": 1147,
+  "title": "perf: add __slots__ to Marker",
+  "base": "04a7600a21febca084022d88c6684f1aedf81c8a",
+  "head": "76cc6298254887e17d6b39df0425a4b6c2f1714a",
+  "merged": "2026-04-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "marker-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1147-c49b2a",
+      "image": "bw-pair:e33c8d8e1355cf11",
+      "usd": 0.0165,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [
+            "marker-pickle"
+          ],
+          "seconds": 2.1,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [
+            "marker-pickle"
+          ],
+          "seconds": 35.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [
+            "marker-pickle"
+          ],
+          "seconds": 9.1,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "probe": "P4",
+          "detail": "base->head load",
+          "args": [
+            [
+              "\"b\" > \"a\""
+            ]
+          ],
+          "base": "loads",
+          "head": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "found_by": [
+            "seed",
+            "tests",
+            "mutation:unicode-digits",
+            "mutation:whitespace-outer",
+            "mutation:huge-number",
+            "mutation:equivalents",
+            "mutation:whitespace-inner",
+            "mutation:separators",
+            "mutation:underscores",
+            "mutation:case"
+          ]
+        }
+      ],
+      "perf": null
+    }
+  ]
+}

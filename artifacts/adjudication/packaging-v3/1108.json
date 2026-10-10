@@ -1,0 +1,375 @@
+{
+  "id": "#1108",
+  "pr": 1108,
+  "title": "perf: SpecifierSet use tuple instead of frozenset for `_specs`",
+  "merged": "2026-03-07",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "dedup-equality",
+      "match": {
+        "probe": "P3",
+        "detail": "eq"
+      },
+      "fixed_by": 1109,
+      "status": "verified"
+    },
+    {
+      "id": "dedup-str-len",
+      "match": {
+        "probe": "P1"
+      },
+      "fixed_by": 1109,
+      "status": "verified"
+    },
+    {
+      "id": "old-pickles-break-comparison",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": "26.2",
+      "status": "verified"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet",
+      "image": "bw-pair:16f20a2b68c37e6b",
+      "run_id": "adj-1108-05bb44",
+      "samples": 5,
+      "usd": 0.2354,
+      "verdicts": [
+        {
+          "signature": "P1|len|differs|plain",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The change deduplicates on raw specifier strings before parsing, so semantically equal specifiers like '>=01.0' and '>=1.0' are no longer merged. This changes __len__ and __str__ behavior (C1 shows len 1 → 2).",
+          "evidence": [
+            "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+            "+            # Deduplicate strings first.",
+            "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "return self._canonical_spec == other._canonical_spec",
+            "canonical_version = canonicalize_version("
+          ],
+          "rejected": [
+            "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-str-len"
+          ],
+          "facts": "Output `len` differs. Input [\">=01.0,>=1.0\"]: base gives 1, head gives 2."
+        },
+        {
+          "signature": "P1|len|differs|whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Same root cause: deduplication now uses literal strings, so '>= 1.0' and '>=1.0' are kept separate, changing length and string representation.",
+          "evidence": [
+            "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+            "+            # Deduplicate strings first.",
+            "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "return self._canonical_spec == other._canonical_spec",
+            "canonical_version = canonicalize_version(",
+            "-            self._specs = frozenset(specifiers)",
+            "+            self._specs = tuple(dict.fromkeys(specifiers))"
+          ],
+          "rejected": [
+            "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-str-len"
+          ],
+          "facts": "Output `len` differs. Input [\">= 1.0,>=1.0\"]: base gives 1, head gives 2."
+        },
+        {
+          "signature": "P1|len|differs|non-ascii+whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Whitespace differences in the raw specifier strings (' >=1, e.g. ' >=1.0' vs '>=1.0.0') are no longer collapsed after parsing, so __len__ and __str__ diverge.",
+          "evidence": [
+            "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+            "+            # Deduplicate strings first.",
+            "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "return self._canonical_spec == other._canonical_spec",
+            "canonical_version = canonicalize_version(",
+            "-        specifier._specs = frozenset(self._specs | other._specs)",
+            "+        specifier._specs = tuple(dict.fromkeys(self._specs + other._specs))"
+          ],
+          "rejected": [
+            "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-str-len"
+          ],
+          "facts": "Output `len` differs. Input [\" >=1.0,>=1.0.0 \"]: base gives 1, head gives 2."
+        },
+        {
+          "signature": "P1|len|differs|long-digits",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Long version strings that are semantically equivalent (e.g., trailing zeros) are kept distinct because deduplication happens before canonicalisation.",
+          "evidence": [
+            "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+            "+            # Deduplicate strings first.",
+            "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "return self._canonical_spec == other._canonical_spec",
+            "canonical_version = canonicalize_version(",
+            "-        return self._specs == other._specs",
+            "+        if len(self._specs) != len(other._specs):"
+          ],
+          "rejected": [
+            "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-str-len"
+          ],
+          "facts": "Output `len` differs. Input [\">=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4322 chars): base gives 2, head gives 3."
+        },
+        {
+          "signature": "P1|str|differs|plain",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "__str__ now reflects the tuple order with duplicates retained, changing the string representation from '>=01.0' to '>=01.0,>=1.0'.",
+          "evidence": [
+            "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+            "+            # Deduplicate strings first.",
+            "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "return self._canonical_spec == other._canonical_spec",
+            "canonical_version = canonicalize_version(",
+            "-        return ','.join(sorted(str(s) for s in self._specs))",
+            "+        return ','.join(str(s) for s in self._sort_specs())"
+          ],
+          "rejected": [
+            "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-str-len"
+          ],
+          "facts": "Output `str` differs. Input [\">=01.0,>=1.0\"]: base gives \">=01.0\", head gives \">=01.0,>=1.0\"."
+        },
+        {
+          "signature": "P1|str|differs|whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Same deduplication regression changes __str__ output, showing both '>= 1.0' and '>=1.0'.",
+          "evidence": [
+            "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+            "+            # Deduplicate strings first.",
+            "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "return self._canonical_spec == other._canonical_spec",
+            "canonical_version = canonicalize_version(",
+            "-        specifier._specs = frozenset(self._specs | other._specs)",
+            "+        specifier._specs = tuple(dict.fromkeys(self._specs + other._specs))"
+          ],
+          "rejected": [
+            "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-str-len"
+          ],
+          "facts": "Output `str` differs. Input [\">= 1.0,>=1.0\"]: base gives \">=1.0\", head gives \">=1.0,>=1.0\"."
+        },
+        {
+          "signature": "P1|str|differs|non-ascii+whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Whitespace and version‑normalisation differences are no longer collapsed, so __str__ includes both specifiers.",
+          "evidence": [
+            "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+            "+            # Deduplicate strings first.",
+            "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "return self._canonical_spec == other._canonical_spec",
+            "canonical_version = canonicalize_version(",
+            "-        return ','.join(sorted(str(s) for s in self._specs))",
+            "+        return ','.join(str(s) for s in self._sort_specs())"
+          ],
+          "rejected": [
+            "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-str-len"
+          ],
+          "facts": "Output `str` differs. Input [\" >=1.0,>=1.0.0 \"]: base gives \">=1.0\", head gives \">=1.0,>=1.0.0\"."
+        },
+        {
+          "signature": "P1|str|differs|long-digits",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Large version strings that are semantically identical after canonicalisation are kept separate, inflating both length and string representation.",
+          "evidence": [
+            "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+            "+            # Deduplicate strings first.",
+            "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "return self._canonical_spec == other._canonical_spec",
+            "canonical_version = canonicalize_version(",
+            "-        specifier._specs = frozenset(self._specs | other._specs)",
+            "+        specifier._specs = tuple(dict.fromkeys(self._specs + other._specs))"
+          ],
+          "rejected": [
+            "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+            "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-str-len"
+          ],
+          "facts": "Output `str` differs. Input [\">=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4322 chars): base gives \">=1.0.0,>=100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4314 chars), head gives \">=1.0,>=1.0.0,>=100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4320 chars)."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.AssertionError|ok|long-digits",
+          "label": "needs-human",
+          "votes": {
+            "needs-human": 2
+          },
+          "rationale": "Base raises AssertionError on a very large version string while head returns normally. The PR is described as a performance refactor with no mention of fixing large‑version parsing. The change in behavior is undocumented, so a human should decide whether the new permissive parsing is intended.",
+          "evidence": [],
+          "rejected": [],
+          "reason": "model abstained",
+          "known": [],
+          "facts": "Outcome differs. Input [\">=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4315 chars): base raises builtins.AssertionError, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.AssertionError|ok|long-digits+whitespace",
+          "label": "needs-human",
+          "votes": {
+            "needs-human": 2
+          },
+          "rationale": "Same pattern as C1 – an AssertionError on a huge version string disappears in the new code. No test, doc, or changelog entry mentions fixing large‑version handling, so the intent is unclear.",
+          "evidence": [],
+          "rejected": [],
+          "reason": "model abstained",
+          "known": [],
+          "facts": "Outcome differs. Input [\">=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4318 chars): base raises builtins.AssertionError, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|ok|long-digits",
+          "label": "needs-human",
+          "votes": {
+            "needs-human": 2
+          },
+          "rationale": "Base raises ValueError on a very large “<=” specifier; head accepts it. The PR does not mention changing version‑parsing semantics, so the reviewer should decide whether the new permissive behaviour is desired.",
+          "evidence": [],
+          "rejected": [],
+          "reason": "model abstained",
+          "known": [],
+          "facts": "Outcome differs. Input [\"<=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4311 chars): base raises builtins.ValueError, head returns normally."
+        },
+        {
+          "signature": "P3|eq|True|False",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 2
+          },
+          "rationale": "Equality semantics changed: the new __eq__ first checks length of the internal `_specs` tuple (which now reflects raw‑string deduplication) before comparing sorted specs. Two SpecifierSet objects that are semantically equal (e.g., `>=01.0,>=1.0` vs `>=1.0,>=1.0`) now compare False because their raw‑string tuples have different lengths. This is a regression introduced by the refactor.",
+          "evidence": [
+            "if len(self._specs) != len(other._specs): return False",
+            "return self._sort_specs() == other._sort_specs()",
+            "self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))"
+          ],
+          "rejected": [
+            "def _sort_specs(self) -> tuple[Specifier, ...]: ... return tuple(sorted(self._specs, key=str))"
+          ],
+          "reason": "",
+          "known": [
+            "dedup-equality"
+          ],
+          "facts": "Relation `a == b` differs for a = target(*[\">=01.0,>=1.0\"]), b = target(*[\">=1.0,>=1.0\"]): base True, head False."
+        },
+        {
+          "signature": "P3|hash_eq|True|False",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 2
+          },
+          "rationale": "Hash now uses the sorted `_specs` tuple (`hash(self._sort_specs())`). Because the new constructor deduplicates on raw strings, two semantically equal SpecifierSet objects can have different tuple lengths/contents, causing `hash(a) != hash(b)`. This breaks the hash‑equals contract.",
+          "evidence": [
+            "return hash(self._sort_specs())",
+            "def __hash__(self) -> int: return hash(self._sort_specs())",
+            "self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `hash(a) == hash(b)` differs for a = target(*[\">=01.0,>=1.0\"]), b = target(*[\">=1.0,>=1.0\"]): base True, head False."
+        },
+        {
+          "signature": "P4|base->head eq-fresh|True|False",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 2
+          },
+          "rationale": "The refactor added a new slot `_sorted` (`__slots__ = (..., '_sorted', '_specs')`). Objects pickled by the old code lack this attribute; when unpickled by the new code and compared to a freshly constructed object, an AttributeError is raised. This breaks pickle compatibility.",
+          "evidence": [
+            "__slots__ = (",
+            "    '_prereleases',",
+            "    '_sorted', '_specs')",
+            "__slots__ = (..., '_sorted', '_specs')",
+            "self._sorted = len(self._specs) <= 1"
+          ],
+          "rejected": [
+            "def __eq__(self, other): ... return self._sort_specs() == other._sort_specs()"
+          ],
+          "reason": "",
+          "known": [
+            "old-pickles-break-comparison"
+          ],
+          "facts": "An object built by base from [\">=01.0,>=1.0\"], pickled, then unpickled by head loads, but no longer equals a freshly built head object (== gives False)."
+        },
+        {
+          "signature": "P4|base->head eq-fresh|True|<exc:builtins.AttributeError>",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 2
+          },
+          "rationale": "Same root cause as C6: the added `_sorted` slot is missing on a pickled legacy instance, leading to an AttributeError when the new code accesses it during comparison. This is an unintended regression in serialization compatibility.",
+          "evidence": [
+            "__slots__ = (",
+            "    '_prereleases',",
+            "    '_sorted', '_specs')",
+            "__slots__ = (..., '_sorted', '_specs')",
+            "self._sorted = len(self._specs) <= 1"
+          ],
+          "rejected": [
+            "def _sort_specs(self): if not self._sorted: ..."
+          ],
+          "reason": "",
+          "known": [
+            "old-pickles-break-comparison"
+          ],
+          "facts": "An object built by base from [\"\"], pickled, then unpickled by head loads, but comparing it with a freshly built head object fails: <exc:builtins.AttributeError>."
+        }
+      ]
+    }
+  ]
+}

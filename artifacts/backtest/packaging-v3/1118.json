@@ -1,0 +1,56 @@
+{
+  "id": "#1118",
+  "pr": 1118,
+  "title": "perf: Cache `Version` hash value in dedicated slot",
+  "base": "f2bbd4f578644865bc5cb2534768e46563ee7f66",
+  "head": "1676a10cdad3f6183dc7f738d3a30950c67199a4",
+  "merged": "2026-03-13",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "hash-cache-copy",
+      "match": {
+        "probe": "P3"
+      },
+      "fixed_by": 1242,
+      "status": "candidate"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1118-0b0b01",
+      "image": "bw-pair:4ccf3cc09b8d136b",
+      "usd": 0.0439,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 14.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.3,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 84.8,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.6,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "id": "#1032",
+  "pr": 1032,
+  "title": "perf: add __slots__ to Nodes",
+  "base": "842c16cef598bf80178b3894b7039b69cca3621c",
+  "head": "c39b6da9ab11f649f5497a11628f9dfc98380bb2",
+  "merged": "2026-01-02",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1032-961ae1",
+      "image": "bw-pair:f8c16265598b425b",
+      "usd": 0.0148,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.9,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [],
+          "seconds": 3.1,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [],
+          "seconds": 25.3,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [],
+          "seconds": 5.0,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "probe": "P4",
+          "detail": "base->head load",
+          "args": [
+            [
+              "os_name == 'foo'"
+            ]
+          ],
+          "base": "loads",
+          "head": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "found_by": [
+            "seed",
+            "tests",
+            "mutation:whitespace-outer",
+            "mutation:underscores",
+            "mutation:whitespace-inner",
+            "mutation:huge-number",
+            "mutation:equivalents",
+            "mutation:unicode-digits",
+            "mutation:case"
+          ]
+        }
+      ],
+      "perf": null
+    }
+  ]
+}

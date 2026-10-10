@@ -37,7 +37,10 @@ LIKELY_BUG, INTENDED, NEEDS_HUMAN = "likely-bug", "intended", "needs-human"
 LABELS = (LIKELY_BUG, INTENDED, NEEDS_HUMAN)
 SAMPLES = 3
 REASONING = {"medium_effort": True}
-MAX_CLASSES_PER_CALL = 20
+# Small calls: 15 classes in one call (#1108, 2026-10-09) made runaway samples likely; each sample
+# then hit the token cap and the class abstained for lack of votes.
+MAX_CLASSES_PER_CALL = 8
+MAX_TOKENS = 16000  # normal samples use at most ~13k (reasoning + verdicts); caps the cost of a runaway
 MAX_SOURCE_CHARS = 40_000
 MIN_QUOTE_CHARS = 8
 NO_INTENT = "None: this PR changes no tests, docs or changelog."
@@ -112,8 +115,11 @@ SCHEMA = {
                         "properties": {
                             "id": {"type": "string"},
                             "label": {"type": "string", "enum": list(LABELS)},
-                            "rationale": {"type": "string", "description": "one or two sentences"},
-                            "evidence": {"type": "array", "items": {"type": "string"},
+                            # Bounds keep a sample from running away (one #1108 sample produced
+                            # 51k tokens and its top-up hit the cap, 2026-10-09).
+                            "rationale": {"type": "string", "maxLength": 600, "description": "one or two sentences"},
+                            "evidence": {"type": "array", "maxItems": 3,
+                                         "items": {"type": "string", "maxLength": 300},
                                          "description": "verbatim quotes from the material"},
                         },
                         "required": ["id", "label", "rationale", "evidence"],
@@ -296,11 +302,17 @@ _WS = re.compile(r"\s+")
 _ELLIPSIS = re.compile(r"\.\.\.|…")
 
 
+_ESCAPED_WS = re.compile(r"\\[ntr]")
+
+
 def _norm(text: str, *, diff: bool = False) -> str:
     """Whitespace-free, case-folded, quote-unified. Models re-flow code across lines when quoting
-    (`tuple(\n    map(` comes back as `tuple(map(`), so whitespace can't be part of the check."""
+    (`tuple(\n    map(` comes back as `tuple(map(`), and sometimes write line breaks as literal `\n`
+    escapes, so whitespace and escaped whitespace can't be part of the check. Applied to both the
+    quote and the material, so a literal backslash-n in the code still matches."""
     if diff:
         text = _DIFF_MARK.sub("", text)
+    text = _ESCAPED_WS.sub(" ", text)
     return _WS.sub("", text.replace("`", "").replace('"', "'")).lower()
 
 
@@ -390,7 +402,7 @@ def adjudicate(llm: LLM, ctx: Context, findings: list[Any], *, title: str = "", 
             if missing <= 0:
                 break
             res = llm.complete(Tier.REASONING, messages, purpose="adjudicate" + (":top-up" if attempt else ""),
-                               thinking=True, template_kwargs=REASONING, max_tokens=24000, n=missing,
+                               thinking=True, template_kwargs=REASONING, max_tokens=MAX_TOKENS, n=missing,
                                response_format=schema_for(list(ids)), fallback_no_think=False)
             usd += getattr(res, "usd", 0.0) or 0.0
             for text in res.texts:

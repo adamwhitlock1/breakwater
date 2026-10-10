@@ -1,0 +1,47 @@
+{
+  "id": "#1258",
+  "pr": 1258,
+  "title": "perf: add __slots__ to token classes",
+  "base": "e7f0351352783a8a2f17f8fe15d8504f604468eb",
+  "head": "bce44a178e0033b51200880de3a1cb9bfadfb849",
+  "merged": "2026-06-13",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.requirements:Requirement",
+      "run_id": "bt-1258-40f7e2",
+      "image": "bw-pair:bc22d3399fde3139",
+      "usd": 0.0098,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.7,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 16.9,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

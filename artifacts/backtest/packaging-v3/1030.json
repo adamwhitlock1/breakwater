@@ -1,0 +1,246 @@
+{
+  "id": "#1030",
+  "pr": 1030,
+  "title": "perf: translate for canonicalize_name",
+  "base": "52e57f20037ff6fc40c72fffbd7905ed81c7d390",
+  "head": "3803ce341b59a24c598eb7b8100d5f8d6773f63e",
+  "merged": "2026-01-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "unicode-lowercase",
+      "match": {
+        "probe": "P1",
+        "traits": "non-ascii"
+      },
+      "fixed_by": 1064,
+      "status": "verified",
+      "discovered_by": "breakwater"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.utils:canonicalize_name",
+      "run_id": "bt-1030-0d870d",
+      "image": "bw-pair:d09088ff31a7e098",
+      "usd": 0.0274,
+      "harvested": 69,
+      "arms": {
+        "hypothesis": {
+          "classes": [
+            "P1|value|differs|control+non-ascii",
+            "P1|value|differs|control+non-ascii+whitespace",
+            "P1|value|differs|non-ascii",
+            "P1|value|differs|non-ascii+whitespace",
+            "P3|gt|False|True",
+            "P3|lt|True|False"
+          ],
+          "known": [
+            "unicode-lowercase"
+          ],
+          "seconds": 10.4,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P1|value|differs|non-ascii"
+          ],
+          "known": [
+            "unicode-lowercase"
+          ],
+          "seconds": 3.7,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P1|value|differs|control+non-ascii",
+            "P1|value|differs|non-ascii",
+            "P1|value|differs|non-ascii+whitespace",
+            "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+            "P3|gt|False|True",
+            "P3|gt|True|False",
+            "P3|lt|False|True",
+            "P3|lt|True|False"
+          ],
+          "known": [
+            "unicode-lowercase"
+          ],
+          "seconds": 62.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P1|value|differs|non-ascii",
+            "P3|gt|False|True",
+            "P3|gt|True|False",
+            "P3|lt|False|True",
+            "P3|lt|True|False"
+          ],
+          "known": [
+            "unicode-lowercase"
+          ],
+          "seconds": 3.0,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P1|value|differs|non-ascii",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              "İ"
+            ]
+          ],
+          "base": "i̇",
+          "head": "İ",
+          "found_by": [
+            "A1/s2",
+            "A4/s4",
+            "A5/s2",
+            "seed",
+            "mutation:separators",
+            "mutation:signs",
+            "mutation:edges",
+            "mutation:case",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P1|value|differs|non-ascii+whitespace",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              "İ "
+            ]
+          ],
+          "base": "i̇ ",
+          "head": "İ ",
+          "found_by": [
+            "mutation:whitespace-outer",
+            "mutation:whitespace-inner"
+          ]
+        },
+        {
+          "signature": "P1|value|differs|control+non-ascii",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              "İ\u0000"
+            ]
+          ],
+          "base": "i̇\u0000",
+          "head": "İ\u0000",
+          "found_by": [
+            "mutation:edges"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              [
+                "İ"
+              ]
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "found_by": [
+            "A1/s4",
+            "A3/s1",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P3|gt|False|True",
+          "probe": "P3",
+          "detail": "gt",
+          "args": [
+            [
+              "İ"
+            ],
+            [
+              "py3"
+            ]
+          ],
+          "base": false,
+          "head": true,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|gt|True|False",
+          "probe": "P3",
+          "detail": "gt",
+          "args": [
+            [
+              "ẞ"
+            ],
+            [
+              "K"
+            ]
+          ],
+          "base": true,
+          "head": false,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|lt|True|False",
+          "probe": "P3",
+          "detail": "lt",
+          "args": [
+            [
+              "İ"
+            ],
+            [
+              "py3"
+            ]
+          ],
+          "base": true,
+          "head": false,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|lt|False|True",
+          "probe": "P3",
+          "detail": "lt",
+          "args": [
+            [
+              "ẞ"
+            ],
+            [
+              "K"
+            ]
+          ],
+          "base": false,
+          "head": true,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        }
+      ],
+      "perf": null
+    }
+  ]
+}

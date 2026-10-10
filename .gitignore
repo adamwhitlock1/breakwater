@@ -18,9 +18,11 @@ artifacts/archive/
 # Backtest scratch runs; only published results are committed
 artifacts/backtest/*
 !artifacts/backtest/packaging-v2/
+!artifacts/backtest/packaging-v3/
 # Adjudication runs; only Token Factory runs that feed published numbers get committed
 artifacts/adjudication/*
 !artifacts/adjudication/packaging-v2/
+!artifacts/adjudication/packaging-v3/
 # Built report (CI builds it from committed artifacts; see .github/workflows/pages.yml)
 /site/
 .claude/launch.json

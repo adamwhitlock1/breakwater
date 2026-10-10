@@ -1,0 +1,47 @@
+{
+  "id": "#1029",
+  "pr": 1029,
+  "title": "perf: use fullmatch for markers too",
+  "base": "c39b6da9ab11f649f5497a11628f9dfc98380bb2",
+  "head": "8a805e3baac2d71958ec0d0beffbe4d51fd5795f",
+  "merged": "2026-01-04",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1029-95d888",
+      "image": "bw-pair:8f442c507f13d5d7",
+      "usd": 0.018,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 11.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.7,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 26.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

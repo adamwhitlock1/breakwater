@@ -1,0 +1,47 @@
+{
+  "id": "#1429",
+  "pr": 1429,
+  "title": "perf(parser): avoid literal_eval for plain marker strings",
+  "base": "f7c930eb18b556930564c1131fde78e576352ddc",
+  "head": "d17cfaf0b77a5690f03087359e7c8d665a3c728d",
+  "merged": "2026-10-05",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1429-4dae1a",
+      "image": "bw-pair:dac87e5ea56680f4",
+      "usd": 0.0323,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.5,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.1,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 36.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.8,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

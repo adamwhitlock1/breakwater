@@ -1,0 +1,47 @@
+{
+  "id": "#1028",
+  "pr": 1028,
+  "title": "perf: don't renormalize extras",
+  "base": "65092ce350ac2cc73e61d770f5d16a0957bf6e45",
+  "head": "b20096ccce1ca389fa1d3c4290065ab4ede370cc",
+  "merged": "2026-01-06",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.requirements:Requirement",
+      "run_id": "bt-1028-3e02dc",
+      "image": "bw-pair:5bb20e4196737a91",
+      "usd": 0.0213,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.7,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 59.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 11.8,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "#1147",
+  "pr": 1147,
+  "title": "perf: add __slots__ to Marker",
+  "merged": "2026-04-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "marker-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "image": "bw-pair:e33c8d8e1355cf11",
+      "run_id": "adj-1147-5bc55e",
+      "samples": 3,
+      "usd": 0.0101,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The PR adds `__slots__ = (('_markers',))` to `Marker` as a performance change (see PR title and added line). This change breaks backward compatibility for pickled `Marker` objects: an instance pickled by the old class (without `__slots__`) cannot be unpickled by the new class, raising `AttributeError`. The PR has no tests, docs, or changelog entry addressing pickling, so the regression is unintended.",
+          "evidence": [
+            "perf: add __slots__ to Marker",
+            "__slots__ = ( '_markers', )",
+            "None: this PR changes no tests, docs or changelog.",
+            "__slots__ = ('_markers',)"
+          ],
+          "rejected": [
+            "__slots__ = (('_markers',))"
+          ],
+          "reason": "",
+          "known": [
+            "marker-pickle"
+          ],
+          "facts": "An object built by base from [\"\\\"b\\\" > \\\"a\\\"\"], pickled, then unpickled by head fails to load: builtins.AttributeError."
+        }
+      ]
+    }
+  ]
+}

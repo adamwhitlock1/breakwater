@@ -1,0 +1,203 @@
+{
+  "id": "#1064",
+  "pr": 1064,
+  "title": "perf: dual replace",
+  "base": "d5398b8bc19f3fad7b035ceb83023caf06d6e2da",
+  "head": "9627a8821f09e4c55cd6e9daadb617b67c4741c2",
+  "merged": "2026-01-19",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.utils:canonicalize_name",
+      "run_id": "bt-1064-36d36e",
+      "image": "bw-pair:810b943be062d4e3",
+      "usd": 0.022,
+      "harvested": 69,
+      "arms": {
+        "hypothesis": {
+          "classes": [
+            "P1|value|differs|control+non-ascii",
+            "P1|value|differs|control+non-ascii+whitespace",
+            "P1|value|differs|non-ascii",
+            "P1|value|differs|non-ascii+whitespace",
+            "P3|gt|True|False",
+            "P3|lt|False|True"
+          ],
+          "known": [],
+          "seconds": 17.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P1|value|differs|non-ascii"
+          ],
+          "known": [],
+          "seconds": 3.8,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P1|value|differs|control+non-ascii",
+            "P1|value|differs|non-ascii",
+            "P1|value|differs|non-ascii+whitespace",
+            "P3|gt|False|True",
+            "P3|gt|True|False",
+            "P3|lt|False|True",
+            "P3|lt|True|False"
+          ],
+          "known": [],
+          "seconds": 66.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P1|value|differs|non-ascii",
+            "P3|gt|False|True",
+            "P3|gt|True|False",
+            "P3|lt|False|True",
+            "P3|lt|True|False"
+          ],
+          "known": [],
+          "seconds": 7.8,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P1|value|differs|non-ascii",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              "Ä"
+            ]
+          ],
+          "base": "Ä",
+          "head": "ä",
+          "found_by": [
+            "A2/s4",
+            "A3/s1",
+            "A3/s4",
+            "A4/s3",
+            "A5/s1",
+            "A5/s4",
+            "seed",
+            "mutation:separators",
+            "mutation:signs",
+            "mutation:case",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P1|value|differs|non-ascii+whitespace",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              "Á "
+            ]
+          ],
+          "base": "Á ",
+          "head": "á ",
+          "found_by": [
+            "mutation:whitespace-outer",
+            "mutation:whitespace-inner"
+          ]
+        },
+        {
+          "signature": "P1|value|differs|control+non-ascii",
+          "probe": "P1",
+          "detail": "value",
+          "args": [
+            [
+              "Á\u0000"
+            ]
+          ],
+          "base": "Á\u0000",
+          "head": "á\u0000",
+          "found_by": [
+            "mutation:edges"
+          ]
+        },
+        {
+          "signature": "P3|gt|False|True",
+          "probe": "P3",
+          "detail": "gt",
+          "args": [
+            [
+              "Á"
+            ],
+            [
+              "İ"
+            ]
+          ],
+          "base": false,
+          "head": true,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|gt|True|False",
+          "probe": "P3",
+          "detail": "gt",
+          "args": [
+            [
+              "İ"
+            ],
+            [
+              "Ä"
+            ]
+          ],
+          "base": true,
+          "head": false,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|lt|True|False",
+          "probe": "P3",
+          "detail": "lt",
+          "args": [
+            [
+              "Á"
+            ],
+            [
+              "İ"
+            ]
+          ],
+          "base": true,
+          "head": false,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        },
+        {
+          "signature": "P3|lt|False|True",
+          "probe": "P3",
+          "detail": "lt",
+          "args": [
+            [
+              "İ"
+            ],
+            [
+              "Ä"
+            ]
+          ],
+          "base": false,
+          "head": true,
+          "found_by": [
+            "seed",
+            "focus"
+          ]
+        }
+      ],
+      "perf": null
+    }
+  ]
+}

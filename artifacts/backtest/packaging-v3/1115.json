@@ -1,0 +1,73 @@
+{
+  "id": "#1115",
+  "pr": 1115,
+  "title": "perf: skip hash property",
+  "base": "e839d73030b410d4156e6a496249fbdb1e498fab",
+  "head": "baa9ea8c7fa773fc4039d090bc7ec6452b860ec6",
+  "merged": "2026-03-11",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1115-bf552c",
+      "image": "bw-pair:b75c39f11bbb1fbf",
+      "usd": 0.0405,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 12.4,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head eq-fresh|True|False"
+          ],
+          "known": [],
+          "seconds": 3.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head eq-fresh|True|False"
+          ],
+          "known": [],
+          "seconds": 49.4,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head eq-fresh|True|False",
+          "probe": "P4",
+          "detail": "base->head eq-fresh",
+          "args": [
+            [
+              "0"
+            ]
+          ],
+          "base": true,
+          "head": false,
+          "found_by": [
+            "tests",
+            "mutation:whitespace-outer",
+            "mutation:huge-number",
+            "mutation:equivalents",
+            "mutation:case",
+            "mutation:edges",
+            "mutation:separators"
+          ]
+        }
+      ],
+      "perf": null
+    }
+  ]
+}

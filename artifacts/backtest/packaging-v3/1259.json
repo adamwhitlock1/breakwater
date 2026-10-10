@@ -1,0 +1,47 @@
+{
+  "id": "#1259",
+  "pr": 1259,
+  "title": "perf(specifiers): push PEP 440 logic into the range engine",
+  "base": "155760e37acbe24bf82444f21e805006ef0b58c8",
+  "head": "664f049980f1873c458de72a449003b83173f445",
+  "merged": "2026-06-15",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet#contains",
+      "run_id": "bt-1259-562491",
+      "image": "bw-pair:b2b8cb16aee35160",
+      "usd": 0.082,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.0,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.7,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 77.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.1,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

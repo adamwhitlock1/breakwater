@@ -1,0 +1,1622 @@
+{
+  "source": "artifacts/backtest/packaging-v3",
+  "provider": "tokenfactory",
+  "summary": {
+    "issues": [
+      {
+        "item": "#1030",
+        "issue": "unicode-lowercase",
+        "status": "verified",
+        "labels": [
+          "likely-bug",
+          "likely-bug",
+          "likely-bug"
+        ],
+        "outcome": "likely-bug"
+      },
+      {
+        "item": "#1082",
+        "issue": "oversized-int-exception",
+        "status": "verified",
+        "labels": [
+          "intended"
+        ],
+        "outcome": "intended"
+      },
+      {
+        "item": "1082@61967cca",
+        "issue": "unicode-digits",
+        "status": "verified",
+        "labels": [
+          "likely-bug",
+          "likely-bug",
+          "intended"
+        ],
+        "outcome": "likely-bug"
+      },
+      {
+        "item": "1082@61967cca",
+        "issue": "inner-whitespace",
+        "status": "verified",
+        "labels": [
+          "likely-bug",
+          "intended",
+          "likely-bug"
+        ],
+        "outcome": "likely-bug"
+      },
+      {
+        "item": "1082@61967cca",
+        "issue": "oversized-int-exception",
+        "status": "verified",
+        "labels": [
+          "intended",
+          "intended"
+        ],
+        "outcome": "intended"
+      },
+      {
+        "item": "#1108",
+        "issue": "dedup-equality",
+        "status": "verified",
+        "labels": [
+          "likely-bug"
+        ],
+        "outcome": "likely-bug"
+      },
+      {
+        "item": "#1108",
+        "issue": "dedup-str-len",
+        "status": "verified",
+        "labels": [
+          "likely-bug",
+          "likely-bug",
+          "likely-bug",
+          "likely-bug",
+          "likely-bug",
+          "likely-bug",
+          "likely-bug",
+          "likely-bug"
+        ],
+        "outcome": "likely-bug"
+      },
+      {
+        "item": "#1108",
+        "issue": "old-pickles-break-comparison",
+        "status": "verified",
+        "labels": [
+          "likely-bug",
+          "likely-bug"
+        ],
+        "outcome": "likely-bug"
+      },
+      {
+        "item": "#1116",
+        "issue": "old-pickles-fail-to-load",
+        "status": "verified",
+        "labels": [
+          "likely-bug"
+        ],
+        "outcome": "likely-bug"
+      },
+      {
+        "item": "#1147",
+        "issue": "marker-pickle",
+        "status": "candidate",
+        "labels": [
+          "likely-bug"
+        ],
+        "outcome": "likely-bug"
+      }
+    ],
+    "issues_likely_bug": 8,
+    "issues_intended": 2,
+    "issues_with_intended_class": 4,
+    "known_classes": {
+      "likely-bug": 19,
+      "intended": 3,
+      "needs-human": 0
+    },
+    "other_classes": {
+      "likely-bug": 9,
+      "intended": 11,
+      "needs-human": 3
+    },
+    "usd": 0.4645,
+    "provider": "tokenfactory"
+  },
+  "items": [
+    {
+      "id": "#997",
+      "pr": 997,
+      "title": "perf: better string building",
+      "merged": "2026-01-06",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1028",
+      "pr": 1028,
+      "title": "perf: don't renormalize extras",
+      "merged": "2026-01-06",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1029",
+      "pr": 1029,
+      "title": "perf: use fullmatch for markers too",
+      "merged": "2026-01-04",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1030",
+      "pr": 1030,
+      "title": "perf: translate for canonicalize_name",
+      "merged": "2026-01-05",
+      "after_ultra_release": false,
+      "known": [
+        {
+          "id": "unicode-lowercase",
+          "match": {
+            "probe": "P1",
+            "traits": "non-ascii"
+          },
+          "fixed_by": 1064,
+          "status": "verified",
+          "discovered_by": "breakwater"
+        }
+      ],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.utils:canonicalize_name",
+          "image": "bw-pair:d09088ff31a7e098",
+          "run_id": "adj-1030-be4055",
+          "samples": 3,
+          "usd": 0.0212,
+          "verdicts": [
+            {
+              "signature": "P1|value|differs|non-ascii",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The PR aims only to speed up canonicalize_name while preserving the original semantics (lower‑casing per PEP 503). The new implementation only lower‑cases ASCII letters, so non‑ASCII characters like ‘İ’ are not lower‑cased, changing the output.",
+              "evidence": [
+                "Emulates ``re.sub(r",
+                "perf: translate for canonicalize_name",
+                "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# About 2x faster, safe since packages only support alphanumeric characters",
+                "About 2x faster, safe since packages only support alphanumeric characters"
+              ],
+              "rejected": [
+                "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503",
+                "_letters_translate = {c: c.lower() for c in ABCDEFGHIJKLMNOPQRSTUVWXYZ}"
+              ],
+              "reason": "",
+              "known": [
+                "unicode-lowercase"
+              ],
+              "facts": "Output `value` differs. Input [\"İ\"]: base gives \"i̇\", head gives \"İ\"."
+            },
+            {
+              "signature": "P1|value|differs|non-ascii+whitespace",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Same root cause as C1 – the translation table lacks mappings for non‑ASCII letters, so trailing characters are left unchanged, diverging from the original ``.lower()`` behavior.",
+              "evidence": [
+                "Emulates ``re.sub(r",
+                "perf: translate for canonicalize_name",
+                "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# About 2x faster, safe since packages only support alphanumeric characters",
+                "About 2x faster, safe since packages only support alphanumeric characters"
+              ],
+              "rejected": [
+                "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503",
+                "_letters_translate = {c: c.lower() for c in ABCDEFGHIJKLMNOPQRSTUVWXYZ}"
+              ],
+              "reason": "",
+              "known": [
+                "unicode-lowercase"
+              ],
+              "facts": "Output `value` differs. Input [\"İ \"]: base gives \"i̇ \", head gives \"İ \"."
+            },
+            {
+              "signature": "P1|value|differs|control+non-ascii",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Identical to C1/C2; the null byte is preserved but the capital İ is not lower‑cased, contrary to the documented intent to emulate ``.lower()``.",
+              "evidence": [
+                "Emulates ``re.sub(r",
+                "perf: translate for canonicalize_name",
+                "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# About 2x faster, safe since packages only support alphanumeric characters",
+                "About 2x faster, safe since packages only support alphanumeric characters"
+              ],
+              "rejected": [
+                "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503",
+                "_letters_translate = {c: c.lower() for c in ABCDEFGHIJKLMNOPQRSTUVWXYZ}"
+              ],
+              "reason": "",
+              "known": [
+                "unicode-lowercase"
+              ],
+              "facts": "Output `value` differs. Input [\"İ\\u0000\"]: base gives \"i̇\\u0000\", head gives \"İ\\u0000\"."
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The change introduces a different exception type (AttributeError vs TypeError) when processing the same input, which is not mentioned in the PR title, docs, or tests and therefore is an unintended regression.",
+              "evidence": [
+                "perf: translate for canonicalize_name",
+                "Emulates ``re.sub(r",
+                "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# About 2x faster, safe since packages only support alphanumeric characters",
+                "value = name.translate(_canonicalize_table)",
+                "About 2x faster, safe since packages only support alphanumeric characters"
+              ],
+              "rejected": [],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [[\"İ\"]]: base raises builtins.TypeError, head raises builtins.AttributeError. (neither exception type subclasses the other.)"
+            },
+            {
+              "signature": "P3|gt|False|True",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Ordering changes because the new code no longer lower‑cases Unicode letters, so comparison results differ from the original specification that required ``.lower()``.",
+              "evidence": [
+                "Emulates ``re.sub(r",
+                "perf: translate for canonicalize_name",
+                "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# About 2x faster, safe since packages only support alphanumeric characters",
+                "About 2x faster, safe since packages only support alphanumeric characters"
+              ],
+              "rejected": [
+                "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `a > b` differs for a = target(*[\"İ\"]), b = target(*[\"py3\"]): base False, head True."
+            },
+            {
+              "signature": "P3|gt|True|False",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Same as C5 – the missing Unicode lower‑casing flips the ordering for characters such as ‘ẞ’ and ‘K’.",
+              "evidence": [
+                "Emulates ``re.sub(r",
+                "perf: translate for canonicalize_name",
+                "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# About 2x faster, safe since packages only support alphanumeric characters",
+                "About 2x faster, safe since packages only support alphanumeric characters"
+              ],
+              "rejected": [
+                "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `a > b` differs for a = target(*[\"ẞ\"]), b = target(*[\"K\"]): base True, head False."
+            },
+            {
+              "signature": "P3|lt|True|False",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Opposite ordering result caused by the same loss of Unicode lower‑casing.",
+              "evidence": [
+                "Emulates ``re.sub(r",
+                "perf: translate for canonicalize_name",
+                "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# About 2x faster, safe since packages only support alphanumeric characters",
+                "About 2x faster, safe since packages only support alphanumeric characters"
+              ],
+              "rejected": [
+                "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `a < b` differs for a = target(*[\"İ\"]), b = target(*[\"py3\"]): base True, head False."
+            },
+            {
+              "signature": "P3|lt|False|True",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Ordering reversal for ‘ẞ’ vs ‘K’ stems from the new implementation not applying ``.lower()`` to non‑ASCII letters.",
+              "evidence": [
+                "Emulates ``re.sub(r",
+                "perf: translate for canonicalize_name",
+                "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# About 2x faster, safe since packages only support alphanumeric characters",
+                "About 2x faster, safe since packages only support alphanumeric characters"
+              ],
+              "rejected": [
+                "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `a < b` differs for a = target(*[\"ẞ\"]), b = target(*[\"K\"]): base False, head True."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1032",
+      "pr": 1032,
+      "title": "perf: add __slots__ to Nodes",
+      "merged": "2026-01-02",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.markers:Marker",
+          "image": "bw-pair:f8c16265598b425b",
+          "run_id": "adj-1032-968468",
+          "samples": 3,
+          "usd": 0.0112,
+          "verdicts": [
+            {
+              "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Adding __slots__ to the Node hierarchy changes the object layout, breaking unpickling of instances created by older pickled Marker objects. The PR is a performance refactor with no tests, docs, or changelog noting the compatibility break.",
+              "evidence": [
+                "__slots__ = ()",
+                "perf: add __slots__ to Nodes",
+                "None: this PR changes no tests, docs or changelog."
+              ],
+              "rejected": [
+                "__slots__ = (value,)",
+                "PR title: perf: add __slots__ to Nodes",
+                "class Node:__slots__ = (value,)",
+                "__slots__ = (value,)"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "An object built by base from [\"os_name == 'foo'\"], pickled, then unpickled by head fails to load: builtins.AttributeError."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1058",
+      "pr": 1058,
+      "title": "perf:  10% faster stripping zeros",
+      "merged": "2026-01-14",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1064",
+      "pr": 1064,
+      "title": "perf: dual replace",
+      "merged": "2026-01-19",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.utils:canonicalize_name",
+          "image": "bw-pair:810b943be062d4e3",
+          "run_id": "adj-1064-103540",
+          "samples": 3,
+          "usd": 0.0167,
+          "verdicts": [
+            {
+              "signature": "P1|value|differs|non-ascii",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "The docstring states that canonicalize_name should emulate `re.sub(r'[-_.]+', '-', name).lower()` from PEP 503, which lower‑cases the whole string including non‑ASCII characters. The new implementation uses `name.lower().replace(... )`, matching that specification.",
+              "evidence": [
+                "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# Much faster than re, and even faster than str.translate",
+                "    # Ensure all ``.`` and ``_`` are ``-``",
+                "    # Emulates ``re.sub(r",
+                "    # Much faster than re, and even faster than str.translate"
+              ],
+              "rejected": [
+                "PR title: perf: dual replace"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Output `value` differs. Input [\"Ä\"]: base gives \"Ä\", head gives \"ä\"."
+            },
+            {
+              "signature": "P1|value|differs|non-ascii+whitespace",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "Same reasoning as C1: the intended behavior per the docstring is to lower‑case after replacing `_` and `.` with `-`. The new code does exactly that, handling Unicode characters such as `Á`.",
+              "evidence": [
+                "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# Much faster than re, and even faster than str.translate",
+                "    # Ensure all ``.`` and ``_`` are ``-``",
+                "    # Emulates ``re.sub(r",
+                "    # Much faster than re, and even faster than str.translate"
+              ],
+              "rejected": [
+                "PR title: perf: dual replace"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Output `value` differs. Input [\"Á \"]: base gives \"Á \", head gives \"á \"."
+            },
+            {
+              "signature": "P1|value|differs|control+non-ascii",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "The change makes canonicalize_name apply Unicode lower‑casing (via `str.lower()`), which follows the documented emulation of `... .lower()` from PEP 503. This affects characters like `Á` and the null byte unchanged.",
+              "evidence": [
+                "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# Much faster than re, and even faster than str.translate",
+                "    # Ensure all ``.`` and ``_`` are ``-``",
+                "    # Emulates ``re.sub(r",
+                "    # Much faster than re, and even faster than str.translate"
+              ],
+              "rejected": [
+                "PR title: perf: dual replace"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Output `value` differs. Input [\"Á\\u0000\"]: base gives \"Á\\u0000\", head gives \"á\\u0000\"."
+            },
+            {
+              "signature": "P3|gt|False|True",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "Ordering differences arise because the new implementation lower‑cases Unicode letters (e.g., `Á` → `á`, `İ` → `i`) before comparison, matching the documented canonical form. The old version left such letters unchanged, causing different sort order.",
+              "evidence": [
+                "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# Much faster than re, and even faster than str.translate",
+                "    # Ensure all ``.`` and ``_`` are ``-``",
+                "    # Emulates ``re.sub(r",
+                "    # Much faster than re, and even faster than str.translate"
+              ],
+              "rejected": [
+                "PR title: perf: dual replace"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `a > b` differs for a = target(*[\"Á\"]), b = target(*[\"İ\"]): base False, head True."
+            },
+            {
+              "signature": "P3|gt|True|False",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "Same as C4: the new Unicode‑aware lower‑casing changes relative ordering, which is the intended canonical form per the docstring.",
+              "evidence": [
+                "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# Much faster than re, and even faster than str.translate",
+                "    # Ensure all ``.`` and ``_`` are ``-``",
+                "    # Emulates ``re.sub(r",
+                "    # Much faster than re, and even faster than str.translate"
+              ],
+              "rejected": [
+                "PR title: perf: dual replace"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `a > b` differs for a = target(*[\"İ\"]), b = target(*[\"Ä\"]): base True, head False."
+            },
+            {
+              "signature": "P3|lt|True|False",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "The `<` relation flips for the same reason: canonicalize_name now produces lower‑cased Unicode strings as specified, altering lexical ordering.",
+              "evidence": [
+                "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# Much faster than re, and even faster than str.translate",
+                "    # Ensure all ``.`` and ``_`` are ``-``",
+                "    # Emulates ``re.sub(r",
+                "    # Much faster than re, and even faster than str.translate"
+              ],
+              "rejected": [
+                "PR title: perf: dual replace"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `a < b` differs for a = target(*[\"Á\"]), b = target(*[\"İ\"]): base True, head False."
+            },
+            {
+              "signature": "P3|lt|False|True",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "Consistent with C6; the new behavior follows the documented emulation of lower‑casing after replacement, changing ordering for Unicode characters.",
+              "evidence": [
+                "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+                "# Much faster than re, and even faster than str.translate",
+                "    # Ensure all ``.`` and ``_`` are ``-``",
+                "    # Emulates ``re.sub(r",
+                "    # Much faster than re, and even faster than str.translate"
+              ],
+              "rejected": [
+                "PR title: perf: dual replace"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `a < b` differs for a = target(*[\"İ\"]), b = target(*[\"Ä\"]): base False, head True."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1076",
+      "pr": 1076,
+      "title": "perf: Stream PEP440 filtering in `SpecifierSet.filter`",
+      "merged": "2026-01-30",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1081",
+      "pr": 1081,
+      "title": "perf: Skip `__replace__` in Specifier comparison if not needed",
+      "merged": "2026-02-09",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1082",
+      "pr": 1082,
+      "title": "perf: Add fast path for parsing simple versions (digits and dots only)",
+      "merged": "2026-02-11",
+      "after_ultra_release": false,
+      "known": [
+        {
+          "id": "oversized-int-exception",
+          "match": {
+            "probe": "P2",
+            "traits": "long-digits"
+          },
+          "fixed_by": 1155,
+          "status": "verified"
+        }
+      ],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.version:Version",
+          "image": "bw-pair:3f8cc97a2a8a52dc",
+          "run_id": "adj-1082-d00a8a",
+          "samples": 3,
+          "usd": 0.0246,
+          "verdicts": [
+            {
+              "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 2,
+                "needs-human": 1
+              },
+              "rationale": "The fast‑path added in the PR returns early after setting a handful of private attributes (e.g., `self._epoch = 0; self._pre = None; …; self._key_cache = None; return`). The base version took the full regex path and raised a built‑in `TypeError` for the input `['1']`; the new fast path returns early and later code apparently accesses an attribute that was not initialised, causing a built‑in `AttributeError`. Since the two built‑in exception types are unrelated (neither subclasses the other), this change of exception type is an unintended regression.",
+              "evidence": [
+                "if _SIMPLE_VERSION_INDICATORS.issuperset(version):",
+                "        self._release = tuple(map(int, version.split('.')))",
+                "+            if _SIMPLE_VERSION_INDICATORS.issuperset(version):",
+                "+                    self._release = tuple(map(int, version.split('.')))"
+              ],
+              "rejected": [
+                "    try:",
+                "+                try:"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [[\"1\"]]: base raises builtins.TypeError, head raises builtins.AttributeError. (neither exception type subclasses the other.)"
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "The PR adds a fast‑path for simple dotted‑digit versions that parses with `split('.')` and `map(int, …)`. When that fast path fails it catches `ValueError` and raises `packaging.version.InvalidVersion`, a subclass of `ValueError`. The test diff explicitly adds cases that “trigger the fast path (digits/dots only)” and expects `InvalidVersion`. This change of exception type (subclass of the original `ValueError`) is the intended improvement.",
+              "evidence": [
+                "    self._release = tuple(map(int, version.split('.')))",
+                "except ValueError:   raise InvalidVersion(f'Invalid version: {version!r}') from None",
+                "+            # Invalid versions that trigger the fast path (digits/dots only)",
+                "+            # Fast path: If a version has only digits and dots then we",
+                "+            # can skip the regex and parse it as a release segment",
+                "+            _SIMPLE_VERSION_INDICATORS = frozenset('.0123456789')"
+              ],
+              "rejected": [
+                "try:",
+                "+            '.',",
+                "+            '..',"
+              ],
+              "reason": "",
+              "known": [
+                "oversized-int-exception"
+              ],
+              "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4305 chars): base raises builtins.ValueError, head raises packaging.version.InvalidVersion. (packaging.version.InvalidVersion is a subclass of builtins.ValueError.)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1082@61967cca",
+      "pr": 1082,
+      "title": "perf: fast path for simple versions (intermediate commit 61967cca)",
+      "merged": "2026-02-11",
+      "after_ultra_release": false,
+      "known": [
+        {
+          "id": "unicode-digits",
+          "match": {
+            "probe": "P2",
+            "traits": "non-ascii"
+          },
+          "fixed_by": "review",
+          "status": "verified"
+        },
+        {
+          "id": "inner-whitespace",
+          "match": {
+            "probe": "P2",
+            "traits": "whitespace"
+          },
+          "fixed_by": "review",
+          "status": "verified"
+        },
+        {
+          "id": "oversized-int-exception",
+          "match": {
+            "probe": "P2",
+            "traits": "long-digits"
+          },
+          "fixed_by": 1155,
+          "status": "verified"
+        }
+      ],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.version:Version",
+          "image": "bw-pair:348e2d05c100a5f9",
+          "run_id": "adj-1082-61967cca-4f437a",
+          "samples": 3,
+          "usd": 0.05,
+          "verdicts": [
+            {
+              "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The fast‑path treats any character not in `_NON_SIMPLE_VERSION_INDICATORS` as a simple numeric version. The set deliberately lists ASCII letters and punctuation (e.g. `!+-ABCDEHILOPRSTVW_abcdehiloprstvw`) but does not include full‑width digits such as `０`. Consequently `Version('０')` is accepted by the fast‑path (`int('０')` succeeds) whereas the original regex rejects it, a non‑conformant change.",
+              "evidence": [
+                "_NON_SIMPLE_VERSION_INDICATORS = frozenset('!+-ABCDEHILOPRSTVW_abcdehiloprstvw')",
+                "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+                "self._release = tuple(map(int, version.strip().split('.')))",
+                "    self._release = tuple(map(int, version.strip().split('.')))",
+                "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version): ... self._release = tuple(map(int, version.strip().split('.')))"
+              ],
+              "rejected": [],
+              "reason": "",
+              "known": [
+                "unicode-digits"
+              ],
+              "facts": "Outcome differs. Input [\"０\"]: base raises packaging.version.InvalidVersion, head returns normally."
+            },
+            {
+              "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii+whitespace",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "A trailing space is not in `_NON_SIMPLE_VERSION_INDICATORS`, so the fast‑path triggers, strips the space and parses the full‑width digit. The original regex does not allow whitespace, so the new behaviour accepts an invalid version string.",
+              "evidence": [
+                "_NON_SIMPLE_VERSION_INDICATORS = frozenset('!+-ABCDEHILOPRSTVW_abcdehiloprstvw')",
+                "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+                "self._release = tuple(map(int, version.strip().split('.')))",
+                "    self._release = tuple(map(int, version.strip().split('.')))",
+                "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version): ... self._release = tuple(map(int, version.strip().split('.')))"
+              ],
+              "rejected": [],
+              "reason": "",
+              "known": [
+                "unicode-digits",
+                "inner-whitespace"
+              ],
+              "facts": "Outcome differs. Input [\"０ \"]: base raises packaging.version.InvalidVersion, head returns normally."
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+whitespace",
+              "label": "intended",
+              "votes": {
+                "intended": 2,
+                "needs-human": 1
+              },
+              "rationale": "The fast‑path explicitly converts a `ValueError` from the integer parsing into `InvalidVersion` (`except ValueError: raise InvalidVersion(...)`). When the fast‑path is taken and the integer conversion fails, the new code raises `InvalidVersion` instead of letting the original `ValueError` propagate, which matches the observed change.",
+              "evidence": [
+                "    self._release = tuple(map(int, version.strip().split('.')))",
+                "except ValueError: raise InvalidVersion(f'Invalid version: {version!r}') from None"
+              ],
+              "rejected": [
+                "try:",
+                "try:"
+              ],
+              "reason": "",
+              "known": [
+                "inner-whitespace",
+                "oversized-int-exception"
+              ],
+              "facts": "Outcome differs. Input [\" 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4307 chars): base raises builtins.ValueError, head raises packaging.version.InvalidVersion. (packaging.version.InvalidVersion is a subclass of builtins.ValueError.)"
+            },
+            {
+              "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|long-digits+non-ascii",
+              "label": "intended",
+              "votes": {
+                "intended": 2,
+                "needs-human": 1
+              },
+              "rationale": "The fast‑path is designed to accept simple dot‑separated numeric versions without invoking the full regex. A very long all‑digit version passes the `_NON_SIMPLE_VERSION_INDICATORS.isdisjoint` test and is parsed successfully, whereas the original regex path rejects it (raising `InvalidVersion`). This is the performance optimisation the PR targets.",
+              "evidence": [
+                "_NON_SIMPLE_VERSION_INDICATORS = frozenset('!+-ABCDEHILOPRSTVW_abcdehiloprstvw')",
+                "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+                "self._release = tuple(map(int, version.strip().split('.')))",
+                "    self._release = tuple(map(int, version.strip().split('.')))"
+              ],
+              "rejected": [],
+              "reason": "",
+              "known": [
+                "unicode-digits",
+                "oversized-int-exception"
+              ],
+              "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4308 chars): base raises packaging.version.InvalidVersion, head returns normally."
+            },
+            {
+              "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The fast‑path calls `version.strip()` before splitting on dots, thereby accepting leading/trailing whitespace (e.g. `' 1.2.3 '`). PEP 440 does not permit whitespace in a version string, and the original regex rejects it. The change was not mentioned in the PR description, indicating an unintended relaxation.",
+              "evidence": [
+                "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+                "self._release = tuple(map(int, version.strip().split('.')))",
+                "    self._release = tuple(map(int, version.strip().split('.')))",
+                "_NON_SIMPLE_VERSION_INDICATORS = frozenset('!+-ABCDEHILOPRSTVW_abcdehiloprstvw')",
+                "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version): ... self._release = tuple(map(int, version.strip().split('.')))"
+              ],
+              "rejected": [],
+              "reason": "",
+              "known": [
+                "inner-whitespace"
+              ],
+              "facts": "Outcome differs. Input [\" 1. 2.3 \"]: base raises packaging.version.InvalidVersion, head returns normally."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1083",
+      "pr": 1083,
+      "title": "perf: Add fast path for `Version` to `Version` comparison by skipping `_key` property",
+      "merged": "2026-03-06",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1105",
+      "pr": 1105,
+      "title": "perf: Speed up complex SpecifierSet filtering by implementing cost based ordering",
+      "merged": "2026-03-08",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1106",
+      "pr": 1106,
+      "title": "perf: simply Specifier regex",
+      "merged": "2026-03-09",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1108",
+      "pr": 1108,
+      "title": "perf: SpecifierSet use tuple instead of frozenset for `_specs`",
+      "merged": "2026-03-07",
+      "after_ultra_release": false,
+      "known": [
+        {
+          "id": "dedup-equality",
+          "match": {
+            "probe": "P3",
+            "detail": "eq"
+          },
+          "fixed_by": 1109,
+          "status": "verified"
+        },
+        {
+          "id": "dedup-str-len",
+          "match": {
+            "probe": "P1"
+          },
+          "fixed_by": 1109,
+          "status": "verified"
+        },
+        {
+          "id": "old-pickles-break-comparison",
+          "match": {
+            "probe": "P4"
+          },
+          "fixed_by": "26.2",
+          "status": "verified"
+        }
+      ],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.specifiers:SpecifierSet",
+          "image": "bw-pair:16f20a2b68c37e6b",
+          "run_id": "adj-1108-05bb44",
+          "samples": 5,
+          "usd": 0.2354,
+          "verdicts": [
+            {
+              "signature": "P1|len|differs|plain",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The change deduplicates on raw specifier strings before parsing, so semantically equal specifiers like '>=01.0' and '>=1.0' are no longer merged. This changes __len__ and __str__ behavior (C1 shows len 1 → 2).",
+              "evidence": [
+                "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+                "+            # Deduplicate strings first.",
+                "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "return self._canonical_spec == other._canonical_spec",
+                "canonical_version = canonicalize_version("
+              ],
+              "rejected": [
+                "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-str-len"
+              ],
+              "facts": "Output `len` differs. Input [\">=01.0,>=1.0\"]: base gives 1, head gives 2."
+            },
+            {
+              "signature": "P1|len|differs|whitespace",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Same root cause: deduplication now uses literal strings, so '>= 1.0' and '>=1.0' are kept separate, changing length and string representation.",
+              "evidence": [
+                "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+                "+            # Deduplicate strings first.",
+                "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "return self._canonical_spec == other._canonical_spec",
+                "canonical_version = canonicalize_version(",
+                "-            self._specs = frozenset(specifiers)",
+                "+            self._specs = tuple(dict.fromkeys(specifiers))"
+              ],
+              "rejected": [
+                "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-str-len"
+              ],
+              "facts": "Output `len` differs. Input [\">= 1.0,>=1.0\"]: base gives 1, head gives 2."
+            },
+            {
+              "signature": "P1|len|differs|non-ascii+whitespace",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Whitespace differences in the raw specifier strings (' >=1, e.g. ' >=1.0' vs '>=1.0.0') are no longer collapsed after parsing, so __len__ and __str__ diverge.",
+              "evidence": [
+                "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+                "+            # Deduplicate strings first.",
+                "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "return self._canonical_spec == other._canonical_spec",
+                "canonical_version = canonicalize_version(",
+                "-        specifier._specs = frozenset(self._specs | other._specs)",
+                "+        specifier._specs = tuple(dict.fromkeys(self._specs + other._specs))"
+              ],
+              "rejected": [
+                "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-str-len"
+              ],
+              "facts": "Output `len` differs. Input [\" >=1.0,>=1.0.0 \"]: base gives 1, head gives 2."
+            },
+            {
+              "signature": "P1|len|differs|long-digits",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Long version strings that are semantically equivalent (e.g., trailing zeros) are kept distinct because deduplication happens before canonicalisation.",
+              "evidence": [
+                "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+                "+            # Deduplicate strings first.",
+                "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "return self._canonical_spec == other._canonical_spec",
+                "canonical_version = canonicalize_version(",
+                "-        return self._specs == other._specs",
+                "+        if len(self._specs) != len(other._specs):"
+              ],
+              "rejected": [
+                "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-str-len"
+              ],
+              "facts": "Output `len` differs. Input [\">=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4322 chars): base gives 2, head gives 3."
+            },
+            {
+              "signature": "P1|str|differs|plain",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "__str__ now reflects the tuple order with duplicates retained, changing the string representation from '>=01.0' to '>=01.0,>=1.0'.",
+              "evidence": [
+                "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+                "+            # Deduplicate strings first.",
+                "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "return self._canonical_spec == other._canonical_spec",
+                "canonical_version = canonicalize_version(",
+                "-        return ','.join(sorted(str(s) for s in self._specs))",
+                "+        return ','.join(str(s) for s in self._sort_specs())"
+              ],
+              "rejected": [
+                "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-str-len"
+              ],
+              "facts": "Output `str` differs. Input [\">=01.0,>=1.0\"]: base gives \">=01.0\", head gives \">=01.0,>=1.0\"."
+            },
+            {
+              "signature": "P1|str|differs|whitespace",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Same deduplication regression changes __str__ output, showing both '>= 1.0' and '>=1.0'.",
+              "evidence": [
+                "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+                "+            # Deduplicate strings first.",
+                "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "return self._canonical_spec == other._canonical_spec",
+                "canonical_version = canonicalize_version(",
+                "-        specifier._specs = frozenset(self._specs | other._specs)",
+                "+        specifier._specs = tuple(dict.fromkeys(self._specs + other._specs))"
+              ],
+              "rejected": [
+                "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-str-len"
+              ],
+              "facts": "Output `str` differs. Input [\">= 1.0,>=1.0\"]: base gives \">=1.0\", head gives \">=1.0,>=1.0\"."
+            },
+            {
+              "signature": "P1|str|differs|non-ascii+whitespace",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Whitespace and version‑normalisation differences are no longer collapsed, so __str__ includes both specifiers.",
+              "evidence": [
+                "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+                "+            # Deduplicate strings first.",
+                "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "return self._canonical_spec == other._canonical_spec",
+                "canonical_version = canonicalize_version(",
+                "-        return ','.join(sorted(str(s) for s in self._specs))",
+                "+        return ','.join(str(s) for s in self._sort_specs())"
+              ],
+              "rejected": [
+                "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-str-len"
+              ],
+              "facts": "Output `str` differs. Input [\" >=1.0,>=1.0.0 \"]: base gives \">=1.0\", head gives \">=1.0,>=1.0.0\"."
+            },
+            {
+              "signature": "P1|str|differs|long-digits",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Large version strings that are semantically identical after canonicalisation are kept separate, inflating both length and string representation.",
+              "evidence": [
+                "-            self._specs = frozenset(map(Specifier, split_specifiers))",
+                "+            # Deduplicate strings first.",
+                "+            self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "return self._canonical_spec == other._canonical_spec",
+                "canonical_version = canonicalize_version(",
+                "-        specifier._specs = frozenset(self._specs | other._specs)",
+                "+        specifier._specs = tuple(dict.fromkeys(self._specs + other._specs))"
+              ],
+              "rejected": [
+                "self._specs = tuple(map(Specifier, dict.fromkeys(split_specifiers)))",
+                "PR title: perf: SpecifierSet use tuple instead of frozenset for `_specs`"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-str-len"
+              ],
+              "facts": "Output `str` differs. Input [\">=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4322 chars): base gives \">=1.0.0,>=100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4314 chars), head gives \">=1.0,>=1.0.0,>=100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4320 chars)."
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.AssertionError|ok|long-digits",
+              "label": "needs-human",
+              "votes": {
+                "needs-human": 2
+              },
+              "rationale": "Base raises AssertionError on a very large version string while head returns normally. The PR is described as a performance refactor with no mention of fixing large‑version parsing. The change in behavior is undocumented, so a human should decide whether the new permissive parsing is intended.",
+              "evidence": [],
+              "rejected": [],
+              "reason": "model abstained",
+              "known": [],
+              "facts": "Outcome differs. Input [\">=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4315 chars): base raises builtins.AssertionError, head returns normally."
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.AssertionError|ok|long-digits+whitespace",
+              "label": "needs-human",
+              "votes": {
+                "needs-human": 2
+              },
+              "rationale": "Same pattern as C1 – an AssertionError on a huge version string disappears in the new code. No test, doc, or changelog entry mentions fixing large‑version handling, so the intent is unclear.",
+              "evidence": [],
+              "rejected": [],
+              "reason": "model abstained",
+              "known": [],
+              "facts": "Outcome differs. Input [\">=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4318 chars): base raises builtins.AssertionError, head returns normally."
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.ValueError|ok|long-digits",
+              "label": "needs-human",
+              "votes": {
+                "needs-human": 2
+              },
+              "rationale": "Base raises ValueError on a very large “<=” specifier; head accepts it. The PR does not mention changing version‑parsing semantics, so the reviewer should decide whether the new permissive behaviour is desired.",
+              "evidence": [],
+              "rejected": [],
+              "reason": "model abstained",
+              "known": [],
+              "facts": "Outcome differs. Input [\"<=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4311 chars): base raises builtins.ValueError, head returns normally."
+            },
+            {
+              "signature": "P3|eq|True|False",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 2
+              },
+              "rationale": "Equality semantics changed: the new __eq__ first checks length of the internal `_specs` tuple (which now reflects raw‑string deduplication) before comparing sorted specs. Two SpecifierSet objects that are semantically equal (e.g., `>=01.0,>=1.0` vs `>=1.0,>=1.0`) now compare False because their raw‑string tuples have different lengths. This is a regression introduced by the refactor.",
+              "evidence": [
+                "if len(self._specs) != len(other._specs): return False",
+                "return self._sort_specs() == other._sort_specs()",
+                "self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))"
+              ],
+              "rejected": [
+                "def _sort_specs(self) -> tuple[Specifier, ...]: ... return tuple(sorted(self._specs, key=str))"
+              ],
+              "reason": "",
+              "known": [
+                "dedup-equality"
+              ],
+              "facts": "Relation `a == b` differs for a = target(*[\">=01.0,>=1.0\"]), b = target(*[\">=1.0,>=1.0\"]): base True, head False."
+            },
+            {
+              "signature": "P3|hash_eq|True|False",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 2
+              },
+              "rationale": "Hash now uses the sorted `_specs` tuple (`hash(self._sort_specs())`). Because the new constructor deduplicates on raw strings, two semantically equal SpecifierSet objects can have different tuple lengths/contents, causing `hash(a) != hash(b)`. This breaks the hash‑equals contract.",
+              "evidence": [
+                "return hash(self._sort_specs())",
+                "def __hash__(self) -> int: return hash(self._sort_specs())",
+                "self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))"
+              ],
+              "rejected": [],
+              "reason": "",
+              "known": [],
+              "facts": "Relation `hash(a) == hash(b)` differs for a = target(*[\">=01.0,>=1.0\"]), b = target(*[\">=1.0,>=1.0\"]): base True, head False."
+            },
+            {
+              "signature": "P4|base->head eq-fresh|True|False",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 2
+              },
+              "rationale": "The refactor added a new slot `_sorted` (`__slots__ = (..., '_sorted', '_specs')`). Objects pickled by the old code lack this attribute; when unpickled by the new code and compared to a freshly constructed object, an AttributeError is raised. This breaks pickle compatibility.",
+              "evidence": [
+                "__slots__ = (",
+                "    '_prereleases',",
+                "    '_sorted', '_specs')",
+                "__slots__ = (..., '_sorted', '_specs')",
+                "self._sorted = len(self._specs) <= 1"
+              ],
+              "rejected": [
+                "def __eq__(self, other): ... return self._sort_specs() == other._sort_specs()"
+              ],
+              "reason": "",
+              "known": [
+                "old-pickles-break-comparison"
+              ],
+              "facts": "An object built by base from [\">=01.0,>=1.0\"], pickled, then unpickled by head loads, but no longer equals a freshly built head object (== gives False)."
+            },
+            {
+              "signature": "P4|base->head eq-fresh|True|<exc:builtins.AttributeError>",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 2
+              },
+              "rationale": "Same root cause as C6: the added `_sorted` slot is missing on a pickled legacy instance, leading to an AttributeError when the new code accesses it during comparison. This is an unintended regression in serialization compatibility.",
+              "evidence": [
+                "__slots__ = (",
+                "    '_prereleases',",
+                "    '_sorted', '_specs')",
+                "__slots__ = (..., '_sorted', '_specs')",
+                "self._sorted = len(self._specs) <= 1"
+              ],
+              "rejected": [
+                "def _sort_specs(self): if not self._sorted: ..."
+              ],
+              "reason": "",
+              "known": [
+                "old-pickles-break-comparison"
+              ],
+              "facts": "An object built by base from [\"\"], pickled, then unpickled by head loads, but comparing it with a freshly built head object fails: <exc:builtins.AttributeError>."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1111",
+      "pr": 1111,
+      "title": "perf: Speed up wildcard comparison",
+      "merged": "2026-03-09",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1115",
+      "pr": 1115,
+      "title": "perf: skip hash property",
+      "merged": "2026-03-11",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.version:Version",
+          "image": "bw-pair:b75c39f11bbb1fbf",
+          "run_id": "adj-1115-33553e",
+          "samples": 3,
+          "usd": 0.032,
+          "verdicts": [
+            {
+              "signature": "P4|base->head eq-fresh|True|False",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The PR introduces a cached `_key_cache` in `__hash__` but does not update the equality comparison (which relies on `_key`). After pickling a base‑version object (which stores `_key_cache = None`) and unpickling it with the new code, the cached hash key is computed lazily while equality still uses the uncached key, causing two equal logical versions to compare unequal.",
+              "evidence": [
+                "perf: skip hash property",
+                "    def __hash__(self) -> int:",
+                "        if self._key_cache is None:            self._key_cache = _cmpkey(",
+                "def __hash__(self) -> int:",
+                "        if self._key_cache is None:",
+                "            self._key_cache = _cmpkey(",
+                "def __hash__(self) -> int: ... if self._key_cache is None: self._key_cache = _cmpkey(...) ... return hash(self._key_cache)",
+                "def __eq__(self, other: object) -> bool: ... return self._key == other._key"
+              ],
+              "rejected": [
+                "PR title: perf: skip hash property"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "An object built by base from [\"0\"], pickled, then unpickled by head loads, but no longer equals a freshly built head object (== gives False)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1116",
+      "pr": 1116,
+      "title": "perf: Overhaul `_cmpkey` to remove use of custom objects",
+      "merged": "2026-03-11",
+      "after_ultra_release": false,
+      "known": [
+        {
+          "id": "old-pickles-fail-to-load",
+          "match": {
+            "probe": "P4"
+          },
+          "fixed_by": 1163,
+          "status": "verified"
+        }
+      ],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.version:Version",
+          "image": "bw-pair:ee5fda034cdd7462",
+          "run_id": "adj-1116-b66fdc",
+          "samples": 3,
+          "usd": 0.0303,
+          "verdicts": [
+            {
+              "signature": "P4|base->head load|loads|exc:builtins.ModuleNotFoundError",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The change is a performance‑focused refactor (new __slots__, cached _key_cache, faster comparison methods) and the only backward‑compatibility note is a comment about internal _Version usage, not about pickling. No test or changelog entry mentions preserving pickle compatibility, so the unpickling failure is an unintended regression.",
+              "evidence": [
+                "# Backward compatibility for internals before 26.0. Do not use.",
+                "# This is a hot function, so not calling self.base_version",
+                "Override comparison methods to use direct _key_cache access ... This is faster than property access, especially before Python 3.12",
+                "@_deprecated('Version._version is private and will be removed soon')",
+                "class _Version(NamedTuple):",
+                "__slots__ = (..., '_key_cache', ...)",
+                "self._key_cache = None"
+              ],
+              "rejected": [
+                "self._key_cache = _cmpkey(...); other._key_cache = _cmpkey(...)"
+              ],
+              "reason": "",
+              "known": [
+                "old-pickles-fail-to-load"
+              ],
+              "facts": "An object built by base from [\"0\"], pickled, then unpickled by head fails to load: builtins.ModuleNotFoundError."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1118",
+      "pr": 1118,
+      "title": "perf: Cache `Version` hash value in dedicated slot",
+      "merged": "2026-03-13",
+      "after_ultra_release": false,
+      "known": [
+        {
+          "id": "hash-cache-copy",
+          "match": {
+            "probe": "P3"
+          },
+          "fixed_by": 1242,
+          "status": "candidate"
+        }
+      ],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1147",
+      "pr": 1147,
+      "title": "perf: add __slots__ to Marker",
+      "merged": "2026-04-05",
+      "after_ultra_release": false,
+      "known": [
+        {
+          "id": "marker-pickle",
+          "match": {
+            "probe": "P4"
+          },
+          "fixed_by": 1171,
+          "status": "candidate"
+        }
+      ],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.markers:Marker",
+          "image": "bw-pair:e33c8d8e1355cf11",
+          "run_id": "adj-1147-5bc55e",
+          "samples": 3,
+          "usd": 0.0101,
+          "verdicts": [
+            {
+              "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The PR adds `__slots__ = (('_markers',))` to `Marker` as a performance change (see PR title and added line). This change breaks backward compatibility for pickled `Marker` objects: an instance pickled by the old class (without `__slots__`) cannot be unpickled by the new class, raising `AttributeError`. The PR has no tests, docs, or changelog entry addressing pickling, so the regression is unintended.",
+              "evidence": [
+                "perf: add __slots__ to Marker",
+                "__slots__ = ( '_markers', )",
+                "None: this PR changes no tests, docs or changelog.",
+                "__slots__ = ('_markers',)"
+              ],
+              "rejected": [
+                "__slots__ = (('_markers',))"
+              ],
+              "reason": "",
+              "known": [
+                "marker-pickle"
+              ],
+              "facts": "An object built by base from [\"\\\"b\\\" > \\\"a\\\"\"], pickled, then unpickled by head fails to load: builtins.AttributeError."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1236",
+      "pr": 1236,
+      "title": "perf: simply work done in parse_tag a bit",
+      "merged": "2026-06-09",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "packaging.tags:parse_tag",
+          "image": "bw-pair:d9b82063b49a1e43",
+          "run_id": "adj-1236-45c4ec",
+          "samples": 3,
+          "usd": 0.033,
+          "verdicts": [
+            {
+              "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "The head version's docstring for `parse_tag` explicitly states it raises `InvalidTag` on empty tag components, and the `InvalidTag` class is documented as added in version 26.3. The change from a generic `ValueError` to the more specific `InvalidTag` subclass is therefore deliberate.",
+              "evidence": [
+                ".. versionadded:: 26.3",
+                "Raises :class:`InvalidTag` on empty tag components.",
+                "class InvalidTag(ValueError):",
+                ".. versionadded:: 26.3 … Raises :class:`InvalidTag` on empty tag components.",
+                "       Raises :class:`InvalidTag` on empty tag components.",
+                "raise InvalidTag(f"
+              ],
+              "rejected": [
+                "if '' in parts: raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [\"Ensure platform tags normalize spaces to underscores.\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "Same reasoning as C1: the new `InvalidTag` exception is documented as the intended error for empty tag components, replacing the generic `ValueError`.",
+              "evidence": [
+                ".. versionadded:: 26.3",
+                "Raises :class:`InvalidTag` on empty tag components.",
+                "class InvalidTag(ValueError):",
+                ".. versionadded:: 26.3 … Raises :class:`InvalidTag` on empty tag components.",
+                "       Raises :class:`InvalidTag` on empty tag components.",
+                "raise InvalidTag(f"
+              ],
+              "rejected": [
+                "if '' in parts: raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [\".\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "Same reasoning: the introduction of `InvalidTag` with a versionadded note and updated docstring shows the new exception type is intentional.",
+              "evidence": [
+                ".. versionadded:: 26.3",
+                "Raises :class:`InvalidTag` on empty tag components.",
+                "class InvalidTag(ValueError):",
+                ".. versionadded:: 26.3 … Raises :class:`InvalidTag` on empty tag components.",
+                "       Raises :class:`InvalidTag` on empty tag components.",
+                "raise InvalidTag(f"
+              ],
+              "rejected": [
+                "if '' in parts: raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [\"\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "Identical to the other cases; the head version documents raising `InvalidTag` for empty components, indicating the change is deliberate.",
+              "evidence": [
+                ".. versionadded:: 26.3",
+                "Raises :class:`InvalidTag` on empty tag components.",
+                "class InvalidTag(ValueError):",
+                ".. versionadded:: 26.3 … Raises :class:`InvalidTag` on empty tag components.",
+                "       Raises :class:`InvalidTag` on empty tag components.",
+                "raise InvalidTag(f"
+              ],
+              "rejected": [
+                "if '' in parts: raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [\".\\u0000\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#1250",
+      "pr": 1250,
+      "title": "perf(markers): cache the default environment",
+      "merged": "2026-07-10",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1253",
+      "pr": 1253,
+      "title": "perf(specifiers): keep range caches across canonicalization",
+      "merged": "2026-06-16",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1256",
+      "pr": 1256,
+      "title": "perf(utils): precompile the wheel project-name pattern",
+      "merged": "2026-06-13",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1258",
+      "pr": 1258,
+      "title": "perf: add __slots__ to token classes",
+      "merged": "2026-06-13",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1259",
+      "pr": 1259,
+      "title": "perf(specifiers): push PEP 440 logic into the range engine",
+      "merged": "2026-06-15",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1320",
+      "pr": 1320,
+      "title": "perf: add __slots__ to Requirement",
+      "merged": "2026-07-07",
+      "after_ultra_release": true,
+      "known": [
+        {
+          "id": "requirement-pickle",
+          "match": {
+            "probe": "P4"
+          },
+          "fixed_by": 1171,
+          "status": "candidate"
+        }
+      ],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1371",
+      "pr": 1371,
+      "title": "perf(markers): speed up _format_marker and benchmark str(Marker)",
+      "merged": "2026-09-25",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "#1429",
+      "pr": 1429,
+      "title": "perf(parser): avoid literal_eval for plain marker strings",
+      "merged": "2026-10-05",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    }
+  ],
+  "note": "#1108 re-adjudicated after MAX_CLASSES_PER_CALL 20->8 and max_tokens 24k->16k (its first adjudication lost samples to runaway generations); other items unchanged."
+}

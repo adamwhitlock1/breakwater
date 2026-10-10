@@ -1,0 +1,78 @@
+{
+  "id": "#1082",
+  "pr": 1082,
+  "title": "perf: Add fast path for parsing simple versions (digits and dots only)",
+  "merged": "2026-02-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "oversized-int-exception",
+      "match": {
+        "probe": "P2",
+        "traits": "long-digits"
+      },
+      "fixed_by": 1155,
+      "status": "verified"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "bw-pair:3f8cc97a2a8a52dc",
+      "run_id": "adj-1082-d00a8a",
+      "samples": 3,
+      "usd": 0.0246,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 2,
+            "needs-human": 1
+          },
+          "rationale": "The fast‑path added in the PR returns early after setting a handful of private attributes (e.g., `self._epoch = 0; self._pre = None; …; self._key_cache = None; return`). The base version took the full regex path and raised a built‑in `TypeError` for the input `['1']`; the new fast path returns early and later code apparently accesses an attribute that was not initialised, causing a built‑in `AttributeError`. Since the two built‑in exception types are unrelated (neither subclasses the other), this change of exception type is an unintended regression.",
+          "evidence": [
+            "if _SIMPLE_VERSION_INDICATORS.issuperset(version):",
+            "        self._release = tuple(map(int, version.split('.')))",
+            "+            if _SIMPLE_VERSION_INDICATORS.issuperset(version):",
+            "+                    self._release = tuple(map(int, version.split('.')))"
+          ],
+          "rejected": [
+            "    try:",
+            "+                try:"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[\"1\"]]: base raises builtins.TypeError, head raises builtins.AttributeError. (neither exception type subclasses the other.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "The PR adds a fast‑path for simple dotted‑digit versions that parses with `split('.')` and `map(int, …)`. When that fast path fails it catches `ValueError` and raises `packaging.version.InvalidVersion`, a subclass of `ValueError`. The test diff explicitly adds cases that “trigger the fast path (digits/dots only)” and expects `InvalidVersion`. This change of exception type (subclass of the original `ValueError`) is the intended improvement.",
+          "evidence": [
+            "    self._release = tuple(map(int, version.split('.')))",
+            "except ValueError:   raise InvalidVersion(f'Invalid version: {version!r}') from None",
+            "+            # Invalid versions that trigger the fast path (digits/dots only)",
+            "+            # Fast path: If a version has only digits and dots then we",
+            "+            # can skip the regex and parse it as a release segment",
+            "+            _SIMPLE_VERSION_INDICATORS = frozenset('.0123456789')"
+          ],
+          "rejected": [
+            "try:",
+            "+            '.',",
+            "+            '..',"
+          ],
+          "reason": "",
+          "known": [
+            "oversized-int-exception"
+          ],
+          "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4305 chars): base raises builtins.ValueError, head raises packaging.version.InvalidVersion. (packaging.version.InvalidVersion is a subclass of builtins.ValueError.)"
+        }
+      ]
+    }
+  ]
+}

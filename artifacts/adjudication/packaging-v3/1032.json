@@ -1,0 +1,42 @@
+{
+  "id": "#1032",
+  "pr": 1032,
+  "title": "perf: add __slots__ to Nodes",
+  "merged": "2026-01-02",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "image": "bw-pair:f8c16265598b425b",
+      "run_id": "adj-1032-968468",
+      "samples": 3,
+      "usd": 0.0112,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Adding __slots__ to the Node hierarchy changes the object layout, breaking unpickling of instances created by older pickled Marker objects. The PR is a performance refactor with no tests, docs, or changelog noting the compatibility break.",
+          "evidence": [
+            "__slots__ = ()",
+            "perf: add __slots__ to Nodes",
+            "None: this PR changes no tests, docs or changelog."
+          ],
+          "rejected": [
+            "__slots__ = (value,)",
+            "PR title: perf: add __slots__ to Nodes",
+            "class Node:__slots__ = (value,)",
+            "__slots__ = (value,)"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "An object built by base from [\"os_name == 'foo'\"], pickled, then unpickled by head fails to load: builtins.AttributeError."
+        }
+      ]
+    }
+  ]
+}

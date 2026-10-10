@@ -1,0 +1,47 @@
+{
+  "id": "#1105",
+  "pr": 1105,
+  "title": "perf: Speed up complex SpecifierSet filtering by implementing cost based ordering",
+  "base": "9b972011a53185a3c9be97dc1f86c042307e0e5a",
+  "head": "8810e9e66e2a137af5b16072c1ceb17427a2b21c",
+  "merged": "2026-03-08",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet#filter",
+      "run_id": "bt-1105-0987b9",
+      "image": "bw-pair:9afc68b04e0ce424",
+      "usd": 0.0576,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 10.7,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 13.2,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 66.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.4,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

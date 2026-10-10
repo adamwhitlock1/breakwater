@@ -1,0 +1,167 @@
+{
+  "id": "#1064",
+  "pr": 1064,
+  "title": "perf: dual replace",
+  "merged": "2026-01-19",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.utils:canonicalize_name",
+      "image": "bw-pair:810b943be062d4e3",
+      "run_id": "adj-1064-103540",
+      "samples": 3,
+      "usd": 0.0167,
+      "verdicts": [
+        {
+          "signature": "P1|value|differs|non-ascii",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "The docstring states that canonicalize_name should emulate `re.sub(r'[-_.]+', '-', name).lower()` from PEP 503, which lower‑cases the whole string including non‑ASCII characters. The new implementation uses `name.lower().replace(... )`, matching that specification.",
+          "evidence": [
+            "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# Much faster than re, and even faster than str.translate",
+            "    # Ensure all ``.`` and ``_`` are ``-``",
+            "    # Emulates ``re.sub(r",
+            "    # Much faster than re, and even faster than str.translate"
+          ],
+          "rejected": [
+            "PR title: perf: dual replace"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Output `value` differs. Input [\"Ä\"]: base gives \"Ä\", head gives \"ä\"."
+        },
+        {
+          "signature": "P1|value|differs|non-ascii+whitespace",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "Same reasoning as C1: the intended behavior per the docstring is to lower‑case after replacing `_` and `.` with `-`. The new code does exactly that, handling Unicode characters such as `Á`.",
+          "evidence": [
+            "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# Much faster than re, and even faster than str.translate",
+            "    # Ensure all ``.`` and ``_`` are ``-``",
+            "    # Emulates ``re.sub(r",
+            "    # Much faster than re, and even faster than str.translate"
+          ],
+          "rejected": [
+            "PR title: perf: dual replace"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Output `value` differs. Input [\"Á \"]: base gives \"Á \", head gives \"á \"."
+        },
+        {
+          "signature": "P1|value|differs|control+non-ascii",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "The change makes canonicalize_name apply Unicode lower‑casing (via `str.lower()`), which follows the documented emulation of `... .lower()` from PEP 503. This affects characters like `Á` and the null byte unchanged.",
+          "evidence": [
+            "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# Much faster than re, and even faster than str.translate",
+            "    # Ensure all ``.`` and ``_`` are ``-``",
+            "    # Emulates ``re.sub(r",
+            "    # Much faster than re, and even faster than str.translate"
+          ],
+          "rejected": [
+            "PR title: perf: dual replace"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Output `value` differs. Input [\"Á\\u0000\"]: base gives \"Á\\u0000\", head gives \"á\\u0000\"."
+        },
+        {
+          "signature": "P3|gt|False|True",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "Ordering differences arise because the new implementation lower‑cases Unicode letters (e.g., `Á` → `á`, `İ` → `i`) before comparison, matching the documented canonical form. The old version left such letters unchanged, causing different sort order.",
+          "evidence": [
+            "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# Much faster than re, and even faster than str.translate",
+            "    # Ensure all ``.`` and ``_`` are ``-``",
+            "    # Emulates ``re.sub(r",
+            "    # Much faster than re, and even faster than str.translate"
+          ],
+          "rejected": [
+            "PR title: perf: dual replace"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `a > b` differs for a = target(*[\"Á\"]), b = target(*[\"İ\"]): base False, head True."
+        },
+        {
+          "signature": "P3|gt|True|False",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "Same as C4: the new Unicode‑aware lower‑casing changes relative ordering, which is the intended canonical form per the docstring.",
+          "evidence": [
+            "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# Much faster than re, and even faster than str.translate",
+            "    # Ensure all ``.`` and ``_`` are ``-``",
+            "    # Emulates ``re.sub(r",
+            "    # Much faster than re, and even faster than str.translate"
+          ],
+          "rejected": [
+            "PR title: perf: dual replace"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `a > b` differs for a = target(*[\"İ\"]), b = target(*[\"Ä\"]): base True, head False."
+        },
+        {
+          "signature": "P3|lt|True|False",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "The `<` relation flips for the same reason: canonicalize_name now produces lower‑cased Unicode strings as specified, altering lexical ordering.",
+          "evidence": [
+            "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# Much faster than re, and even faster than str.translate",
+            "    # Ensure all ``.`` and ``_`` are ``-``",
+            "    # Emulates ``re.sub(r",
+            "    # Much faster than re, and even faster than str.translate"
+          ],
+          "rejected": [
+            "PR title: perf: dual replace"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `a < b` differs for a = target(*[\"Á\"]), b = target(*[\"İ\"]): base True, head False."
+        },
+        {
+          "signature": "P3|lt|False|True",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "Consistent with C6; the new behavior follows the documented emulation of lower‑casing after replacement, changing ordering for Unicode characters.",
+          "evidence": [
+            "Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# Much faster than re, and even faster than str.translate",
+            "    # Ensure all ``.`` and ``_`` are ``-``",
+            "    # Emulates ``re.sub(r",
+            "    # Much faster than re, and even faster than str.translate"
+          ],
+          "rejected": [
+            "PR title: perf: dual replace"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `a < b` differs for a = target(*[\"İ\"]), b = target(*[\"Ä\"]): base False, head True."
+        }
+      ]
+    }
+  ]
+}

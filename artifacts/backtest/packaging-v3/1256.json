@@ -1,0 +1,47 @@
+{
+  "id": "#1256",
+  "pr": 1256,
+  "title": "perf(utils): precompile the wheel project-name pattern",
+  "base": "54c697714e19da8659b67b5e96eb12a1f8250f9d",
+  "head": "d2ac6ba3f819cb5c81d79f4820db205d6f8bc126",
+  "merged": "2026-06-13",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.utils:parse_wheel_filename",
+      "run_id": "bt-1256-74a808",
+      "image": "bw-pair:4fb0fb81fd63864a",
+      "usd": 0.1068,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.1,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 94.3,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.9,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

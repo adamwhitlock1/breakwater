@@ -1,0 +1,10 @@
+{
+  "id": "#1259",
+  "pr": 1259,
+  "title": "perf(specifiers): push PEP 440 logic into the range engine",
+  "merged": "2026-06-15",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

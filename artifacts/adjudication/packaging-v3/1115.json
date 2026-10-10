@@ -1,0 +1,44 @@
+{
+  "id": "#1115",
+  "pr": 1115,
+  "title": "perf: skip hash property",
+  "merged": "2026-03-11",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "bw-pair:b75c39f11bbb1fbf",
+      "run_id": "adj-1115-33553e",
+      "samples": 3,
+      "usd": 0.032,
+      "verdicts": [
+        {
+          "signature": "P4|base->head eq-fresh|True|False",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The PR introduces a cached `_key_cache` in `__hash__` but does not update the equality comparison (which relies on `_key`). After pickling a base‑version object (which stores `_key_cache = None`) and unpickling it with the new code, the cached hash key is computed lazily while equality still uses the uncached key, causing two equal logical versions to compare unequal.",
+          "evidence": [
+            "perf: skip hash property",
+            "    def __hash__(self) -> int:",
+            "        if self._key_cache is None:            self._key_cache = _cmpkey(",
+            "def __hash__(self) -> int:",
+            "        if self._key_cache is None:",
+            "            self._key_cache = _cmpkey(",
+            "def __hash__(self) -> int: ... if self._key_cache is None: self._key_cache = _cmpkey(...) ... return hash(self._key_cache)",
+            "def __eq__(self, other: object) -> bool: ... return self._key == other._key"
+          ],
+          "rejected": [
+            "PR title: perf: skip hash property"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "An object built by base from [\"0\"], pickled, then unpickled by head loads, but no longer equals a freshly built head object (== gives False)."
+        }
+      ]
+    }
+  ]
+}

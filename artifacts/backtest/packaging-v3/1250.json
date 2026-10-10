@@ -1,0 +1,47 @@
+{
+  "id": "#1250",
+  "pr": 1250,
+  "title": "perf(markers): cache the default environment",
+  "base": "4c663c9ef5e1ec4f64b01ea9a61c981890a56407",
+  "head": "cf100d20e09c270cb6e19e72edbd0d40728de501",
+  "merged": "2026-07-10",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker#evaluate",
+      "run_id": "bt-1250-948425",
+      "image": "bw-pair:851ff7e1fccca52d",
+      "usd": 0.0312,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.2,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 39.3,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

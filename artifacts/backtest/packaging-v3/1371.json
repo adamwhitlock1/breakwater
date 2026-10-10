@@ -1,0 +1,47 @@
+{
+  "id": "#1371",
+  "pr": 1371,
+  "title": "perf(markers): speed up _format_marker and benchmark str(Marker)",
+  "base": "46980084996620ed1606765f7c5946c99d3c0618",
+  "head": "9483cb8a744606bdbad0438f01d3026a1ce4826f",
+  "merged": "2026-09-25",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1371-1894a8",
+      "image": "bw-pair:8188a01b7bde4781",
+      "usd": 0.1,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.6,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.0,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 104.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.2,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

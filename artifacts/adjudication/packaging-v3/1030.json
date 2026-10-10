@@ -1,0 +1,207 @@
+{
+  "id": "#1030",
+  "pr": 1030,
+  "title": "perf: translate for canonicalize_name",
+  "merged": "2026-01-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "unicode-lowercase",
+      "match": {
+        "probe": "P1",
+        "traits": "non-ascii"
+      },
+      "fixed_by": 1064,
+      "status": "verified",
+      "discovered_by": "breakwater"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.utils:canonicalize_name",
+      "image": "bw-pair:d09088ff31a7e098",
+      "run_id": "adj-1030-be4055",
+      "samples": 3,
+      "usd": 0.0212,
+      "verdicts": [
+        {
+          "signature": "P1|value|differs|non-ascii",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The PR aims only to speed up canonicalize_name while preserving the original semantics (lower‑casing per PEP 503). The new implementation only lower‑cases ASCII letters, so non‑ASCII characters like ‘İ’ are not lower‑cased, changing the output.",
+          "evidence": [
+            "Emulates ``re.sub(r",
+            "perf: translate for canonicalize_name",
+            "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# About 2x faster, safe since packages only support alphanumeric characters",
+            "About 2x faster, safe since packages only support alphanumeric characters"
+          ],
+          "rejected": [
+            "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503",
+            "_letters_translate = {c: c.lower() for c in ABCDEFGHIJKLMNOPQRSTUVWXYZ}"
+          ],
+          "reason": "",
+          "known": [
+            "unicode-lowercase"
+          ],
+          "facts": "Output `value` differs. Input [\"İ\"]: base gives \"i̇\", head gives \"İ\"."
+        },
+        {
+          "signature": "P1|value|differs|non-ascii+whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Same root cause as C1 – the translation table lacks mappings for non‑ASCII letters, so trailing characters are left unchanged, diverging from the original ``.lower()`` behavior.",
+          "evidence": [
+            "Emulates ``re.sub(r",
+            "perf: translate for canonicalize_name",
+            "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# About 2x faster, safe since packages only support alphanumeric characters",
+            "About 2x faster, safe since packages only support alphanumeric characters"
+          ],
+          "rejected": [
+            "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503",
+            "_letters_translate = {c: c.lower() for c in ABCDEFGHIJKLMNOPQRSTUVWXYZ}"
+          ],
+          "reason": "",
+          "known": [
+            "unicode-lowercase"
+          ],
+          "facts": "Output `value` differs. Input [\"İ \"]: base gives \"i̇ \", head gives \"İ \"."
+        },
+        {
+          "signature": "P1|value|differs|control+non-ascii",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Identical to C1/C2; the null byte is preserved but the capital İ is not lower‑cased, contrary to the documented intent to emulate ``.lower()``.",
+          "evidence": [
+            "Emulates ``re.sub(r",
+            "perf: translate for canonicalize_name",
+            "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# About 2x faster, safe since packages only support alphanumeric characters",
+            "About 2x faster, safe since packages only support alphanumeric characters"
+          ],
+          "rejected": [
+            "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503",
+            "_letters_translate = {c: c.lower() for c in ABCDEFGHIJKLMNOPQRSTUVWXYZ}"
+          ],
+          "reason": "",
+          "known": [
+            "unicode-lowercase"
+          ],
+          "facts": "Output `value` differs. Input [\"İ\\u0000\"]: base gives \"i̇\\u0000\", head gives \"İ\\u0000\"."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The change introduces a different exception type (AttributeError vs TypeError) when processing the same input, which is not mentioned in the PR title, docs, or tests and therefore is an unintended regression.",
+          "evidence": [
+            "perf: translate for canonicalize_name",
+            "Emulates ``re.sub(r",
+            "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# About 2x faster, safe since packages only support alphanumeric characters",
+            "value = name.translate(_canonicalize_table)",
+            "About 2x faster, safe since packages only support alphanumeric characters"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[\"İ\"]]: base raises builtins.TypeError, head raises builtins.AttributeError. (neither exception type subclasses the other.)"
+        },
+        {
+          "signature": "P3|gt|False|True",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Ordering changes because the new code no longer lower‑cases Unicode letters, so comparison results differ from the original specification that required ``.lower()``.",
+          "evidence": [
+            "Emulates ``re.sub(r",
+            "perf: translate for canonicalize_name",
+            "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# About 2x faster, safe since packages only support alphanumeric characters",
+            "About 2x faster, safe since packages only support alphanumeric characters"
+          ],
+          "rejected": [
+            "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `a > b` differs for a = target(*[\"İ\"]), b = target(*[\"py3\"]): base False, head True."
+        },
+        {
+          "signature": "P3|gt|True|False",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Same as C5 – the missing Unicode lower‑casing flips the ordering for characters such as ‘ẞ’ and ‘K’.",
+          "evidence": [
+            "Emulates ``re.sub(r",
+            "perf: translate for canonicalize_name",
+            "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# About 2x faster, safe since packages only support alphanumeric characters",
+            "About 2x faster, safe since packages only support alphanumeric characters"
+          ],
+          "rejected": [
+            "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `a > b` differs for a = target(*[\"ẞ\"]), b = target(*[\"K\"]): base True, head False."
+        },
+        {
+          "signature": "P3|lt|True|False",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Opposite ordering result caused by the same loss of Unicode lower‑casing.",
+          "evidence": [
+            "Emulates ``re.sub(r",
+            "perf: translate for canonicalize_name",
+            "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# About 2x faster, safe since packages only support alphanumeric characters",
+            "About 2x faster, safe since packages only support alphanumeric characters"
+          ],
+          "rejected": [
+            "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `a < b` differs for a = target(*[\"İ\"]), b = target(*[\"py3\"]): base True, head False."
+        },
+        {
+          "signature": "P3|lt|False|True",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Ordering reversal for ‘ẞ’ vs ‘K’ stems from the new implementation not applying ``.lower()`` to non‑ASCII letters.",
+          "evidence": [
+            "Emulates ``re.sub(r",
+            "perf: translate for canonicalize_name",
+            "# Emulates ``re.sub(r'[-_.]+', '-', name).lower()`` from PEP 503",
+            "# About 2x faster, safe since packages only support alphanumeric characters",
+            "About 2x faster, safe since packages only support alphanumeric characters"
+          ],
+          "rejected": [
+            "# Emulates ``re.sub(r[-_.]+, -, name).lower()`` from PEP 503"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Relation `a < b` differs for a = target(*[\"ẞ\"]), b = target(*[\"K\"]): base False, head True."
+        }
+      ]
+    }
+  ]
+}

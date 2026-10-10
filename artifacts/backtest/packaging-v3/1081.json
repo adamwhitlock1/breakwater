@@ -1,0 +1,47 @@
+{
+  "id": "#1081",
+  "pr": 1081,
+  "title": "perf: Skip `__replace__` in Specifier comparison if not needed",
+  "base": "481295f7161dcef25ac3626c7f56ea363b424b5c",
+  "head": "0e88c2d78a5ee6cfeb37eef93c75f2b0fc5361c4",
+  "merged": "2026-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.specifiers:Specifier",
+      "run_id": "bt-1081-38a993",
+      "image": "bw-pair:ff8050a1e55ba0d9",
+      "usd": 0.0302,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 11.7,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 31.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": null
+    }
+  ]
+}

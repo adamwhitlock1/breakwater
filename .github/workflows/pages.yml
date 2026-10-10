@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
-      - run: uv run breakwater site --out site
+      - run: uv run breakwater site --out site --run artifacts/demo/pr1082-61967cca
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

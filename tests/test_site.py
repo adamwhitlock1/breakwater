@@ -123,3 +123,17 @@ def test_site_includes_audit_runs_and_gates_dev_runs(tmp_path):
     build(src, None, tmp_path / "out", runs=[run])
     assert 'href="runs/abc123.html"' in (tmp_path / "out" / "index.html").read_text()
     assert (tmp_path / "out" / "runs" / "abc123.html").exists() and (tmp_path / "out" / "data" / "runs" / "abc123.json").exists()
+
+
+@pytest.mark.skipif(not (Path("artifacts/backtest/packaging-v3") / "results.json").exists(), reason="v3 not present")
+def test_v3_site_reuses_v2_perf_and_says_so(tmp_path):
+    v3, v2 = Path("artifacts/backtest/packaging-v3"), BACKTEST
+    build(v3, Path("artifacts/adjudication/packaging-v3"), tmp_path / "s", perf_from=v2)
+    pr = (tmp_path / "s" / "pr" / "1030.html").read_text()
+    assert '<svg class="chart"' in pr and "Measured in backtest <code>packaging-v2</code>" in pr
+    index = (tmp_path / "s" / "index.html").read_text()
+    assert "Perf columns come from backtest <code>packaging-v2</code>" in index and "4.52×" in index
+    assert (tmp_path / "s" / "data" / "perf-packaging-v2.json").exists()
+    with pytest.raises(ValueError, match="different corpus"):
+        other = _mini(tmp_path, "tokenfactory", "x")
+        build(v3, None, tmp_path / "t", perf_from=other)

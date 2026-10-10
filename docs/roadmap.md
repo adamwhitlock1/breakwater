@@ -38,7 +38,7 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Ultra planner: change-centred prompt (routing condition first), `medium_effort`, 2 plans per call, JSON schema. Live: 3/3 cold runs on #1082 found a known class.
 - [x] Planner v3 (2026-10-09): attacks must predict a difference (schema: base/head behaviour + difference kind; no-difference attacks dropped) and trace the old code first. Plan-only productivity on #1082 intermediate: 0/15 → 7/15 attacks (`scripts/eval/planner_eval.py`, Token Factory).
 - [x] Backtest v3 with planner v3 (semantic arms; perf unchanged from v2): llm-plan 5→6/9 (within noise), breakwater 9/9; adjudication 8/10 likely-bug (`docs/backtest.md`).
-- [ ] Report site: decide v2 vs v3 as the headline (v3 has no perf; build v3 semantic + v2 perf, or re-run perf).
+- [x] Report site built from backtest v3 + adjudication v3, with perf reused from v2 (`--perf-from`, labelled on every perf section and the overview) and the Token Factory demo run under "Audit runs".
 - [x] Lightning strategy writer: N strategies per attack, AST hygiene check, then a sandboxed `find()` search against persistent base/head workers (`harness/diffrun.py`).
 - [x] Shrink (Hypothesis), dedupe by signature keeping the smallest input, credit every strategy that hit a class.
 - [ ] Finer classes: "1. 0" and Arabic-Indic digits currently share one P2 class (exc → ok); split by input character class or by adjudication.

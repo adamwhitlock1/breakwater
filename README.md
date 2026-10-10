@@ -74,7 +74,7 @@ uv run breakwater adjudicate artifacts/backtest/packaging-v2
 Build the static report (overview + one page per PR: verdict, counterexample cards with labels and quoted evidence, perf ladder charts, receipts). It reads only committed JSON, makes no network requests, and refuses non-Token-Factory inputs unless `--allow-dev`:
 
 ```bash
-uv run breakwater site            # writes site/; open site/index.html
+uv run breakwater site --run artifacts/demo/pr1082-61967cca   # writes site/; open site/index.html
 ```
 
 A manually triggered workflow (`.github/workflows/pages.yml`) builds it from the committed artifacts and publishes it to GitHub Pages.

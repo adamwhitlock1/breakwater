@@ -82,6 +82,7 @@ class TargetView:
     adj_usd: float
     cards: list[Card]
     perf: dict | None
+    perf_source: str | None = None  # another backtest the perf was taken from, if not this one
 
 
 @dataclass
@@ -110,9 +111,18 @@ class ItemView:
         return sum(t.usd + t.adj_usd for t in self.targets)
 
 
-def load(backtest: Path, adjudication: Path | None) -> tuple[dict, dict | None, list[ItemView]]:
+def load(backtest: Path, adjudication: Path | None,
+         perf_from: Path | None = None) -> tuple[dict, dict | None, list[ItemView]]:
+    """`perf_from`: a backtest of the same corpus whose perf results fill targets that have none
+    (the semantic planner doesn't affect perf, so a semantic-only re-run can reuse them)."""
     results = json.loads((backtest / "results.json").read_text())
     adj = json.loads((adjudication / "adjudication.json").read_text()) if adjudication else None
+    reuse: dict[tuple[str, str], dict] = {}
+    if perf_from:
+        for it in json.loads((perf_from / "results.json").read_text())["items"]:
+            for t in it["targets"]:
+                if t.get("perf"):
+                    reuse[(it["id"], t["target"])] = t["perf"]
     adj_items = {i["id"]: i for i in (adj or {}).get("items", [])}
     items = []
     for raw in results["items"]:
@@ -129,8 +139,11 @@ def load(backtest: Path, adjudication: Path | None) -> tuple[dict, dict | None, 
                 cards.append(Card(finding, verdicts.get(f["signature"]), known, arms))
             cards.sort(key=lambda c: (LABEL_ORDER.get(c.label, 3), not c.known, c.finding.probe,
                                       len(json.dumps(c.finding.args)), c.finding.signature))
+            perf, source = t.get("perf"), None
+            if not perf and (raw["id"], t["target"]) in reuse:
+                perf, source = reuse[(raw["id"], t["target"])], perf_from.name if perf_from else None
             view.targets.append(TargetView(t["target"], t["image"], t["run_id"], t.get("usd", 0.0),
-                                           at.get("usd", 0.0), cards, t.get("perf")))
+                                           at.get("usd", 0.0), cards, perf, source))
         items.append(view)
     return results, adj, items
 
@@ -307,7 +320,8 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
         stats.append((f"{adj_s['issues_likely_bug']}/{len(adj_s['issues'])}", "found regressions labelled likely-bug",
                       "Ultra adjudication, evidence-checked"))
     stats.append((money(usd_total), "Nemotron cost of these results",
-                  "Token Factory, backtest + adjudication; excludes dev and superseded runs"))
+                  "Token Factory, backtest + adjudication; excludes dev and superseded runs"
+                  + (" and reused perf" if any(t.perf_source for it in items for t in it.targets) else "")))
     stat_html = "".join(f'<div class="stat"><div class="stat-num">{esc(n)}</div><div class="stat-label">{esc(label)}'
                         f'</div><div class="stat-sub">{esc(sub)}</div></div>' for n, label, sub in stats)
 
@@ -331,12 +345,17 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
             f'<td class="labels">{labels}</td><td>{caught if r["known"] else "–"}</td>'
             f'<td class="num">{worst}</td><td class="num">{money(it.usd)}</td></tr>')
 
+    perf_sources = sorted({t.perf_source for it in items for t in it.targets if t.perf_source})
     corrections = results.get("corrections", [])
     notes = [
         "† merged after Nemotron 3 Ultra's release (2026-06-04), so it cannot be in the model's training data.",
         "Perf column: worst head/base instruction-count ratio over input families where most inputs are valid. "
         "Above 1× means the 'faster' change runs more instructions.",
     ]
+    if perf_sources:
+        notes.append("Perf columns come from backtest " + ", ".join(f"<code>{esc(x)}</code>" for x in perf_sources)
+                     + " (same corpus and commits; the semantic arms were re-run later with a new planner, which perf "
+                     "doesn't use). Costs shown exclude those perf measurements.")
     if corrections:
         notes.append(f"Probe corrections applied after the run ({len(corrections)} items re-scored deterministically, "
                      "no model calls): see <a href=\"data/backtest.json\">data/backtest.json</a> → corrections.")
@@ -474,9 +493,14 @@ def render_perf(t: TargetView) -> str:
     worst = (f'<p class="section-lede">Worst family with mostly valid inputs: <strong>{summary["worst_valid_ratio"]:.2f}×</strong> '
              f'the instructions of base ({esc(summary.get("worst_family") or "")}).</p>') if summary.get("worst_valid_ratio") else \
         '<p class="section-lede">No realistic input family measured slower.</p>'
+    source = (f'<p class="note">Measured in backtest <code>{esc(t.perf_source)}</code> (same commits, run '
+              f'<code>{esc(rep.get("run_id", ""))}</code>, image <code>{esc(rep.get("image", ""))}</code>). '
+              "The semantic results above are from a later run; perf doesn't use the semantic planner, so it "
+              "was not re-measured.</p>") if t.perf_source else ""
     return f"""<section>
   <h2>Performance <small class="muted">· {esc(t.target.split(":")[1])}</small></h2>
   {worst}
+  {source}
   <figure>{ladder_chart(rep["findings"])}<figcaption>Head/base cachegrind instructions per call, by input size
   (log-log). Each line is one input family Nemotron proposed; points above 1× are where the "faster" code does more work.</figcaption></figure>
   <div class="table-wrap"><table class="perf"><thead><tr><th>Family</th><th>Inputs</th><th class="num">Ratio range</th>
@@ -715,13 +739,18 @@ def copy_assets(root: Path) -> None:
 
 
 def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bool = False,
-          runs: list[Path] | None = None) -> list[Path]:
-    results, adj, items = load(backtest, adjudication)
+          runs: list[Path] | None = None, perf_from: Path | None = None) -> list[Path]:
+    results, adj, items = load(backtest, adjudication, perf_from)
     run_reports = [json.loads((r / "report.json").read_text()) for r in runs or []]
     providers = {results.get("summary", {}).get("provider", results.get("provider", "tokenfactory"))}
     if adj:
         providers.add(adj.get("provider", "tokenfactory"))
     providers |= {r.get("provider", "tokenfactory") for r in run_reports}
+    if perf_from:
+        pf = json.loads((perf_from / "results.json").read_text())
+        providers.add(pf.get("summary", {}).get("provider", pf.get("provider", "tokenfactory")))
+        if pf.get("corpus") != results.get("corpus"):
+            raise ValueError(f"perf_from {perf_from} is a different corpus ({pf.get('corpus')})")
     dev_providers = sorted(p for p in providers if p != "tokenfactory")
     if dev_providers and not allow_dev:
         raise ValueError(f"inputs come from {dev_providers}; only Token Factory results may be published "
@@ -754,6 +783,8 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
     for f in sorted(backtest.glob("*.json")):
         if f.name != "results.json":
             shutil.copy(f, data / "backtest" / f.name)
+    if perf_from:
+        shutil.copy(perf_from / "results.json", data / f"perf-{perf_from.name}.json")
     if adjudication:
         (data / "adjudication").mkdir()
         shutil.copy(adjudication / "adjudication.json", data / "adjudication.json")

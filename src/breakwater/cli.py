@@ -306,7 +306,7 @@ def site(args: argparse.Namespace) -> int:
     adj = Path(args.adjudication) if args.adjudication else None
     try:
         pages = build(Path(args.backtest), adj, Path(args.out), allow_dev=args.allow_dev,
-                      runs=[Path(r) for r in args.run])
+                      runs=[Path(r) for r in args.run], perf_from=Path(args.perf_from) if args.perf_from else None)
     except ValueError as e:
         print(e)
         return 2
@@ -397,8 +397,10 @@ def main(argv: list[str] | None = None) -> int:
     j.add_argument("--out", help="output dir (default artifacts/adjudication/<time>-<provider>)")
     j.set_defaults(fn=adjudicate)
     w = sub.add_parser("site", help="build the static web report from backtest + adjudication JSON")
-    w.add_argument("--backtest", default="artifacts/backtest/packaging-v2")
-    w.add_argument("--adjudication", default="artifacts/adjudication/packaging-v2")
+    w.add_argument("--backtest", default="artifacts/backtest/packaging-v3")
+    w.add_argument("--adjudication", default="artifacts/adjudication/packaging-v3")
+    w.add_argument("--perf-from", default="artifacts/backtest/packaging-v2",
+                   help="backtest whose perf results fill targets without perf ('' to disable)")
     w.add_argument("--out", default="site")
     w.add_argument("--allow-dev", action="store_true", help="allow non-Token-Factory inputs (pages get a dev banner)")
     w.add_argument("--run", action="append", default=[], help="audit run dir to include (repeatable)")

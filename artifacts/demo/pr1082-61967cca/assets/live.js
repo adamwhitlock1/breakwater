@@ -13,6 +13,7 @@
     ["search", "Search", ["search"]],
     ["batch", "Probes", ["batch"]],
     ["adjudicate", "Adjudicate", ["adjudicate"]],
+    ["tests", "Tests", ["tests"]],
     ["perf", "Perf", ["perf-plan", "perf-screen", "perf-expand", "perf-full"]],
     ["report", "Report", ["report"]],
   ];
@@ -23,6 +24,7 @@
     search: "Strategies search base vs head in sandboxes",
     batch: "Deterministic probes on planned inputs, mutations and samples",
     adjudicate: "Ultra labels each divergence (evidence-checked votes)",
+    tests: "Writing a pytest per divergence and checking it passes on base, fails on head",
     "perf-plan": "Ultra plans slowdown input families",
     "perf-screen": "Screening every family by instruction count",
     "perf-expand": "Nemotron 3 Super writes variants of the slowest families",
@@ -239,6 +241,10 @@
         break;
       case "verdict":
         label(ev);
+        break;
+      case "tests":
+        feed(ev.verified + " of " + ev.generated + " regression tests verified (pass on base, fail on head)" +
+          (ev.skipped ? "; " + ev.skipped + " class(es) without a test" : ""), "hit", ev.t);
         break;
       case "family":
         family(ev);

@@ -1,0 +1,57 @@
+{
+  "id": "1082@61967cca",
+  "pr": 1082,
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "bw-pair:348e2d05c100a5f9",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii",
+          "name": "test_1082_61967cca_p2_outcome_0",
+          "source": "def test_1082_61967cca_p2_outcome_0():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.version import InvalidVersion, Version\n    with pytest.raises(InvalidVersion) as excinfo:\n        Version('０')\n    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii+whitespace",
+          "name": "test_1082_61967cca_p2_outcome_1",
+          "source": "def test_1082_61967cca_p2_outcome_1():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.version import InvalidVersion, Version\n    with pytest.raises(InvalidVersion) as excinfo:\n        Version('０ ')\n    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits+whitespace",
+          "name": "test_1082_61967cca_p2_outcome_2",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|long-digits+non-ascii",
+          "name": "test_1082_61967cca_p2_outcome_3",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace",
+          "name": "test_1082_61967cca_p2_outcome_4",
+          "source": "def test_1082_61967cca_p2_outcome_4():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.version import InvalidVersion, Version\n    with pytest.raises(InvalidVersion) as excinfo:\n        Version(' 1. 2.3 ')\n    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

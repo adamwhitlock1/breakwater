@@ -57,6 +57,7 @@ class Card:
     verdict: dict | None
     known: list[str]
     arms: list[str] | None  # backtest arms whose classes include this one; None outside a backtest
+    test: dict | None = None  # regress.RegressionTest.to_json(), if tests were generated
 
     @property
     def label(self) -> str | None:
@@ -111,8 +112,8 @@ class ItemView:
         return sum(t.usd + t.adj_usd for t in self.targets)
 
 
-def load(backtest: Path, adjudication: Path | None,
-         perf_from: Path | None = None) -> tuple[dict, dict | None, list[ItemView]]:
+def load(backtest: Path, adjudication: Path | None, perf_from: Path | None = None,
+         tests: Path | None = None) -> tuple[dict, dict | None, list[ItemView]]:
     """`perf_from`: a backtest of the same corpus whose perf results fill targets that have none
     (the semantic planner doesn't affect perf, so a semantic-only re-run can reuse them)."""
     results = json.loads((backtest / "results.json").read_text())
@@ -124,6 +125,15 @@ def load(backtest: Path, adjudication: Path | None,
                 if t.get("perf"):
                     reuse[(it["id"], t["target"])] = t["perf"]
     adj_items = {i["id"]: i for i in (adj or {}).get("items", [])}
+    by_test: dict[tuple[str, str, str], dict] = {}  # (item, target, signature) -> test
+    if tests:
+        for p in tests.glob("*.json"):
+            if p.name == "summary.json":
+                continue
+            r = json.loads(p.read_text())
+            for t in r["targets"]:
+                for x in t["tests"]:
+                    by_test[(r["id"], t["target"], x["signature"])] = x
     items = []
     for raw in results["items"]:
         view = ItemView(raw)
@@ -136,7 +146,8 @@ def load(backtest: Path, adjudication: Path | None,
                 finding = Finding(**f)
                 known = [k["id"] for k in raw["known"] if _matches(f["signature"], k["match"])]
                 arms = [a for a, r in t["arms"].items() if f["signature"] in r.get("classes", [])]
-                cards.append(Card(finding, verdicts.get(f["signature"]), known, arms))
+                cards.append(Card(finding, verdicts.get(f["signature"]), known, arms,
+                                  by_test.get((raw["id"], t["target"], f["signature"]))))
             cards.sort(key=lambda c: (LABEL_ORDER.get(c.label, 3), not c.known, c.finding.probe,
                                       len(json.dumps(c.finding.args)), c.finding.signature))
             perf, source = t.get("perf"), None
@@ -468,8 +479,22 @@ def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: st
   {f'<p class="facts">{esc(rel[0].upper() + rel[1:])}.</p>' if rel else ""}
   {adj}
   <p class="found">Found by: {esc(how)}{baseline}</p>
+  {render_test(card.test)}
   {repro}
 </article>"""
+
+
+def render_test(test: dict | None) -> str:
+    if not test:
+        return ""
+    if test.get("skipped"):
+        return f'<p class="found">No regression test: {esc(test["skipped"])}.</p>'
+    if not test.get("verified"):
+        return (f'<p class="found">Generated test not verified (base: {esc(test["base"])}, head: {esc(test["head"])}); '
+                "not offered.</p>")
+    return (f'<details class="test"><summary>Regression test <span class="chip ok sm">verified</span> '
+            f'<span class="muted small">passes on base, {esc("fails" if test["head"] == "fail" else "errors")} on head'
+            f'</span></summary><pre><code>{esc(test["source"])}</code></pre></details>')
 
 
 def render_perf(t: TargetView) -> str:
@@ -536,6 +561,12 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
     }[it.verdict]
     cards_section = (f'<section><h2>Counterexamples <small class="muted">· {len(it.cards)} classes: {esc(summary)}</small>'
                      f'</h2><div class="cards">{"".join(cards_html)}</div></section>') if it.cards else ""
+    verified = [c.test for c in it.cards if c.test and c.test.get("verified")]
+    tests_note = (f'<section><h2>Regression tests</h2><p class="section-lede">{len(verified)} of {len(it.cards)} classes '
+                  "have a generated pytest that pins the old behaviour. Each passed on the base commit and failed on "
+                  "the head commit in the sandbox before it was offered.</p>"
+                  f'<p><a class="button" href="../tests/test_{esc(it.slug.replace("-", "_"))}.py" download>'
+                  f'Download test_{esc(it.slug.replace("-", "_"))}.py</a></p></section>') if verified else ""
     receipt = "".join(
         f'<tr><td><code>{esc(t.target)}</code></td><td><code>{esc(t.image)}</code></td><td><code>{esc(t.run_id)}</code></td>'
         f'<td class="num">{money(t.usd)}</td><td class="num">{money(t.adj_usd)}</td></tr>' for t in it.targets)
@@ -551,6 +582,7 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
 </section>
 {known}
 {cards_section}
+{tests_note}
 {"".join(render_perf(t) for t in it.targets)}
 <section>
   <h2>Receipt</h2>
@@ -591,7 +623,9 @@ def perf_summary(perf: dict | None) -> dict | None:
 def run_cards(report: dict) -> list[Card]:
     sem = report.get("semantic") or {}
     verdicts = {v["signature"]: v for v in (report.get("adjudication") or {}).get("verdicts", [])}
-    cards = [Card(Finding(**f), verdicts.get(f["signature"]), [], None) for f in sem.get("findings", [])]
+    tests = {t["signature"]: t for t in report.get("regression_tests", [])}
+    cards = [Card(Finding(**f), verdicts.get(f["signature"]), [], None, tests.get(f["signature"]))
+             for f in sem.get("findings", [])]
     cards.sort(key=lambda c: (LABEL_ORDER.get(c.label, 3), c.finding.probe, len(json.dumps(c.finding.args)),
                               c.finding.signature))
     return cards
@@ -629,6 +663,12 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
     cards_html = "".join(render_card(c, fn, repo, base, head, target) for c in cards)
     cards_section = (f'<section><h2>Counterexamples <small class="muted">· {len(cards)} classes: {esc(summary)}</small>'
                      f'</h2><div class="cards">{cards_html}</div></section>') if cards else ""
+    n_verified = sum(bool(c.test and c.test.get("verified")) for c in cards)
+    tests_href = f"../tests/run_{report['run_id']}.py" if site_nav else "test_regressions.py"
+    tests_note = (f'<section><h2>Regression tests</h2><p class="section-lede">{n_verified} of {len(cards)} classes have '
+                  "a generated pytest that passed on base and failed on head in the sandbox.</p>"
+                  f'<p><a class="button" href="{tests_href}" download>Download test_regressions.py</a></p>'
+                  "</section>") if n_verified else ""
     perf = perf_summary(report.get("perf"))
     perf_html = render_perf(TargetView(target, image, report["run_id"], 0.0, 0.0, [], perf)) if perf else ""
     usd = report.get("usd_by_tier", {})
@@ -651,6 +691,7 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
 </section>
 {plan}
 {cards_section}
+{tests_note}
 {perf_html}
 <section>
   <h2>Receipt</h2>
@@ -739,8 +780,8 @@ def copy_assets(root: Path) -> None:
 
 
 def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bool = False,
-          runs: list[Path] | None = None, perf_from: Path | None = None) -> list[Path]:
-    results, adj, items = load(backtest, adjudication, perf_from)
+          runs: list[Path] | None = None, perf_from: Path | None = None, tests: Path | None = None) -> list[Path]:
+    results, adj, items = load(backtest, adjudication, perf_from, tests)
     run_reports = [json.loads((r / "report.json").read_text()) for r in runs or []]
     providers = {results.get("summary", {}).get("provider", results.get("provider", "tokenfactory"))}
     if adj:
@@ -772,6 +813,9 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
         p = out / "runs" / f"{r['run_id']}.html"
         p.write_text(render_run(r, depth=1, dev=dev, home="../index.html"))
         shutil.copy(src / "report.json", out / "data" / "runs" / f"{r['run_id']}.json")
+        if (src / "test_regressions.py").exists():
+            (out / "tests").mkdir(exist_ok=True)
+            shutil.copy(src / "test_regressions.py", out / "tests" / f"run_{r['run_id']}.py")
         written.append(p)
     for it in items:
         p = out / "pr" / f"{it.slug}.html"
@@ -785,6 +829,13 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
             shutil.copy(f, data / "backtest" / f.name)
     if perf_from:
         shutil.copy(perf_from / "results.json", data / f"perf-{perf_from.name}.json")
+    if tests:
+        (out / "tests").mkdir(exist_ok=True)
+        for f in sorted(tests.glob("test_*.py")):
+            shutil.copy(f, out / "tests" / f.name)
+        (data / "tests").mkdir()
+        for f in sorted(tests.glob("*.json")):
+            shutil.copy(f, data / "tests" / f.name)
     if adjudication:
         (data / "adjudication").mkdir()
         shutil.copy(adjudication / "adjudication.json", data / "adjudication.json")

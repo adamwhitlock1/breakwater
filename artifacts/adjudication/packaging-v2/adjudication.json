@@ -115,11 +115,11 @@
       "needs-human": 1
     },
     "other_classes": {
-      "likely-bug": 12,
+      "likely-bug": 10,
       "intended": 16,
       "needs-human": 0
     },
-    "usd": 0.3865,
+    "usd": 0.3231,
     "provider": "tokenfactory"
   },
   "items": [
@@ -1229,39 +1229,7 @@
       "after_ultra_release": false,
       "known": [],
       "provider": "tokenfactory",
-      "targets": [
-        {
-          "target": "packaging.version:Version",
-          "image": "bw-pair:c5e7d6dc99b58cc8",
-          "run_id": "adj-1115-7aeb9a",
-          "samples": 3,
-          "usd": 0.0325,
-          "verdicts": [
-            {
-              "signature": "P4|base->head eq-fresh|True|False",
-              "label": "likely-bug",
-              "votes": {
-                "likely-bug": 3
-              },
-              "rationale": "The PR changes __hash__ to cache the comparison key in _key_cache, but __eq__ (inherited from _BaseVersion) still compares self._key == other._key. The base class's __hash__ used self._key, implying _key is a property that computes the key. The new __hash__ bypasses that property, so an unpickled object (which has _key_cache == None and never had __hash__ called) will compare unequal to a freshly constructed object whose __hash__ has populated _key_cache. This breaks pickling compatibility, an unintended regression.",
-              "evidence": [
-                "    def __eq__(self, other: object) -> bool:\n        if not isinstance(other, _BaseVersion):\n            return NotImplemented\n\n        return self._key == other._key",
-                "    def __hash__(self) -> int:\n        return hash(self._key)",
-                "    def __hash__(self) -> int:\n-        return hash(self._key)\n+        if self._key_cache is None:\n+            self._key_cache = _cmpkey(\n+                self._epoch,\n+                self._release,\n+                self._pre,\n+                self._post,\n+                self._dev,\n+                self._local,\n+            )\n+        return hash(self._key_cache)",
-                "-        return hash(self._key)\n+        if self._key_cache is None:\n+            self._key_cache = _cmpkey(\n+                self._epoch,\n+                self._release,\n+                self._pre,\n+                self._post,\n+                self._dev,\n+                self._local,\n+            )\n+        return hash(self._key_cache)",
-                "    _key_cache: CmpKey | None\n\n    def __init__(self, version: str) -> None:\n        ...\n        self._key_cache = None",
-                "perf: skip hash property",
-                "def __hash__(self) -> int:\n        if self._key_cache is None:\n            self._key_cache = _cmpkey(\n                self._epoch,\n                self._release,\n                self._pre,\n                self._post,\n                self._dev,\n                self._local,\n            )\n        return hash(self._key_cache)",
-                "None: this PR changes no tests, docs or changelog."
-              ],
-              "rejected": [],
-              "reason": "",
-              "known": [],
-              "facts": "An object built by base from [\"0\"], pickled, then unpickled by head loads, but no longer equals a freshly built head object (== gives False)."
-            }
-          ]
-        }
-      ]
+      "targets": []
     },
     {
       "id": "#1116",
@@ -1626,40 +1594,15 @@
       "after_ultra_release": true,
       "known": [],
       "provider": "tokenfactory",
-      "targets": [
-        {
-          "target": "packaging.markers:Marker",
-          "image": "bw-pair:11c432119443010a",
-          "run_id": "adj-1429-bbf38f",
-          "samples": 3,
-          "usd": 0.0309,
-          "verdicts": [
-            {
-              "signature": "P4|base->head load|loads|exc:builtins.TypeError",
-              "label": "likely-bug",
-              "votes": {
-                "likely-bug": 3
-              },
-              "rationale": "The head version fails to unpickle a Marker that was pickled by the base version, raising a TypeError from the new Marker.__reduce__ implementation. The diff shows the new __reduce__ method raising TypeError when the pickled state does not match the expected '_markers' slot structure (see the added `raise TypeError(f\"Cannot restore Marker from {state!r}\")` and the strict `isinstance(markers, list)` check). This regression is unrelated to the parser performance change and indicates a bug introduced by the marker pickling changes.",
-              "evidence": [
-                "raise TypeError(f\"Cannot restore Marker from {state!r}\")",
-                "if isinstance(markers, list):",
-                "self._markers = markers",
-                "def __setstate__(self, state: object) -> None:\n        ...\n        raise TypeError(f\"Cannot restore Marker from {state!r}\")",
-                "def __setstate__(self, state: object) -> None:",
-                "if isinstance(slot_dict, dict) and \"_markers\" in slot_dict:"
-              ],
-              "rejected": [
-                "return",
-                "if isinstance(state, tuple) and len(state) == 2:\n            _, slot_dict = state\n            if isinstance(slot_dict, dict) and \"_markers\" in slot_dict:\n                markers = slot_dict[\"_markers\"]\n                if isinstance(markers, list):\n                    self._markers = markers\n                    return"
-              ],
-              "reason": "",
-              "known": [],
-              "facts": "An object built by base from [\"python_version == '3.\\\\n11'\"], pickled, then unpickled by head fails to load: builtins.TypeError."
-            }
-          ]
-        }
-      ]
+      "targets": []
     }
-  ]
+  ],
+  "pruned": {
+    "#1115": [
+      "P4|base->head eq-fresh|True|False"
+    ],
+    "#1429": [
+      "P4|base->head load|loads|exc:builtins.TypeError"
+    ]
+  }
 }

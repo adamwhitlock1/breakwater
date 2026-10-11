@@ -80,6 +80,10 @@ Same corpus, the four semantic arms re-run with planner v3 (see `decisions.md`).
 - The misses are #1082's oversized-int exception change, labelled `intended` on both the merged PR and the intermediate commit (in v2: intended and needs-human). As before, the PR's own tests expect `InvalidVersion`.
 - Two classes on the intermediate commit carry both the non-ASCII and long-digits traits, so they match two known issues at once. Labelled `intended` because of the long digits, they show up as "with an intended class" under unicode-digits too: an artifact of trait matching, not a separate miss.
 
+**Round-trip control (2026-10-09, re-scored without model calls):** a generated regression test for #1115's pickle class failed on **base**. On #1115's base commit, a `Version` pickled after hashing already doesn't equal a fresh one once unpickled: its cached `Infinity` sentinels compare by identity. So the class predates the change. P4 now also requires the object to survive a round trip on the version that pickled it. The re-score removed #1115's pickle class from v2 and v3, and #1429's (a load failure that also happens on its own base) from v2. Its adjudication verdicts were dropped. Headline numbers are unchanged; v3 PRs with any divergence: 10 → 9.
+
+**Regression tests (`artifacts/regress/packaging-v3/`):** 30 of 30 generated tests verified (pass on base, fail on head). 14 classes were skipped because they're labelled intended. One `test_<item>.py` per PR.
+
 **Adjudication run history:**
 1. #1108 abstained on all 15 classes. One sample ran away to 51k output tokens, and some quotes used literal `\n` escapes that the checker rejected.
 2. After bounding the schema and accepting escaped whitespace, #1108 still lost samples to runaways. All three hit the 24k cap with little reasoning, which suggests runaway output outside the bounded fields.

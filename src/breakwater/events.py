@@ -17,6 +17,7 @@ Every line: {"seq": n, "t": seconds since start, "kind": "...", ...}. Kinds:
   finding       signature, probe, title, inputs, base, head, found_by (a new class)
   batch         inputs, mutations, classes
   verdict       signature, label, votes, rationale, evidence
+  tests         generated, verified, skipped (regression tests, see regress.py)
   family        id, family_kind, family, origin, screen_ratio, valid_fraction (screened)
   measured      family_id, family_kind, family, verdict, ladder ratios, slopes (full ladder)
   done          verdict (BLOCK|REVIEW|PASS), classes, report (relative path), usd_by_tier

@@ -1,0 +1,30 @@
+{
+  "id": "#1082",
+  "pr": 1082,
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "bw-pair:3f8cc97a2a8a52dc",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "name": "test_1082_p2_outcome_0",
+          "source": "def test_1082_p2_outcome_0():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.version import Version\n    with pytest.raises(TypeError) as excinfo:\n        Version(['1'])\n    assert type(excinfo.value) is TypeError  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "error:AttributeError",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+          "name": "test_1082_p2_outcome_1",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        }
+      ]
+    }
+  ]
+}

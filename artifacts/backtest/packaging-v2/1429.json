@@ -28,44 +28,19 @@
           "error": null
         },
         "breakwater": {
-          "classes": [
-            "P4|base->head load|loads|exc:builtins.TypeError"
-          ],
+          "classes": [],
           "known": [],
           "seconds": 48.7,
           "error": null
         },
         "llm-plan": {
-          "classes": [
-            "P4|base->head load|loads|exc:builtins.TypeError"
-          ],
+          "classes": [],
           "known": [],
           "seconds": 3.9,
           "error": null
         }
       },
-      "findings": [
-        {
-          "signature": "P4|base->head load|loads|exc:builtins.TypeError",
-          "probe": "P4",
-          "detail": "base->head load",
-          "args": [
-            [
-              "python_version == '3.\\n11'"
-            ]
-          ],
-          "base": "loads",
-          "head": {
-            "status": "exc",
-            "exc": "builtins.TypeError"
-          },
-          "found_by": [
-            "seed",
-            "mutation:huge-number",
-            "mutation:equivalents"
-          ]
-        }
-      ],
+      "findings": [],
       "perf": {
         "slower_families": [],
         "worst_valid_ratio": null,
@@ -178,7 +153,8 @@
             "total": 89.88
           }
         }
-      }
+      },
+      "image_rescored": "bw-pair:dac87e5ea56680f4"
     }
   ]
 }

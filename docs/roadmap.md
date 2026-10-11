@@ -51,7 +51,7 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Adjudication on Token Factory over the packaging backtest: 8/10 known issues labelled likely-bug; the miss is #1082's oversized-int exception (`docs/backtest.md`).
 - [ ] PR body as extra intent evidence (needs a pre-merge snapshot to avoid post-hoc edits).
 - [ ] Tavily recon (spec + bug-tracker facts) behind an ablation flag. Keep it only if the ablation shows it adds classes.
-- [ ] Each finding becomes a ready-to-commit pytest regression test.
+- [x] Each finding becomes a ready-to-commit pytest regression test (`regress.py`, `breakwater regress`, and at the end of every audit). The tests are deterministic templates that pin base behaviour (P1 outputs, P2 exact exception type, P3 relations, P4 embedded base pickles). Each runs in the sandbox on both sides and is offered only if it passes on base and fails on head. Classes labelled intended get no test. Backtest v3: 30/30 generated tests verified, 14 classes skipped as intended. Generated files pass ruff.
 
 ### WS3: Corpus and experiments
 - [x] Packaging corpus (`corpus/packaging.json`, built by `scripts/backtest/build_packaging_corpus.py`): 28 merged 2026 library perf PRs + #1082's intermediate commit; base = merge commit's parent; a callable target per PR (incl. `Class#method` targets); 6 verified + 3 candidate known issues; 9 items merged after Nemotron 3 Ultra's release.
@@ -68,7 +68,7 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Audit-run pages for the demo: `breakwater audit` writes `events.jsonl` (`events.py`), `live.html` (attack feed, phase stepper, "thinking" indicator, cost meter by tier, sandbox gauge, cards landing, perf families) and `report.html` at the end (plan, cards, perf, receipt by tier). `--live` serves it on localhost; `breakwater replay <run> --speed 4` replays a recorded run, labelled as a replay; `breakwater site --run <dir>` adds runs to the site.
 - [x] Demo run recorded on Token Factory with planner v3: `artifacts/demo/pr1082-61967cca` (replay with `breakwater replay`).
 - [ ] Perf: measure validity per ladder point and exclude invalid-dominated points from the verdict. In the demo run, the claimed-speedup family F2 (head ~0.36x on simple versions) is labelled `slower` because its generator emitted one invalid input (`1 + n % 8` inputs) at n=1024, where head's fast-path `int()` failure costs 2.2x.
-- [ ] Report v2: wall-clock CIs once finalist timing exists, generated pytest per card, merge near-duplicate classes.
+- [ ] Report v2: wall-clock CIs once finalist timing exists, merge near-duplicate classes.
 - [ ] Judge box: in-browser Pyodide "try your own version string" against base / PR / merged.
 - [ ] GitHub Action that runs the CLI and posts a check + comment.
 - [ ] README "For judges" table ([judging-map.md](judging-map.md)), limitations, the real bill.

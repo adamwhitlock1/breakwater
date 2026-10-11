@@ -90,7 +90,8 @@
           ]
         }
       ],
-      "perf": null
+      "perf": null,
+      "image_rescored": "bw-pair:e33c8d8e1355cf11"
     }
   ]
 }

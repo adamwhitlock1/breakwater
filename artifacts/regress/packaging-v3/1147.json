@@ -1,0 +1,21 @@
+{
+  "id": "#1147",
+  "pr": 1147,
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "image": "bw-pair:e33c8d8e1355cf11",
+      "tests": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "name": "test_1147_p4_base_head_load_0",
+          "source": "def test_1147_p4_base_head_load_0():\n    \"\"\"Breakwater P4: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import base64\n    import pickle\n    # pickled by the base version (lazy caches warmed first)\n    old = pickle.loads(base64.b64decode('gASVlgAAAAAAAACMEXBhY2thZ2luZy5tYXJrZXJzlIwGTWFya2VylJOUKYGUfZSMCF9tYXJrZXJzlF2UjBFwYWNrYWdpbmcuX3BhcnNlcpSMBVZhbHVllJOUKYGUTn2UjAV2YWx1ZZSMAWKUc4aUYmgHjAJPcJSTlCmBlE59lGgMjAE+lHOGlGJoCSmBlE59lGgMjAFhlHOGlGKHlGFzYi4='))\n    assert old is not None  # loading must not raise\n",
+          "base": "pass",
+          "head": "error:AttributeError",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

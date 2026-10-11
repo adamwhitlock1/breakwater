@@ -6,9 +6,9 @@
 |---|---|---|---|
 | PR's own tests + benchmarks | 0/9 (by construction) | 0 | 0 |
 | hypothesis | 2/9 | 0/3 | 4/29 |
-| mutations | 7/9 | 1/3 | 10/29 |
+| mutations | 7/9 | 1/3 | 9/29 |
 | llm-plan | 6/9 | 1/3 | 7/29 |
-| breakwater | 9/9 | 1/3 | 10/29 |
+| breakwater | 9/9 | 1/3 | 9/29 |
 
 | item | merged | target | hypothesis | mutations | llm-plan | breakwater | known caught (breakwater) | perf: worst valid family | $ |
 |---|---|---|---|---|---|---|---|---|---|
@@ -28,7 +28,7 @@
 | #1106 | 2026-03-09 | `Specifier` | 0 | 0 | 0 | 0 | – | – | 0.090 |
 | #1108 | 2026-03-07 | `SpecifierSet` | 1 | 6 | 8 | 15 | dedup-equality, dedup-str-len, old-pickles-break-comparison | – | 0.050 |
 | #1111 | 2026-03-09 | `Specifier#contains` | 0 | 0 | 0 | 0 | – | – | 0.116 |
-| #1115 | 2026-03-11 | `Version` | 0 | 1 | 0 | 1 | – | – | 0.041 |
+| #1115 | 2026-03-11 | `Version` | 0 | 0 | 0 | 0 | – | – | 0.041 |
 | #1116 | 2026-03-11 | `Version` | 0 | 1 | 1 | 1 | old-pickles-fail-to-load | – | 0.089 |
 | #1118 | 2026-03-13 | `Version` | 0 | 0 | 0 | 0 | none | – | 0.044 |
 | #1147 | 2026-04-05 | `Marker` | 0 | 1 | 1 | 1 | marker-pickle | – | 0.017 |
@@ -43,3 +43,5 @@
 | #1429 † | 2026-10-05 | `Marker` | 0 | 0 | 0 | 0 | – | – | 0.032 |
 
 Cells are distinct divergence classes per arm. † merged after Nemotron 3 Ultra's release (2026-06-04).
+
+Re-scored after a P4 fix (P4 round-trip control; `scripts/backtest/rescore_p4.py`): removed #1115 mutations 1, breakwater 1.

@@ -170,6 +170,18 @@ def audit(args: argparse.Namespace) -> int:
                 for v in res.verdicts:
                     events("verdict", signature=v.signature, label=v.label, votes=v.votes, rationale=v.rationale,
                            evidence=v.evidence[:2])
+            if sem.findings:
+                from breakwater import regress
+
+                events("phase", name="tests")
+                labels = {sig: v.label for sig, v in (verdicts or {}).items()}
+                tests = regress.for_findings(backend, image, args.target, sem.findings, labels=labels)
+                report["regression_tests"] = [t.to_json() for t in tests]
+                if any(t.verified for t in tests):
+                    (out / "test_regressions.py").write_text(regress.render_file(
+                        tests, f"Regression tests for {args.repo} {args.base[:10]}..{args.head[:10]} ({args.target})"))
+                events("tests", generated=sum(bool(t.source) for t in tests), verified=sum(t.verified for t in tests),
+                       skipped=sum(bool(t.skipped) for t in tests))
             sections.append(adversary.render_markdown(sem, verdicts))
             # BLOCK on likely bugs only once adjudicated; unadjudicated, every divergence counts.
             found = found or (any(v.label == "likely-bug" for v in verdicts.values()) if verdicts
@@ -306,11 +318,29 @@ def site(args: argparse.Namespace) -> int:
     adj = Path(args.adjudication) if args.adjudication else None
     try:
         pages = build(Path(args.backtest), adj, Path(args.out), allow_dev=args.allow_dev,
-                      runs=[Path(r) for r in args.run], perf_from=Path(args.perf_from) if args.perf_from else None)
+                      runs=[Path(r) for r in args.run], perf_from=Path(args.perf_from) if args.perf_from else None,
+                      tests=Path(args.tests) if args.tests and Path(args.tests).exists() else None)
     except ValueError as e:
         print(e)
         return 2
     print(f"wrote {len(pages)} pages to {args.out}/ (open {args.out}/index.html)")
+    return 0
+
+
+def regress(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from breakwater import backtest as bt
+    from breakwater.backends import get_backend
+
+    only = args.only.split(",") if args.only else None
+    adj = Path(args.adjudication) if args.adjudication else None
+    summary = bt.regress_run(Path(args.backtest), adj, get_backend(args.backend), only=only, out_dir=Path(args.out),
+                             workers=args.workers)
+    print(json.dumps({k: v for k, v in summary.items() if k != "unverified"}, indent=2))
+    for u in summary["unverified"]:
+        print(f"  unverified: {u['signature'][:70]} (base {u['base']}, head {u['head']})")
+    print(f"wrote {args.out}/")
     return 0
 
 
@@ -396,6 +426,15 @@ def main(argv: list[str] | None = None) -> int:
     j.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
     j.add_argument("--out", help="output dir (default artifacts/adjudication/<time>-<provider>)")
     j.set_defaults(fn=adjudicate)
+    g = sub.add_parser("regress", help="one verified pytest per finding class of a finished backtest (no model calls)")
+    g.add_argument("backtest", nargs="?", default="artifacts/backtest/packaging-v3")
+    g.add_argument("--adjudication", default="artifacts/adjudication/packaging-v3",
+                   help="labels; classes adjudicated intended get no test ('' to ignore)")
+    g.add_argument("--only")
+    g.add_argument("--workers", type=int, default=3)
+    g.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    g.add_argument("--out", default="artifacts/regress/packaging-v3")
+    g.set_defaults(fn=regress)
     w = sub.add_parser("site", help="build the static web report from backtest + adjudication JSON")
     w.add_argument("--backtest", default="artifacts/backtest/packaging-v3")
     w.add_argument("--adjudication", default="artifacts/adjudication/packaging-v3")
@@ -404,6 +443,8 @@ def main(argv: list[str] | None = None) -> int:
     w.add_argument("--out", default="site")
     w.add_argument("--allow-dev", action="store_true", help="allow non-Token-Factory inputs (pages get a dev banner)")
     w.add_argument("--run", action="append", default=[], help="audit run dir to include (repeatable)")
+    w.add_argument("--tests", default="artifacts/regress/packaging-v3",
+                   help="`breakwater regress` output to show on cards ('' to disable)")
     w.set_defaults(fn=site)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")

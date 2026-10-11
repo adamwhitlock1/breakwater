@@ -1,0 +1,84 @@
+{
+  "id": "#1030",
+  "pr": 1030,
+  "targets": [
+    {
+      "target": "packaging.utils:canonicalize_name",
+      "image": "bw-pair:d09088ff31a7e098",
+      "tests": [
+        {
+          "signature": "P1|value|differs|non-ascii",
+          "name": "test_1030_p1_value_0",
+          "source": "def test_1030_p1_value_0():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    assert canonicalize_name('İ') == 'i̇'\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|value|differs|non-ascii+whitespace",
+          "name": "test_1030_p1_value_1",
+          "source": "def test_1030_p1_value_1():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    assert canonicalize_name('İ ') == 'i̇ '\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|value|differs|control+non-ascii",
+          "name": "test_1030_p1_value_2",
+          "source": "def test_1030_p1_value_2():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    assert canonicalize_name('İ\\x00') == 'i̇\\x00'\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "name": "test_1030_p2_outcome_3",
+          "source": "def test_1030_p2_outcome_3():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.utils import canonicalize_name\n    with pytest.raises(TypeError) as excinfo:\n        canonicalize_name(['İ'])\n    assert type(excinfo.value) is TypeError  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "error:AttributeError",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|gt|False|True",
+          "name": "test_1030_p3_gt_4",
+          "source": "def test_1030_p3_gt_4():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    a = canonicalize_name('İ')\n    b = canonicalize_name('py3')\n    assert (a > b) is False\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|gt|True|False",
+          "name": "test_1030_p3_gt_5",
+          "source": "def test_1030_p3_gt_5():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    a = canonicalize_name('ẞ')\n    b = canonicalize_name('K')\n    assert (a > b) is True\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|lt|True|False",
+          "name": "test_1030_p3_lt_6",
+          "source": "def test_1030_p3_lt_6():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    a = canonicalize_name('İ')\n    b = canonicalize_name('py3')\n    assert (a < b) is True\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|lt|False|True",
+          "name": "test_1030_p3_lt_7",
+          "source": "def test_1030_p3_lt_7():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    a = canonicalize_name('ẞ')\n    b = canonicalize_name('K')\n    assert (a < b) is False\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

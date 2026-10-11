@@ -1,0 +1,48 @@
+{
+  "id": "#1236",
+  "pr": 1236,
+  "targets": [
+    {
+      "target": "packaging.tags:parse_tag",
+      "image": "bw-pair:d9b82063b49a1e43",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace",
+          "name": "test_1236_p2_outcome_0",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+          "name": "test_1236_p2_outcome_1",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+          "name": "test_1236_p2_outcome_2",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+          "name": "test_1236_p2_outcome_3",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        }
+      ]
+    }
+  ]
+}

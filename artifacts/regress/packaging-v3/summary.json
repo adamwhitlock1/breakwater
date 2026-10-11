@@ -1,0 +1,12 @@
+{
+  "source": "artifacts/backtest/packaging-v3",
+  "summary": {
+    "classes": 44,
+    "generated": 30,
+    "verified": 30,
+    "unverified": [],
+    "skipped": {
+      "adjudicated intended": 14
+    }
+  }
+}

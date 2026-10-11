@@ -74,7 +74,8 @@
           ]
         }
       ],
-      "perf": null
+      "perf": null,
+      "image_rescored": "bw-pair:f8c16265598b425b"
     }
   ]
 }

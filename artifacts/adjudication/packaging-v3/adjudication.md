@@ -1,11 +1,11 @@
 # Breakwater adjudication
 
-Known issues the audit found: 10 · labelled likely-bug 8 · labelled intended (dangerous miss) 2 · with at least one class labelled intended 4 · total Nemotron cost $0.46
+Known issues the audit found: 10 · labelled likely-bug 8 · labelled intended (dangerous miss) 2 · with at least one class labelled intended 4 · total Nemotron cost $0.43
 
 | classes | likely-bug | intended | needs-human |
 |---|---|---|---|
 | matching a known issue | 19 | 3 | 0 |
-| all others (no ground truth) | 9 | 11 | 3 |
+| all others (no ground truth) | 8 | 11 | 3 |
 
 | item | known issue | status | class labels | outcome |
 |---|---|---|---|---|
@@ -185,13 +185,6 @@ Known issues the audit found: 10 · labelled likely-bug 8 · labelled intended (
   - Same root cause as C6: the added `_sorted` slot is missing on a pickled legacy instance, leading to an AttributeError when the new code accesses it during comparison. This is an unintended regression in serialization compatibility.
   - > __slots__ = (
   - >     '_prereleases',
-
-### #1115 `Version`: perf: skip hash property
-
-- **likely-bug** [likely-bug 3]: An object built by base from ["0"], pickled, then unpickled by head loads, but no longer equals a freshly built head object (== gives False).
-  - The PR introduces a cached `_key_cache` in `__hash__` but does not update the equality comparison (which relies on `_key`). After pickling a base‑version object (which stores `_key_cache = None`) and unpickling it with the new code, the cached hash key is computed lazily while equality still uses the uncached key, causing two equal logical versions to compare unequal.
-  - > perf: skip hash property
-  - >     def __hash__(self) -> int:
 
 ### #1116 `Version`: perf: Overhaul `_cmpkey` to remove use of custom objects
 

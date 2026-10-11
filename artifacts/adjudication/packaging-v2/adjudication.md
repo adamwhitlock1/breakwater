@@ -1,11 +1,11 @@
 # Breakwater adjudication
 
-Known issues the audit found: 10 · labelled likely-bug 8 · labelled intended (dangerous miss) 1 · with at least one class labelled intended 3 · total Nemotron cost $0.39
+Known issues the audit found: 10 · labelled likely-bug 8 · labelled intended (dangerous miss) 1 · with at least one class labelled intended 3 · total Nemotron cost $0.32
 
 | classes | likely-bug | intended | needs-human |
 |---|---|---|---|
 | matching a known issue | 15 | 3 | 1 |
-| all others (no ground truth) | 12 | 16 | 0 |
+| all others (no ground truth) | 10 | 16 | 0 |
 
 | item | known issue | status | class labels | outcome |
 |---|---|---|---|---|
@@ -182,18 +182,6 @@ Known issues the audit found: 10 · labelled likely-bug 8 · labelled intended (
   - > __slots__ = ("_prereleases", "_sorted", "_specs")
   - > self._specs: tuple[Specifier, ...] = tuple(map(Specifier, dict.fromkeys(split_specifiers)))
 
-### #1115 `Version`: perf: skip hash property
-
-- **likely-bug** [likely-bug 3]: An object built by base from ["0"], pickled, then unpickled by head loads, but no longer equals a freshly built head object (== gives False).
-  - The PR changes __hash__ to cache the comparison key in _key_cache, but __eq__ (inherited from _BaseVersion) still compares self._key == other._key. The base class's __hash__ used self._key, implying _key is a property that computes the key. The new __hash__ bypasses that property, so an unpickled object (which has _key_cache == None and never had __hash__ called) will compare unequal to a freshly constructed object whose __hash__ has populated _key_cache. This breaks pickling compatibility, an unintended regression.
-  - >     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, _BaseVersion):
-            return NotImplemented
-
-        return self._key == other._key
-  - >     def __hash__(self) -> int:
-        return hash(self._key)
-
 ### #1116 `Version`: perf: Overhaul `_cmpkey` to remove use of custom objects
 
 - **likely-bug** [likely-bug 3] · known: old-pickles-fail-to-load: An object built by base from ["0"], pickled, then unpickled by head fails to load: builtins.ModuleNotFoundError.
@@ -245,12 +233,5 @@ Known issues the audit found: 10 · labelled likely-bug 8 · labelled intended (
   - > .. versionadded:: 26.3
    Raises :class:`InvalidTag` on empty tag components.
   - > raise InvalidTag(f"Tag {tag!r} has an empty component: {component!r}")
-
-### #1429 † `Marker`: perf(parser): avoid literal_eval for plain marker strings
-
-- **likely-bug** [likely-bug 3]: An object built by base from ["python_version == '3.\\n11'"], pickled, then unpickled by head fails to load: builtins.TypeError.
-  - The head version fails to unpickle a Marker that was pickled by the base version, raising a TypeError from the new Marker.__reduce__ implementation. The diff shows the new __reduce__ method raising TypeError when the pickled state does not match the expected '_markers' slot structure (see the added `raise TypeError(f"Cannot restore Marker from {state!r}")` and the strict `isinstance(markers, list)` check). This regression is unrelated to the parser performance change and indicates a bug introduced by the marker pickling changes.
-  - > raise TypeError(f"Cannot restore Marker from {state!r}")
-  - > if isinstance(markers, list):
 
 † merged after Nemotron 3 Ultra's release (2026-06-04): no training-data contamination possible.

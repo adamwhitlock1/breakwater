@@ -1904,7 +1904,8 @@
                 "total": 366.59
               }
             }
-          }
+          },
+          "image_rescored": "bw-pair:f8c16265598b425b"
         }
       ]
     },
@@ -6721,55 +6722,25 @@
               "error": null
             },
             "mutations": {
-              "classes": [
-                "P4|base->head eq-fresh|True|False"
-              ],
+              "classes": [],
               "known": [],
               "seconds": 8.1,
               "error": null
             },
             "breakwater": {
-              "classes": [
-                "P4|base->head eq-fresh|True|False"
-              ],
+              "classes": [],
               "known": [],
               "seconds": 64.4,
               "error": null
             },
             "llm-plan": {
-              "classes": [
-                "P4|base->head eq-fresh|True|False"
-              ],
+              "classes": [],
               "known": [],
               "seconds": 2.7,
               "error": null
             }
           },
-          "findings": [
-            {
-              "signature": "P4|base->head eq-fresh|True|False",
-              "probe": "P4",
-              "detail": "base->head eq-fresh",
-              "args": [
-                [
-                  "0"
-                ]
-              ],
-              "base": true,
-              "head": false,
-              "found_by": [
-                "seed",
-                "tests",
-                "mutation:whitespace-outer",
-                "mutation:huge-number",
-                "mutation:case",
-                "mutation:equivalents",
-                "mutation:separators",
-                "mutation:edges",
-                "batch"
-              ]
-            }
-          ],
+          "findings": [],
           "perf": {
             "slower_families": [],
             "worst_valid_ratio": null,
@@ -7380,7 +7351,8 @@
                 "total": 232.18
               }
             }
-          }
+          },
+          "image_rescored": "bw-pair:ee5fda034cdd7462"
         }
       ]
     },
@@ -7930,7 +7902,8 @@
                 "total": 137.68
               }
             }
-          }
+          },
+          "image_rescored": "bw-pair:e33c8d8e1355cf11"
         }
       ]
     },
@@ -10700,44 +10673,19 @@
               "error": null
             },
             "breakwater": {
-              "classes": [
-                "P4|base->head load|loads|exc:builtins.TypeError"
-              ],
+              "classes": [],
               "known": [],
               "seconds": 48.7,
               "error": null
             },
             "llm-plan": {
-              "classes": [
-                "P4|base->head load|loads|exc:builtins.TypeError"
-              ],
+              "classes": [],
               "known": [],
               "seconds": 3.9,
               "error": null
             }
           },
-          "findings": [
-            {
-              "signature": "P4|base->head load|loads|exc:builtins.TypeError",
-              "probe": "P4",
-              "detail": "base->head load",
-              "args": [
-                [
-                  "python_version == '3.\\n11'"
-                ]
-              ],
-              "base": "loads",
-              "head": {
-                "status": "exc",
-                "exc": "builtins.TypeError"
-              },
-              "found_by": [
-                "seed",
-                "mutation:huge-number",
-                "mutation:equivalents"
-              ]
-            }
-          ],
+          "findings": [],
           "perf": {
             "slower_families": [],
             "worst_valid_ratio": null,
@@ -10850,7 +10798,8 @@
                 "total": 89.88
               }
             }
-          }
+          },
+          "image_rescored": "bw-pair:dac87e5ea56680f4"
         }
       ]
     }
@@ -10873,9 +10822,9 @@
     },
     "items_with_classes": {
       "hypothesis": 4,
-      "mutations": 10,
-      "llm-plan": 10,
-      "breakwater": 11
+      "mutations": 9,
+      "llm-plan": 8,
+      "breakwater": 9
     },
     "usd": 2.594,
     "perf_items_slower": 5,
@@ -10985,6 +10934,37 @@
         ]
       },
       "note": "P4 control fix: a base-pickled object failing to equal a fresh head object only counts if two fresh head objects compare equal; builtin return values are skipped (P4 would restate P1)"
+    },
+    {
+      "item": "#1115",
+      "target": "packaging.version:Version",
+      "image": "bw-pair:b75c39f11bbb1fbf",
+      "removed": {
+        "mutations": [
+          "P4|base->head eq-fresh|True|False"
+        ],
+        "breakwater": [
+          "P4|base->head eq-fresh|True|False"
+        ],
+        "llm-plan": [
+          "P4|base->head eq-fresh|True|False"
+        ]
+      },
+      "note": "P4 round-trip control: a pickle class only counts if the object survives a round trip on the version that pickled it"
+    },
+    {
+      "item": "#1429",
+      "target": "packaging.markers:Marker",
+      "image": "bw-pair:dac87e5ea56680f4",
+      "removed": {
+        "breakwater": [
+          "P4|base->head load|loads|exc:builtins.TypeError"
+        ],
+        "llm-plan": [
+          "P4|base->head load|loads|exc:builtins.TypeError"
+        ]
+      },
+      "note": "P4 round-trip control: a pickle class only counts if the object survives a round trip on the version that pickled it"
     }
   ]
 }

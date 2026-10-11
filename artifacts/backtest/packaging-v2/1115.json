@@ -22,55 +22,25 @@
           "error": null
         },
         "mutations": {
-          "classes": [
-            "P4|base->head eq-fresh|True|False"
-          ],
+          "classes": [],
           "known": [],
           "seconds": 8.1,
           "error": null
         },
         "breakwater": {
-          "classes": [
-            "P4|base->head eq-fresh|True|False"
-          ],
+          "classes": [],
           "known": [],
           "seconds": 64.4,
           "error": null
         },
         "llm-plan": {
-          "classes": [
-            "P4|base->head eq-fresh|True|False"
-          ],
+          "classes": [],
           "known": [],
           "seconds": 2.7,
           "error": null
         }
       },
-      "findings": [
-        {
-          "signature": "P4|base->head eq-fresh|True|False",
-          "probe": "P4",
-          "detail": "base->head eq-fresh",
-          "args": [
-            [
-              "0"
-            ]
-          ],
-          "base": true,
-          "head": false,
-          "found_by": [
-            "seed",
-            "tests",
-            "mutation:whitespace-outer",
-            "mutation:huge-number",
-            "mutation:case",
-            "mutation:equivalents",
-            "mutation:separators",
-            "mutation:edges",
-            "batch"
-          ]
-        }
-      ],
+      "findings": [],
       "perf": {
         "slower_families": [],
         "worst_valid_ratio": null,

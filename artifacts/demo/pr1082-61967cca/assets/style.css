@@ -286,3 +286,8 @@ figcaption { color: var(--muted); font-size: 0.84rem; margin-top: 6px; }
 .thinking-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; color: var(--accent); font-size: 0.86rem; font-weight: 600; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; }
 .replay-badge { margin-left: 10px; background: var(--human-soft); color: var(--human); border-radius: 99px; padding: 1px 8px; letter-spacing: 0; text-transform: none; }
+
+/* Regression tests */
+details.test summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+details.test pre { font-size: 0.78rem; max-height: 320px; overflow: auto; white-space: pre; overflow-wrap: normal; }
+details.test code { unicode-bidi: bidi-override; direction: ltr; }

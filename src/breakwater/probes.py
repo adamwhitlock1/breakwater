@@ -8,8 +8,9 @@ inputs; this module only compares what the workers report.
                 violation of the eq/hash contract
   P4 state      an object pickled by base (after warming its lazy caches) fails to load on head, or
                 loads but no longer equals a freshly built one: the upgrade path users actually hit.
-                Controlled: two fresh head objects must compare equal, otherwise the comparison itself
-                is broken (e.g. Python's int-digit limit) and the pickle is not to blame. Builtin
+                Controlled: two fresh head objects must compare equal (otherwise the comparison itself
+                is broken, e.g. Python's int-digit limit), and the object must survive a round trip on
+                the version that pickled it (otherwise the failure predates the change). Builtin
                 values are skipped: they pickle the same everywhere, so P4 would restate P1
   P4down        the same check in the downgrade direction (head -> base). Opt-in: libraries rarely
                 promise it, so it is noisy by default
@@ -136,15 +137,22 @@ def run_probes(runner: Runner, inputs: list[list[Any]], probes: tuple[str, ...] 
         for src, dst in p4_dirs:
             blobs = results[src][p4]["blobs"]
             loads = runner.call(dst, [{"op": "pickle_load", "blobs": blobs, "inputs": inputs}])[0]["loads"]
-            for args, blob, ld in zip(inputs, blobs, loads, strict=True):
+            # Same-side control: does the object survive a round trip on the version that pickled it?
+            # If not (e.g. cached sentinels that compare by identity), the cross-version failure is
+            # pre-existing, not this change's.
+            same = runner.call(src, [{"op": "pickle_load", "blobs": blobs, "inputs": inputs}])[0]["loads"]
+            for args, blob, ld, own in zip(inputs, blobs, loads, same, strict=True):
                 if blob is None:
                     continue
                 direction = f"{src}->{dst}"
                 probe_name = "P4" if src == "base" else "P4down"
                 if ld["status"] != "ok":
-                    divs.append(Divergence(probe_name, f"{direction} load", [args], "loads", ld))
-                # Only a pickle divergence if two fresh objects on this side do compare equal.
-                elif "eq_fresh" in ld and ld["eq_fresh"] is not True and ld.get("eq_control", True) is True:
+                    if own["status"] == "ok":
+                        divs.append(Divergence(probe_name, f"{direction} load", [args], "loads", ld))
+                # Only a pickle divergence if two fresh objects on this side compare equal and the
+                # round trip on the pickling side keeps equality.
+                elif ("eq_fresh" in ld and ld["eq_fresh"] is not True and ld.get("eq_control", True) is True
+                      and own.get("eq_fresh", True) is True):
                     divs.append(Divergence(probe_name, f"{direction} eq-fresh", [args], True, ld["eq_fresh"]))
 
     report.cpu_s = dict(runner.cpu_s)

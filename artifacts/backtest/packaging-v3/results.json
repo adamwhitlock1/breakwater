@@ -471,7 +471,8 @@
               ]
             }
           ],
-          "perf": null
+          "perf": null,
+          "image_rescored": "bw-pair:f8c16265598b425b"
         }
       ]
     },
@@ -1719,7 +1720,8 @@
               ]
             }
           ],
-          "perf": null
+          "perf": null,
+          "image_rescored": "bw-pair:16f20a2b68c37e6b"
         }
       ]
     },
@@ -1794,17 +1796,13 @@
               "error": null
             },
             "mutations": {
-              "classes": [
-                "P4|base->head eq-fresh|True|False"
-              ],
+              "classes": [],
               "known": [],
               "seconds": 3.6,
               "error": null
             },
             "breakwater": {
-              "classes": [
-                "P4|base->head eq-fresh|True|False"
-              ],
+              "classes": [],
               "known": [],
               "seconds": 49.4,
               "error": null
@@ -1816,30 +1814,9 @@
               "error": null
             }
           },
-          "findings": [
-            {
-              "signature": "P4|base->head eq-fresh|True|False",
-              "probe": "P4",
-              "detail": "base->head eq-fresh",
-              "args": [
-                [
-                  "0"
-                ]
-              ],
-              "base": true,
-              "head": false,
-              "found_by": [
-                "tests",
-                "mutation:whitespace-outer",
-                "mutation:huge-number",
-                "mutation:equivalents",
-                "mutation:case",
-                "mutation:edges",
-                "mutation:separators"
-              ]
-            }
-          ],
-          "perf": null
+          "findings": [],
+          "perf": null,
+          "image_rescored": "bw-pair:b75c39f11bbb1fbf"
         }
       ]
     },
@@ -1933,7 +1910,8 @@
               ]
             }
           ],
-          "perf": null
+          "perf": null,
+          "image_rescored": "bw-pair:ee5fda034cdd7462"
         }
       ]
     },
@@ -2085,7 +2063,8 @@
               ]
             }
           ],
-          "perf": null
+          "perf": null,
+          "image_rescored": "bw-pair:e33c8d8e1355cf11"
         }
       ]
     },
@@ -2644,12 +2623,28 @@
     },
     "items_with_classes": {
       "hypothesis": 4,
-      "mutations": 10,
+      "mutations": 9,
       "llm-plan": 7,
-      "breakwater": 10
+      "breakwater": 9
     },
     "usd": 1.5827,
     "perf_items_slower": 0,
     "provider": "tokenfactory"
-  }
+  },
+  "corrections": [
+    {
+      "item": "#1115",
+      "target": "packaging.version:Version",
+      "image": "bw-pair:b75c39f11bbb1fbf",
+      "removed": {
+        "mutations": [
+          "P4|base->head eq-fresh|True|False"
+        ],
+        "breakwater": [
+          "P4|base->head eq-fresh|True|False"
+        ]
+      },
+      "note": "P4 round-trip control: a pickle class only counts if the object survives a round trip on the version that pickled it"
+    }
+  ]
 }

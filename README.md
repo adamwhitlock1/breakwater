@@ -71,6 +71,12 @@ The audit labels each divergence class `likely-bug`, `intended` or `needs-human`
 uv run breakwater adjudicate artifacts/backtest/packaging-v2
 ```
 
+Turn every finding into a ready-to-commit pytest that pins the old behaviour. Each test is run in the sandbox and kept only if it passes on base and fails on head (audits do this automatically and write `test_regressions.py`):
+
+```bash
+uv run breakwater regress   # backtest v3 -> artifacts/regress/packaging-v3/test_*.py
+```
+
 Build the static report (overview + one page per PR: verdict, counterexample cards with labels and quoted evidence, perf ladder charts, receipts). It reads only committed JSON, makes no network requests, and refuses non-Token-Factory inputs unless `--allow-dev`:
 
 ```bash

@@ -415,3 +415,64 @@ def render_adjudication(results: list[dict], s: dict) -> str:
             lines.append("")
     lines.append("† merged after Nemotron 3 Ultra's release (2026-06-04): no training-data contamination possible.")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------------------------------
+# Regression tests over a finished backtest
+
+
+def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, only: list[str] | None,
+                out_dir: Path, workers: int = 3, log=print) -> dict:
+    """One pytest per finding class of the breakwater arm, verified in the sandbox (passes on base,
+    fails on head). No model calls. Writes <item>.json and test_<item>.py (verified tests only)."""
+    from breakwater import regress
+    from breakwater.images import PairImage, _exists
+
+    meta = json.loads((src_dir / "results.json").read_text())
+    repo = json.loads(Path(meta["corpus"]).read_text())["repo"]
+    labels: dict[tuple[str, str], dict[str, str]] = {}
+    if adjudication:
+        for a in json.loads((adjudication / "adjudication.json").read_text())["items"]:
+            for t in a["targets"]:
+                labels[(a["id"], t["target"])] = {v["signature"]: v["label"] for v in t["verdicts"]}
+    items = [it for it in meta["items"] if not only or it["id"] in only or str(it["pr"]) in only]
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    def one(item: dict) -> dict:
+        slug = item["id"].strip("#").replace("@", "-")
+        targets = []
+        for t in item["targets"]:
+            if not t.get("findings"):
+                continue
+            base_req, head_req = git_req(repo, item["base"]), git_req(repo, item["head"])
+            image = PairImage(t["image"], base_req, head_req) if _exists(t["image"]) else build_pair(base_req, head_req)
+            findings = [adversary.Finding(**f) for f in t["findings"]]
+            tests = regress.for_findings(backend, image, t["target"], findings, item=slug,
+                                         labels=labels.get((item["id"], t["target"])))
+            targets.append({"target": t["target"], "image": image.ref, "tests": [x.to_json() for x in tests]})
+            log(f"{item['id']:>15s} {t['target'].split(':')[1]:22s} {sum(x.verified for x in tests)}/{len(tests)} verified")
+        res = {"id": item["id"], "pr": item["pr"], "targets": targets}
+        (out_dir / f"{slug}.json").write_text(json.dumps(res, indent=2, ensure_ascii=False))
+        verified = [regress.RegressionTest(**{k: v for k, v in x.items() if k != "verified"})
+                    for t in targets for x in t["tests"]]
+        if any(x.verified for x in verified):
+            (out_dir / f"test_{slug.replace('-', '_')}.py").write_text(regress.render_file(
+                verified, f"Regression tests for pypa/packaging {item['id']}: {item['title']}"))
+        return res
+
+    results: list[dict] = []
+    with cf.ThreadPoolExecutor(max_workers=workers) as pool:
+        for fut in cf.as_completed([pool.submit(one, it) for it in items]):
+            results.append(fut.result())
+    tests = [x for r in results for t in r["targets"] for x in t["tests"]]
+    skipped: dict[str, int] = {}
+    for x in tests:
+        if x["skipped"]:
+            skipped[x["skipped"].split(":")[0]] = skipped.get(x["skipped"].split(":")[0], 0) + 1
+    summary = {"classes": len(tests), "generated": sum(bool(x["source"]) for x in tests),
+               "verified": sum(x["verified"] for x in tests),
+               "unverified": [{"signature": x["signature"], "base": x["base"], "head": x["head"]}
+                              for x in tests if x["source"] and not x["verified"]],
+               "skipped": skipped}
+    (out_dir / "summary.json").write_text(json.dumps({"source": str(src_dir), "summary": summary}, indent=2))
+    return summary

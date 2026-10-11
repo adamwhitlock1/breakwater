@@ -199,3 +199,41 @@ def test_p4_skips_builtin_values():
     runner = Runner(backend, PairImage("fake", "base", "head"), Target("ignored", ("str",)))
     divs = run_probes(runner, [["abc"]], ("P1", "P4")).divergences
     assert [d.probe for d in divs] == ["P1"]  # the output change, reported once
+
+
+class _Sentinel:
+    pass
+
+
+class _Cached:
+    """Caches a key holding a sentinel that compares by identity, so a pickle round trip breaks
+    equality on every version (packaging's Infinity sentinels before 26.2 behave like this)."""
+
+    SENTINEL = _Sentinel()
+
+    def __init__(self, s):
+        self.s, self.key = s, None
+
+    def _k(self):
+        if self.key is None:
+            self.key = (self.s, _Cached.SENTINEL)
+        return self.key
+
+    def __eq__(self, other):
+        return self._k() == other._k()
+
+    def __hash__(self):
+        return hash(self.s)
+
+
+def test_p4_ignores_round_trip_failures_that_predate_the_change(monkeypatch):
+    import sys
+    import types
+
+    mod = types.ModuleType("bw_cached")
+    mod.Cached, mod._Sentinel = _Cached, _Sentinel
+    _Cached.__module__ = _Sentinel.__module__ = "bw_cached"
+    monkeypatch.setitem(sys.modules, "bw_cached", mod)
+    backend = InProcessBackend("bw_cached:Cached", "bw_cached:Cached")
+    runner = Runner(backend, PairImage("fake", "base", "head"), Target("ignored", ("str",)))
+    assert run_probes(runner, [["1"]], ("P4",)).divergences == []

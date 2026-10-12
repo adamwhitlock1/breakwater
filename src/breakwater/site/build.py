@@ -446,7 +446,52 @@ def render_runs_list(runs: list[dict]) -> str:
 # PR page
 
 
-def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: str) -> str:
+def render_cards(cards: list[Card], fn: str, repo: str, base: str, head: str, target: str) -> tuple[str, int]:
+    """One card per group of near-duplicate classes (classes.py). Returns (html, number of groups)."""
+    from breakwater.classes import group_classes
+
+    by_sig = {c.finding.signature: c for c in cards}
+    groups = group_classes([c.finding.signature for c in cards], {c.finding.signature: c.label for c in cards},
+                           {c.finding.signature: len(json.dumps(c.finding.args)) for c in cards})
+    html = []
+    for g in groups:
+        primary = by_sig[g.primary]
+        members = [by_sig[m] for m in g.members]
+        known = list(dict.fromkeys(k for c in members for k in c.known))
+        card = Card(primary.finding, primary.verdict, known, primary.arms, primary.test)
+        html.append(render_card(card, fn, repo, base, head, target, extra=render_duplicates(g, by_sig, fn)))
+    return "".join(html), len(groups)
+
+
+def groups_text(groups: int, classes: int) -> str:
+    if groups == classes:
+        return f"{classes} class{'es' if classes != 1 else ''}"
+    return f"{groups} group{'s' if groups != 1 else ''} of {classes} classes"
+
+
+def render_duplicates(g, by_sig: dict[str, Card], fn: str) -> str:
+    if not g.duplicates:
+        return ""
+    rows = []
+    for sig in g.duplicates:
+        c = by_sig[sig]
+        f = c.finding
+        text = card_text(f.probe, f.detail, f.args, f.base, f.head, fn)
+        known = "".join(f'<span class="known">{esc(k)}</span>' for k in c.known)
+        test = c.test or {}
+        mark = ' <span class="chip ok sm">test verified</span>' if test.get("verified") else ""
+        shared = ' <span class="muted small">(also under another group)</span>' if sig in g.shared else ""
+        rows.append(f'<li><code class="bidi">{esc(" vs ".join(v for _, v in text["inputs"]))}</code>'
+                    f'<span class="muted small"> base {esc(text["base"])} · head {esc(text["head"])}</span>'
+                    f'{known}{mark}{shared}</li>')
+    n = len(g.duplicates)
+    what = "relation flip" if g.key == "P3|ordering" else "class"
+    return (f'<details class="dups"><summary>{n} near-duplicate {what}{"es" if n > 1 else ""} '
+            f'<span class="muted small">same behaviour, inputs with extra traits</span></summary>'
+            f'<ul>{"".join(rows)}</ul></details>')
+
+
+def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: str, extra: str = "") -> str:
     f, v = card.finding, card.verdict
     # The base/head boxes already state the facts; keep only what they can't show (how the two
     # exception types relate).
@@ -486,6 +531,7 @@ def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: st
   <p class="found">Found by: {esc(how)}{baseline}</p>
   {render_test(card.test)}
   {repro}
+  {extra}
 </article>"""
 
 
@@ -560,10 +606,12 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
                        f'<code>{esc(k["id"])}</code> · fixed by {fix_s} · {esc(k["status"])}'
                        f'{" · first found by Breakwater" if k.get("discovered_by") == "breakwater" else ""}</li>')
         known = f'<section><h2>Known regressions in this PR</h2><ul class="known-list">{"".join(lis)}</ul></section>'
-    cards_html = []
+    cards_html, n_groups = [], 0
     for t in it.targets:
         fn = t.target.split(":")[1].split("#")[0]
-        cards_html += [render_card(c, fn, repo, r["base"], r["head"], t.target) for c in t.cards]
+        html, n = render_cards(t.cards, fn, repo, r["base"], r["head"], t.target)
+        cards_html.append(html)
+        n_groups += n
     counts = {k: sum(c.label == k for c in it.cards) for k in LABEL_ORDER}
     summary = ", ".join(f"{n} {LABEL_TEXT[k].lower()}" for k, n in counts.items() if n)
     verdict_text = {
@@ -571,8 +619,9 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
         "REVIEW": "Behaviour changed; the evidence does not settle whether it was intended.",
         "PASS": "No unintended behaviour change found." if it.cards else "No behaviour divergence found by any probe.",
     }[it.verdict]
-    cards_section = (f'<section><h2>Counterexamples <small class="muted">· {len(it.cards)} classes: {esc(summary)}</small>'
-                     f'</h2><div class="cards">{"".join(cards_html)}</div></section>') if it.cards else ""
+    cards_section = (f'<section><h2>Counterexamples <small class="muted">· {groups_text(n_groups, len(it.cards))}: '
+                     f'{esc(summary)}</small></h2><div class="cards">{"".join(cards_html)}</div></section>') \
+        if it.cards else ""
     verified = [c.test for c in it.cards if c.test and c.test.get("verified")]
     tests_note = (f'<section><h2>Regression tests</h2><p class="section-lede">{len(verified)} of {len(it.cards)} classes '
                   "have a generated pytest that pins the old behaviour. Each passed on the base commit and failed on "
@@ -667,9 +716,9 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
                 f'<ol class="attacks">{"".join(lis)}</ol></section>')
     counts = {k: sum(c.label == k for c in cards) for k in LABEL_ORDER}
     summary = ", ".join(f"{n} {LABEL_TEXT[k].lower()}" for k, n in counts.items() if n)
-    cards_html = "".join(render_card(c, fn, repo, base, head, target) for c in cards)
-    cards_section = (f'<section><h2>Counterexamples <small class="muted">· {len(cards)} classes: {esc(summary)}</small>'
-                     f'</h2><div class="cards">{cards_html}</div></section>') if cards else ""
+    cards_html, n_groups = render_cards(cards, fn, repo, base, head, target)
+    cards_section = (f'<section><h2>Counterexamples <small class="muted">· {groups_text(n_groups, len(cards))}: '
+                     f'{esc(summary)}</small></h2><div class="cards">{cards_html}</div></section>') if cards else ""
     n_verified = sum(bool(c.test and c.test.get("verified")) for c in cards)
     tests_href = f"../tests/run_{report['run_id']}.py" if site_nav else "test_regressions.py"
     tests_note = (f'<section><h2>Regression tests</h2><p class="section-lede">{n_verified} of {len(cards)} classes have '

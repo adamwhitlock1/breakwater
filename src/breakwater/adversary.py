@@ -518,20 +518,33 @@ def render_markdown(r: AuditReport, verdicts: dict[str, Any] | None = None) -> s
         summary,
         "",
     ]
-    findings = sorted(r.findings, key=lambda f: _LABEL_ORDER.get(verdicts[f.signature].label, 1)
-                      if verdicts and f.signature in verdicts else 1)
-    for f in findings:
-        args = json.dumps(f.args, ensure_ascii=False)
-        args = args if len(args) <= 120 else args[:100] + f"… ({len(args)} chars)"
+    from breakwater.classes import group_classes
+
+    labels = {sig: v.label for sig, v in (verdicts or {}).items()}
+    by_sig = {f.signature: f for f in r.findings}
+    groups = group_classes([f.signature for f in r.findings], labels, {f.signature: _size(f.args) for f in r.findings})
+    groups.sort(key=lambda g: _LABEL_ORDER.get(g.label, 1) if verdicts else 1)
+    if len(groups) < len(r.findings):
+        lines += [f"{len(r.findings)} classes in {len(groups)} group{'s' if len(groups) != 1 else ''} "
+                  "of near-duplicates.", ""]
+
+    def short(args: Any) -> str:
+        s = json.dumps(args, ensure_ascii=False)
+        return s if len(s) <= 120 else s[:100] + f"… ({len(s)} chars)"
+
+    for g in groups:
+        f = by_sig[g.primary]
         v = (verdicts or {}).get(f.signature)
         lines += [
-            f"- {f'**{v.label}** ' if v else ''}**[{f.probe}] {f.detail}**: input `{args}`",
+            f"- {f'**{v.label}** ' if v else ''}**[{f.probe}] {f.detail}**: input `{short(f.args)}`",
             f"  - base: `{json.dumps(f.base, ensure_ascii=False)[:160]}`",
             f"  - head: `{json.dumps(f.head, ensure_ascii=False)[:160]}`",
             f"  - found by: {', '.join(f.found_by)}",
         ]
         if v and v.rationale:
             lines.append(f"  - why: {v.rationale}" + (f" ({v.reason})" if v.reason else ""))
+        if g.duplicates:
+            lines.append("  - near-duplicates: " + "; ".join(f"`{short(by_sig[d].args)}`" for d in g.duplicates))
     lines += ["", "### Attacks planned"]
     for a in r.attacks:
         ran = [s for s in r.strategies if s.attack == a.id]

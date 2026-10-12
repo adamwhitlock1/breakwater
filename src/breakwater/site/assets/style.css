@@ -291,3 +291,10 @@ figcaption { color: var(--muted); font-size: 0.84rem; margin-top: 6px; }
 details.test summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 details.test pre { font-size: 0.78rem; max-height: 320px; overflow: auto; white-space: pre; overflow-wrap: normal; }
 details.test code { unicode-bidi: bidi-override; direction: ltr; }
+
+/* Near-duplicate classes */
+details.dups { border-top: 1px dashed var(--border); padding-top: 8px; font-size: 0.86rem; }
+details.dups summary { cursor: pointer; color: var(--accent); }
+details.dups ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+details.dups li { overflow-wrap: anywhere; }
+details.dups .known { margin-left: 6px; }

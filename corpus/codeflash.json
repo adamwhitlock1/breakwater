@@ -1,0 +1,276 @@
+{
+ "name": "codeflash",
+ "items": [
+  {
+   "id": "json_repair#113",
+   "pr": 113,
+   "repo": "https://github.com/mangiucugna/json_repair",
+   "title": "⚡️ Speed up method `ObjectComparer.is_same_object` by 109%",
+   "base": "ec462b47b30464b66eaaec6753a8db3d79522253",
+   "head": "cbfa7a1c6fa8360f90303c5b9b8054ef2f6298bb",
+   "merged": "2025-05-16",
+   "after_ultra_release": false,
+   "known": [],
+   "targets": [
+    {
+     "callable": "json_repair.object_comparer:ObjectComparer.is_same_object",
+     "observe": [
+      "value"
+     ],
+     "arg_kinds": [
+      "json",
+      "json"
+     ]
+    }
+   ],
+   "install": {
+    "exclude_newer": "2025-05-17"
+   }
+  },
+  {
+   "id": "rendercv#17",
+   "pr": 17,
+   "repo": "https://github.com/IanHollow/rendercv",
+   "title": "⚡️ Speed up function `validate_typst_dimension` by 59%",
+   "base": "ddd75cabd6753939b4c3b18f40c061dae77c8021",
+   "head": "7f7abe4ebf939e25ebac92b9d1d43f226e80b373",
+   "merged": "2026-08-10",
+   "after_ultra_release": true,
+   "known": [],
+   "targets": [
+    {
+     "callable": "rendercv.themes.options:validate_typst_dimension",
+     "observe": [
+      "value"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "exclude_newer": "2026-08-11"
+   }
+  },
+  {
+   "id": "rendercv#18",
+   "pr": 18,
+   "repo": "https://github.com/IanHollow/rendercv",
+   "title": "⚡️ Speed up function `validate_date_field` by 47%",
+   "base": "9ec5e7bd90913bce5b157e34b11a6e797fe57164",
+   "head": "d5f419015d7370b104f2e7620819df1ec0ff64ee",
+   "merged": "2026-08-10",
+   "after_ultra_release": true,
+   "known": [],
+   "targets": [
+    {
+     "callable": "rendercv.data.models.computers:get_date_object",
+     "observe": [
+      "str",
+      "repr"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "exclude_newer": "2026-08-11"
+   }
+  },
+  {
+   "id": "rendercv#19",
+   "pr": 19,
+   "repo": "https://github.com/IanHollow/rendercv",
+   "title": "⚡️ Speed up function `validate_start_and_end_date_fields` by 34%",
+   "base": "7f7abe4ebf939e25ebac92b9d1d43f226e80b373",
+   "head": "9ec5e7bd90913bce5b157e34b11a6e797fe57164",
+   "merged": "2026-08-10",
+   "after_ultra_release": true,
+   "known": [],
+   "targets": [
+    {
+     "callable": "rendercv.data.models.computers:get_date_object",
+     "observe": [
+      "str",
+      "repr"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "exclude_newer": "2026-08-11"
+   }
+  },
+  {
+   "id": "pyhs3#154",
+   "pr": 154,
+   "repo": "https://github.com/scipp-atlas/pyhs3",
+   "title": "perf: Speed up function `parse_expression` by 785%",
+   "base": "6ed3734a99ae4d14758d3e6c9c79dfdfc28b3279",
+   "head": "483202e2a159a3e4e642b0d46a14a8b34600f72a",
+   "merged": "2026-01-26",
+   "after_ultra_release": false,
+   "known": [],
+   "targets": [
+    {
+     "callable": "pyhs3.generic_parse:parse_expression",
+     "observe": [
+      "str",
+      "repr"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "exclude_newer": "2026-01-27"
+   }
+  },
+  {
+   "id": "Math-Interpreter#1",
+   "pr": 1,
+   "repo": "https://github.com/hoopinwhoopin/Math-Interpreter",
+   "title": "⚡️ Speed up method `Lexer.generate_number` by 11%",
+   "base": "c7c1b7e931e873f6d919522b50911ee3571b2e1e",
+   "head": "04c05ed37563f0158b9148535c69390e3464dafd",
+   "merged": "2025-02-09",
+   "after_ultra_release": false,
+   "known": [],
+   "targets": [
+    {
+     "callable": "lexer:Lexer#generate_tokens",
+     "observe": [
+      "value"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "mode": "src",
+    "subdir": "",
+    "deps": [],
+    "exclude_newer": "2025-02-10"
+   }
+  },
+  {
+   "id": "patterns#9",
+   "pr": 9,
+   "repo": "https://github.com/fabriziosalmi/patterns",
+   "title": "⚡️ Speed up function `validate_regex` by 9,172%",
+   "base": "1a98411808332cac22183dfc4182a74759d0cca4",
+   "head": "1a4a2d4e42342721e2e46f479864e8741042ebf6",
+   "merged": "2025-02-09",
+   "after_ultra_release": false,
+   "known": [],
+   "targets": [
+    {
+     "callable": "json2haproxy:validate_regex",
+     "observe": [
+      "value"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "mode": "src",
+    "subdir": "",
+    "deps": [],
+    "exclude_newer": "2025-02-10"
+   }
+  },
+  {
+   "id": "patterns#12",
+   "pr": 12,
+   "repo": "https://github.com/fabriziosalmi/patterns",
+   "title": "⚡️ Speed up function `sanitize_pattern` by 11,547%",
+   "base": "1a4a2d4e42342721e2e46f479864e8741042ebf6",
+   "head": "fb284892f1cd90ee55fd99a8383f537fef1d520e",
+   "merged": "2025-02-09",
+   "after_ultra_release": false,
+   "known": [],
+   "targets": [
+    {
+     "callable": "json2nginx:sanitize_pattern",
+     "observe": [
+      "value"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "mode": "src",
+    "subdir": "",
+    "deps": [],
+    "exclude_newer": "2025-02-10"
+   }
+  },
+  {
+   "id": "caddy-feeds#4",
+   "pr": 4,
+   "repo": "https://github.com/fabriziosalmi/caddy-feeds",
+   "title": "⚡️ Speed up function `is_excluded` by 17,376%",
+   "base": "f5e3d0c28fe86f51150194ba903055ab6a146a69",
+   "head": "d94d92d5d9dafa5b20b06ab7b7f129952309187e",
+   "merged": "2025-02-09",
+   "after_ultra_release": false,
+   "known": [],
+   "targets": [
+    {
+     "callable": "ip:is_excluded",
+     "observe": [
+      "value"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "mode": "src",
+    "subdir": "scripts",
+    "deps": [
+     "requests",
+     "pyyaml",
+     "aiohttp",
+     "prometheus-client"
+    ],
+    "exclude_newer": "2025-02-10"
+   }
+  },
+  {
+   "id": "micropie#3",
+   "pr": 3,
+   "repo": "https://github.com/hoopinwhoopin/micropie",
+   "title": "⚡️ Speed up method `Server._parse_cookies` by 6%",
+   "base": "b760304db8ecfe6577a17fac0623c07972427516",
+   "head": "19ce2334b6c8ce9217d0e7b7aea3a66d75f83b19",
+   "merged": "2025-02-03",
+   "after_ultra_release": false,
+   "known": [],
+   "targets": [
+    {
+     "callable": "MicroPie:App()#_parse_cookies",
+     "observe": [
+      "value"
+     ],
+     "arg_kinds": [
+      "str"
+     ]
+    }
+   ],
+   "install": {
+    "exclude_newer": "2025-02-04"
+   }
+  }
+ ]
+}

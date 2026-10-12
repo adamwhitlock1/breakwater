@@ -74,10 +74,11 @@ def gather(repo: str, base: str, head: str, target: str) -> Context:
 
     module = target.split(":")[0].replace(".", "/") + ".py"
     files = _git(path, "ls-tree", "-r", "--name-only", head).splitlines()
-    match = next((f for f in files if f.endswith(module)), None)
+    # Whole path components only: module "ip" must not match "scripts/zip.py".
+    match = next((f for f in files if f == module or f.endswith("/" + module)), None)
     if match is None:  # package __init__
         pkg = target.split(":")[0].replace(".", "/") + "/__init__.py"
-        match = next((f for f in files if f.endswith(pkg)), None)
+        match = next((f for f in files if f == pkg or f.endswith("/" + pkg)), None)
     source = _git(path, "show", f"{head}:{match}") if match else ""
     if len(source) > MAX_SOURCE_CHARS:
         source = source[:MAX_SOURCE_CHARS] + "\n# ... [source truncated]"

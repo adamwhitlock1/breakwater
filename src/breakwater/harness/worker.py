@@ -170,6 +170,12 @@ def _warm(obj):
             pass
 
 
+def _relation_value(v):
+    if isinstance(v, bool) or v is None:
+        return v
+    return f"<{type(v).__module__}.{type(v).__qualname__}: {_jsonable(v)}>"
+
+
 def _relations(objs, timeout_s):
     rel = {}
     for i, j in itertools.combinations(range(len(objs)), 2):
@@ -179,7 +185,9 @@ def _relations(objs, timeout_s):
         r = {}
         for name, fn in (("eq", lambda a=a, b=b: a == b), ("lt", lambda a=a, b=b: a < b),
                          ("gt", lambda a=a, b=b: a > b), ("hash_eq", lambda a=a, b=b: hash(a) == hash(b))):
-            kind, val = _guard(fn, timeout_s)
+            # Rich comparisons may return objects, not bools (sympy's `a < b` is a StrictLessThan;
+            # numpy returns arrays): record those by normalised repr, under the same guard.
+            kind, val = _guard(lambda fn=fn: _relation_value(fn()), timeout_s)
             r[name] = val if kind == "ok" else f"<{kind}{':' + val if val else ''}>"
         rel[f"{i},{j}"] = r
     return rel
@@ -187,9 +195,12 @@ def _relations(objs, timeout_s):
 
 def resolve(spec):
     """"pkg.mod:Callable" calls Callable(*args). "pkg.mod:Class#method" builds Class(args[0]) and
-    calls .method(*args[1:]); iterator results are listed so they can be observed and compared."""
+    calls .method(*args[1:]); "pkg.mod:Class()#method" builds Class() and calls .method(*args).
+    Iterator results are listed so they can be observed and compared."""
     mod_name, _, attr = spec.partition(":")
     attr, _, method = attr.partition("#")
+    bare = attr.endswith("()")
+    attr = attr.removesuffix("()")
     obj = importlib.import_module(mod_name)
     for part in attr.split("."):
         obj = getattr(obj, part)
@@ -197,13 +208,14 @@ def resolve(spec):
         return obj
     cls = obj
 
-    def call(first, *rest):
-        result = getattr(cls(first), method)(*rest)
+    def listed(result):
         if hasattr(result, "__next__") and not isinstance(result, (str, bytes)):
             result = list(result)
         return result
 
-    return call
+    if bare:
+        return lambda *args: listed(getattr(cls(), method)(*args))
+    return lambda first, *rest: listed(getattr(cls(first), method)(*rest))
 
 
 def run(req):

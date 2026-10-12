@@ -64,7 +64,7 @@ def py_literal(v: Any) -> str:
 
 
 def split_target(target: str) -> tuple[str, str, str]:
-    """"pkg.mod:Class#method" -> ("pkg.mod", "Class", "method")."""
+    """"pkg.mod:Class#method" -> ("pkg.mod", "Class", "method"); "Class()#method" keeps the "()"."""
     mod, _, attr = target.partition(":")
     attr, _, method = attr.partition("#")
     return mod, attr, method
@@ -73,6 +73,8 @@ def split_target(target: str) -> tuple[str, str, str]:
 def call_expr(target: str, args: list[Any]) -> str:
     _, name, method = split_target(target)
     lits = [py_literal(a) for a in args]
+    if method and name.endswith("()"):
+        return f"{name}.{method}({', '.join(lits)})"
     if method:
         return f"{name}({lits[0]}).{method}({', '.join(lits[1:])})"
     return f"{name}({', '.join(lits)})"
@@ -80,7 +82,7 @@ def call_expr(target: str, args: list[Any]) -> str:
 
 def import_line(target: str) -> str:
     mod, name, _ = split_target(target)
-    return f"from {mod} import {name.split('.')[0]}"
+    return f"from {mod} import {name.removesuffix('()').split('.')[0]}"
 
 
 def _exc_import(qualified: str) -> tuple[str, str]:
@@ -173,7 +175,7 @@ def generate(f: Any, target: str, *, item: str = "", label: str | None = None, i
         return RegressionTest(f.signature, name, "", skipped=f"no template for {probe}")
 
     code = "\n".join(lines)
-    target_name = split_target(target)[1].split(".")[0]
+    target_name = split_target(target)[1].removesuffix("()").split(".")[0]
     if not re.search(rf"\b{re.escape(target_name)}\(", code):
         imports = [i for i in imports if i != import_line(target)]
     body = "\n".join(f"    {x}" if x else "" for x in [f'"""{doc}"""', *sort_imports(imports), *lines])

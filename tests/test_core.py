@@ -121,3 +121,61 @@ def test_events_are_ordered_and_reserved_fields_cannot_be_overwritten(tmp_path):
         ev("family", kind="claimed_speedup")  # a perf family's kind once crashed a live run
     with pytest.raises(ValueError, match="reserved"):
         NULL("x", t=1)  # checked even when not recording, so tests catch it
+
+
+def test_install_lines_for_packages_scripts_and_pinned_dates():
+    from breakwater.images import _install_lines, req_for
+
+    pip = req_for("https://github.com/o/r", "abc", {"exclude_newer": "2026-01-27"})
+    assert _install_lines(pip, "base") == [
+        'RUN uv pip install -q --exclude-newer 2026-01-27 --python /envs/base/bin/python "git+https://github.com/o/r@abc"']
+    src = req_for("https://github.com/o/s", "def", {"mode": "src", "subdir": "scripts", "deps": ["pyyaml"]})
+    lines = _install_lines(src, "head")
+    assert lines[0] == "RUN git clone -q https://github.com/o/s /src/head && git -C /src/head checkout -q def"
+    assert 'uv pip install -q --python /envs/head/bin/python "pyyaml"' in lines[1]
+    assert "breakwater_src.pth" in lines[2] and "/src/head/scripts" in lines[2]
+    assert req_for("https://github.com/o/r", "abc") == "git+https://github.com/o/r@abc"
+
+
+def test_bare_constructor_method_targets(monkeypatch):
+    import sys
+    import types
+
+    from breakwater.harness.worker import resolve
+    from breakwater.regress import call_expr, import_line
+
+    mod = types.ModuleType("bw_app")
+
+    class App:
+        def parse(self, s):
+            return s.split(";")
+
+    mod.App = App
+    monkeypatch.setitem(sys.modules, "bw_app", mod)
+    assert resolve("bw_app:App()#parse")("a;b") == ["a", "b"]
+    assert call_expr("bw_app:App()#parse", ["a;b"]) == "App().parse('a;b')"
+    assert import_line("bw_app:App()#parse") == "from bw_app import App"
+
+
+def test_requests_that_hang_hit_the_deadline_and_retry(monkeypatch):
+    import time
+    from types import SimpleNamespace
+
+    from breakwater import llm
+
+    calls = []
+
+    def create(**kw):
+        calls.append(time.monotonic())
+        if len(calls) == 1:
+            time.sleep(1.0)  # a provider trickling keep-alive bytes forever
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="ok"), finish_reason="stop")],
+                               usage=None)
+
+    monkeypatch.setattr(llm, "REQUEST_DEADLINE_S", 0.2)
+    monkeypatch.setattr(llm, "RETRY_DELAYS_S", (0,))
+    client = llm.Nemotron.__new__(llm.Nemotron)
+    client.client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    t0 = time.monotonic()
+    assert client._create(model="m").choices[0].message.content == "ok"
+    assert len(calls) == 2 and time.monotonic() - t0 < 0.9  # abandoned the hung call, didn't wait it out

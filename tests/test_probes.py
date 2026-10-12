@@ -237,3 +237,35 @@ def test_p4_ignores_round_trip_failures_that_predate_the_change(monkeypatch):
     backend = InProcessBackend("bw_cached:Cached", "bw_cached:Cached")
     runner = Runner(backend, PairImage("fake", "base", "head"), Target("ignored", ("str",)))
     assert run_probes(runner, [["1"]], ("P4",)).divergences == []
+
+
+class _Symbolic:
+    """Rich comparisons that return objects (like sympy) must not crash the relations probe."""
+
+    def __init__(self, s):
+        self.s = s
+
+    def __lt__(self, other):
+        return ("Lt", self.s, other.s)
+
+    def __gt__(self, other):
+        return ("Gt", self.s, other.s)
+
+    def __eq__(self, other):
+        return self.s == other.s
+
+    def __hash__(self):
+        return hash(self.s)
+
+
+def test_relations_survive_non_bool_comparisons(monkeypatch):
+    import sys
+    import types
+
+    mod = types.ModuleType("bw_sym")
+    mod.Sym = _Symbolic
+    _Symbolic.__module__ = "bw_sym"
+    monkeypatch.setitem(sys.modules, "bw_sym", mod)
+    res = worker.run({"target": "bw_sym:Sym", "observe": ["str"], "ops": [{"op": "relations", "inputs": [["a"], ["b"]]}]})
+    rel = res["results"][0]["relations"]["0,1"]
+    assert rel["eq"] is False and rel["lt"].startswith("<builtins.tuple:") and json.dumps(res)

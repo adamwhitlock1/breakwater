@@ -273,11 +273,19 @@ def _ir(backend: Backend, image: PairImage, side: str, target: Target, inputs: l
     return int(m.group(1).replace(",", ""))
 
 
-def ir_per_call(backend: Backend, image: PairImage, side: str, target: Target, inputs: list, reps: int) -> float:
-    """(Ir at 2R - Ir at R) / (R * len(inputs)): start-up, imports and input parsing cancel."""
-    lo = _ir(backend, image, side, target, inputs, reps)
-    hi = _ir(backend, image, side, target, inputs, 2 * reps)
-    return (hi - lo) / (reps * len(inputs))
+LINEARITY_TOLERANCE = 0.10
+
+
+def ir_per_call(backend: Backend, image: PairImage, side: str, target: Target, inputs: list, reps: int) -> float | None:
+    """Instructions per call from Ir at R, 2R and 3R repetitions: start-up, imports and input parsing
+    cancel in the differences. The two increments must agree (within LINEARITY_TOLERANCE): a target
+    with caches or other state (lru_cache, sympy's cache) can make repetition non-linear, and then
+    no per-call number is honest, so None ("unmeasured") instead of a misleading ratio."""
+    r1, r2, r3 = (_ir(backend, image, side, target, inputs, k * reps) for k in (1, 2, 3))
+    d1, d2 = r2 - r1, r3 - r2
+    if d1 <= 0 or d2 <= 0 or abs(d1 - d2) > LINEARITY_TOLERANCE * max(d1, d2):
+        return None
+    return (d1 + d2) / 2 / (reps * len(inputs))
 
 
 def slope(points: list[tuple[float, float]]) -> float | None:
@@ -536,7 +544,9 @@ def screen(backend: Backend, image: PairImage, target: Target, fam: Family, ladd
         fam.valid_fraction = validity(backend, image, target, inputs)
         b = ir_per_call(backend, image, "base", target, inputs, _reps_for(inputs))
         h = ir_per_call(backend, image, "head", target, inputs, _reps_for(inputs))
-        fam.screen_ratio = h / b if b > 0 else None
+        fam.screen_ratio = h / b if b and h else None
+        if fam.screen_ratio is None:
+            fam.error = fam.error or "unmeasured: instruction count not linear in repetitions (caching or state)"
     except Exception as e:  # noqa: BLE001
         fam.error = fam.error or f"screen failed: {str(e)[:200]}"
 

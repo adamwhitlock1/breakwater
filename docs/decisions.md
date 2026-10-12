@@ -2,6 +2,28 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-12: Instructions per call need a linear fit; relations accept non-bool comparisons
+- **Linear Ir:** instructions per call now come from Ir at R, 2R and 3R repetitions. A point counts only if the two increments agree within 10% and are positive; otherwise it is "unmeasured".
+  - **Why:** memoising targets aren't linear in repetitions. In the Codeflash dev run, pyhs3 #154 (`lru_cache` plus sympy's own cache) produced a ladder of 1.59, 0.86, 0.97, 4.65, 1.5, 2.02 and −0.52 under the two-point method, and a 4.65× "slower" verdict that was pure artifact.
+  - **Cost:** one extra cachegrind run per measurement.
+  - **Spot check:** the three-point method matches the published two-point numbers for non-memoising targets: packaging #1030 R1 within a few percent; micropie #3 F4 1.712 → 1.711. Published numbers stand.
+- **Non-bool relations:** the relations probe crashed the worker when `a < b` returned an object (sympy's `StrictLessThan`), which made every pyhs3 arm fail. Non-bool results are now recorded by normalised repr.
+- **Request deadline:** every model request now has a 15-minute wall-clock deadline and is retried after it. The SDK timeout bounds the gap between bytes, so an OpenRouter call that trickled keep-alive bytes sat in an SSL read for 30+ minutes. The free Ultra route still stalled repeatedly on pyhs3's plan; that dev re-run was stopped.
+- **Reverse if:** never. Memoisation is common in AI speedups (4 of the 10 Codeflash PRs add `lru_cache`).
+
+## 2026-10-12: Codeflash corpus: script repos, merge-date dependencies, no ground truth
+- **What:**
+  - Ten merged Codeflash-bot speedup PRs: json_repair, rendercv ×3, pyhs3, Math-Interpreter, patterns ×2, caddy-feeds and micropie.
+  - Repos that aren't packages are cloned at the commit and put on the venv path.
+  - Every item's dependencies resolve as of the day after its merge.
+  - Base is the merge commit's first parent.
+- **Why:**
+  - The most aggressive speedup claims (9,172%, 17,376%) are in script repos, so leaving those out would bias the sample toward tidy packages.
+  - Unpinned dependencies drift: pyhs3 failed to import against a 2026-10 pytensor.
+  - Without known regressions, the claim is "N of M merged AI speedups change behaviour or don't deliver", with each finding adjudicated and checked by a verified regression test.
+- **Excluded:** kornia, roboflow/inference, langflow, gdsfactory and chembench (torch, klayout, LLM SDKs, cloud clients), app repos without a package, and targets that need keyword arguments or live objects.
+- **Reverse if:** a Codeflash PR turns out to need its repo's test fixtures to behave realistically. In that case, add fixtures to the item.
+
 ## 2026-10-11: Perf verdicts use only ladder sizes with mostly valid inputs
 - **What:**
   - Every ladder size records `valid_fraction`: the share of its inputs that the base version accepts.

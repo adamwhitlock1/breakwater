@@ -26,7 +26,7 @@ from typing import Any
 
 from breakwater import adversary, ledger, perf
 from breakwater.backends import Backend
-from breakwater.images import build_pair, git_req
+from breakwater.images import build_pair, req_for
 from breakwater.llm import Nemotron
 from breakwater.models import active_provider
 from breakwater.mutate import mutate_args
@@ -86,9 +86,20 @@ def literal_args(lits: list[str], arg_kinds: list[str]) -> list[list[Any]]:
     return out
 
 
+JSON_STRATEGY = ("st.recursive(st.none() | st.booleans() | st.integers() | st.floats(allow_nan=False) | "
+                 "st.text(max_size=8), lambda c: st.lists(c, max_size=4) | st.dictionaries(st.text(max_size=4), c, "
+                 "max_size=4), max_leaves=8)")
+
+
 def generic_strategy(arg_kinds: list[str]) -> str:
-    parts = ["st.lists(st.text(max_size=20), max_size=4)" if k.startswith("list") else "st.text(max_size=30)"
-             for k in arg_kinds]
+    def one(k: str) -> str:
+        if k.startswith("list"):
+            return "st.lists(st.text(max_size=20), max_size=4)"
+        if k == "json":
+            return JSON_STRATEGY
+        return "st.text(max_size=30)"
+
+    parts = [one(k) for k in arg_kinds]
     return f"strategy = {parts[0]}" if len(parts) == 1 else f"strategy = st.tuples({', '.join(parts)})"
 
 
@@ -111,7 +122,7 @@ def run_target(item: dict, tgt: dict, repo: str, backend: Backend, *, arms: tupl
     target = Target(tgt["callable"], tuple(tgt["observe"]))
     arg_kinds = tgt.get("arg_kinds", ["str"])
     ctx = gather(repo, item["base"], item["head"], tgt["callable"])
-    image = build_pair(git_req(repo, item["base"]), git_req(repo, item["head"]))
+    image = build_pair(req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install")))
     results: dict[str, ArmResult] = {}
 
     def timed(name: str, fn) -> None:
@@ -195,10 +206,12 @@ def run(corpus_path: str, backend: Backend, *, only: list[str] | None, arms: tup
     results: list[dict] = []
 
     def one(item: dict) -> dict:
-        targets = [run_target(item, t, corpus["repo"], backend, arms=arms, do_perf=do_perf, seed=seed, log=log)
+        repo = item.get("repo", corpus.get("repo"))
+        targets = [run_target(item, t, repo, backend, arms=arms, do_perf=do_perf, seed=seed, log=log)
                    for t in item["targets"]]
         res = {**{k: item[k] for k in ("id", "pr", "title", "base", "head", "merged", "after_ultra_release", "known")},
-               "targets": targets}
+               **({"repo": item["repo"]} if "repo" in item else {}),
+               **({"install": item["install"]} if "install" in item else {}), "targets": targets}
         (out_dir / f"{item['id'].strip('#').replace('@', '-')}.json").write_text(
             json.dumps(res, indent=2, ensure_ascii=False, default=str))
         return res
@@ -290,7 +303,7 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
     from breakwater.repo import intent_diff
 
     meta = json.loads((src_dir / "results.json").read_text())
-    repo = json.loads(Path(meta["corpus"]).read_text())["repo"]
+    corpus_repo = json.loads(Path(meta["corpus"]).read_text()).get("repo")
     items = [json.loads(p.read_text()) for p in sorted(src_dir.glob("*.json")) if p.name != "results.json"]
     items = [it for it in items if not only or it["id"] in only or str(it["pr"]) in only]
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -304,8 +317,9 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
             run_id = f"adj-{item['id'].strip('#').replace('@', '-')}-{uuid.uuid4().hex[:6]}"
             llm = Nemotron(run_id=run_id)
             findings = [adversary.Finding(**f) for f in t["findings"]]
+            repo = item.get("repo", corpus_repo)
             ctx = gather(repo, item["base"], item["head"], t["target"])
-            base_req, head_req = git_req(repo, item["base"]), git_req(repo, item["head"])
+            base_req, head_req = req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install"))
             image = PairImage(t["image"], base_req, head_req) if _exists(t["image"]) else build_pair(base_req, head_req)
             mros = adj.exception_facts(backend, image, findings)
             res = adj.adjudicate(llm, ctx, findings, title=item["title"],
@@ -418,7 +432,7 @@ def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, o
     from breakwater.images import PairImage, _exists
 
     meta = json.loads((src_dir / "results.json").read_text())
-    repo = json.loads(Path(meta["corpus"]).read_text())["repo"]
+    corpus_repo = json.loads(Path(meta["corpus"]).read_text()).get("repo")
     labels: dict[tuple[str, str], dict[str, str]] = {}
     if adjudication:
         for a in json.loads((adjudication / "adjudication.json").read_text())["items"]:
@@ -433,7 +447,8 @@ def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, o
         for t in item["targets"]:
             if not t.get("findings"):
                 continue
-            base_req, head_req = git_req(repo, item["base"]), git_req(repo, item["head"])
+            repo = item.get("repo", corpus_repo)
+            base_req, head_req = req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install"))
             image = PairImage(t["image"], base_req, head_req) if _exists(t["image"]) else build_pair(base_req, head_req)
             findings = [adversary.Finding(**f) for f in t["findings"]]
             tests = regress.for_findings(backend, image, t["target"], findings, item=slug,

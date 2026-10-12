@@ -47,6 +47,16 @@ class EmptyResponse(Exception):
     """A 200 response without choices (OpenRouter returns these when an upstream fails)."""
 
 
+class Deadline(Exception):
+    """A request exceeded REQUEST_DEADLINE_S of wall-clock time. The SDK's timeout bounds the gap
+    between bytes, not the request, and a provider sending keep-alive whitespace never trips it (an
+    OpenRouter call sat in an SSL read for 30+ minutes on 2026-10-12)."""
+
+
+REQUEST_DEADLINE_S = 900  # longest healthy call seen: ~330 s (free Ultra planning)
+_POOL = cf.ThreadPoolExecutor(max_workers=32, thread_name_prefix="nemotron")
+
+
 def strip_think(text: str | None) -> str:
     if not text:
         return ""
@@ -133,11 +143,15 @@ class Nemotron:
     def _create(self, **kw: Any) -> Any:
         for delay in (*RETRY_DELAYS_S, None):
             try:
-                resp = self.client.chat.completions.create(**kw)
+                fut = _POOL.submit(self.client.chat.completions.create, **kw)
+                try:
+                    resp = fut.result(timeout=REQUEST_DEADLINE_S)
+                except cf.TimeoutError:
+                    raise Deadline(f"no response in {REQUEST_DEADLINE_S}s") from None  # the thread is abandoned
                 if not resp.choices:
                     raise EmptyResponse(str(getattr(resp, "error", "") or "no choices"))
                 return resp
-            except (*_RETRYABLE, EmptyResponse) as e:
+            except (*_RETRYABLE, EmptyResponse, Deadline) as e:
                 if delay is None:
                     raise
                 retry_after = getattr(getattr(e, "response", None), "headers", {}).get("retry-after")

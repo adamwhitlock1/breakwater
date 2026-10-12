@@ -56,7 +56,8 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 ### WS3: Corpus and experiments
 - [x] Packaging corpus (`corpus/packaging.json`, built by `scripts/backtest/build_packaging_corpus.py`): 28 merged 2026 library perf PRs + #1082's intermediate commit; base = merge commit's parent; a callable target per PR (incl. `Class#method` targets); 6 verified + 3 candidate known issues; 9 items merged after Nemotron 3 Ultra's release.
 - [x] Backtest runner (`breakwater backtest`): arms `hypothesis` (st.text, no LLM), `mutations` (PR's own test literals + mutations, no LLM), `llm-plan` (Ultra examples only), `breakwater` (full); perf per target; `results.json` + `table.md`.
-- [ ] Codeflash sample: 8–10 pure-Python PRs from `artifacts/corpus/codeflash_prs.json`.
+- [x] Codeflash corpus (`corpus/codeflash.json`, built by `scripts/backtest/build_codeflash_corpus.py`): 10 merged Codeflash-bot speedup PRs in 7 repos, chosen for what runs on 3.12 without heavy native deps and with JSON-able targets. Script repos install as source on the path (`images.src_req`). `Class()#method` targets are supported. Dependencies resolve as of the day after each merge (uv `--exclude-newer`). No known regressions: it measures how many merged AI speedups change behaviour or don't deliver.
+- [ ] Codeflash backtest on Token Factory (after the free dev run); site and README numbers for it.
 - [ ] Sealed real-version corpus (~1M PyPI versions/specifiers); no agent ever sees it.
 - [x] Baselines in the backtest: PR's own tests (0 by construction), plain Hypothesis, no-LLM mutations of test literals, Ultra's plan alone. Dry run on 2 items: 1 / 2 / 3 / **5 of 6** verified issues (hypothesis / mutations / llm-plan / breakwater).
 - [ ] Remaining ablations: Lightning-only vs Ultra planner; no Tavily (Tavily not yet integrated).

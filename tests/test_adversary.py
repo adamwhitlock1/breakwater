@@ -218,3 +218,18 @@ def test_invalid_ladder_points_do_not_decide_the_verdict():
     h = PerfFinding("F4", "suspected_slowdown", "old", "why")
     h.ladder = [LadderPoint(n, 100.0, 130.0, float(n)) for n in (4, 16, 64)]
     assert h.verdict == "slower"
+
+
+def test_ir_per_call_rejects_nonlinear_repetition(monkeypatch):
+    from breakwater import perf
+
+    def fake(counts):
+        return lambda backend, image, side, target, inputs, reps: counts[reps]
+
+    monkeypatch.setattr(perf, "_ir", fake({10: 1_000 + 500, 20: 1_000 + 1_000, 30: 1_000 + 1_500}))
+    assert perf.ir_per_call(None, None, "base", None, [["x"]], 10) == 50.0  # linear: 50 per call
+    # A cache that kicks in with repetition (pyhs3's lru_cache + sympy's cache): increments disagree.
+    monkeypatch.setattr(perf, "_ir", fake({10: 1_500, 20: 1_600, 30: 2_400}))
+    assert perf.ir_per_call(None, None, "base", None, [["x"]], 10) is None
+    monkeypatch.setattr(perf, "_ir", fake({10: 1_500, 20: 1_400, 30: 1_300}))  # fewer instructions with more calls
+    assert perf.ir_per_call(None, None, "base", None, [["x"]], 10) is None

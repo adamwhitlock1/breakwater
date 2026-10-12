@@ -250,7 +250,7 @@
         family(ev);
         break;
       case "measured": {
-        const rs = ev.ladder.map((p) => p.ratio).filter((r) => r);
+        const rs = ev.ladder.filter((p) => p.judged !== false).map((p) => p.ratio).filter((r) => r);
         const span = rs.length ? Math.min(...rs).toFixed(2) + "×–" + Math.max(...rs).toFixed(2) + "×" : "n/a";
         feed("Measured " + ev.family_id + ": " + ev.verdict + " (" + span + " head/base instructions)",
           ev.verdict === "slower" || ev.verdict === "complexity-regression" ? "hit" : "", ev.t);

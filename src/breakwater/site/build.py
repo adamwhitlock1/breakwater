@@ -241,9 +241,14 @@ def ladder_chart(findings: list[dict]) -> str:
         d = " ".join(f"{'M' if j == 0 else 'L'}{px(x):.1f},{py(y):.1f}" for j, (x, y) in enumerate(pts))
         dash = "" if i % 2 == 0 else ";stroke-dasharray:7 4"  # overlapping families stay distinguishable
         out.append(f'<path d="{d}" class="series" style="stroke:{color}{dash}"><title>{esc(f["family_id"])}</title></path>')
-        for x, y in pts:
-            out.append(f'<circle cx="{px(x):.1f}" cy="{py(y):.1f}" r="3" style="fill:{color}">'
-                       f'<title>{esc(f["family_id"])}: {y:.2f}× at ~{x:,.0f} chars</title></circle>')
+        for (x, y), pt in zip(pts, [q for q in f.get("ladder", []) if q.get("ratio") and q.get("input_chars")],
+                              strict=True):
+            judged = pt.get("judged", True)
+            vf = pt.get("valid_fraction")
+            note = "" if judged else f" (excluded: base accepts {vf:.0%} of these inputs)" if vf is not None else ""
+            style = f"fill:{color}" if judged else f"fill:var(--surface);stroke:{color};stroke-width:1.5"
+            out.append(f'<circle cx="{px(x):.1f}" cy="{py(y):.1f}" r="{3 if judged else 4}" style="{style}">'
+                       f'<title>{esc(f["family_id"])}: {y:.2f}× at ~{x:,.0f} chars{esc(note)}</title></circle>')
     out.append("</svg>")
     legend = "".join(f'<li><span class="swatch" style="background:{PALETTE[i % len(PALETTE)]}"></span>'
                      f'{esc(f["family_id"])}</li>' for i, (f, _) in enumerate(series))
@@ -502,15 +507,21 @@ def render_perf(t: TargetView) -> str:
     if not rep or not rep.get("findings"):
         return ""
     rows = []
+    from breakwater.perf import judged
+
+    any_excluded = False
     for f in rep["findings"]:
-        ratios = [p["ratio"] for p in f.get("ladder", []) if p.get("ratio")]
+        ratios = judged(f)
+        excluded = sum(1 for p in f.get("ladder", []) if p.get("ratio") and not p.get("judged", True))
+        any_excluded |= bool(excluded)
         valid = f.get("valid_fraction")
         realistic = valid is not None and valid >= 0.5
         cls = {"slower": "bug", "complexity-regression": "bug", "faster": "ok"}.get(f["verdict"], "none")
         rows.append(
             f'<tr><td><code>{esc(f["family_id"])}</code></td><td class="title-cell">{esc(f["family"])}'
             f'<small>{esc(f.get("kind", "").replace("_", " "))} · {esc(f.get("origin", ""))}'
-            f'{"" if realistic else " · mostly invalid inputs (error path)"}</small></td>'
+            f'{"" if realistic else " · mostly invalid inputs (error path)"}'
+            f'{f" · {excluded} size(s) excluded: mostly invalid inputs" if excluded else ""}</small></td>'
             f'<td class="num">{f"{min(ratios):.2f}× – {max(ratios):.2f}×" if ratios else "–"}</td>'
             f'<td class="num">{(f.get("slope_base") or 0):.2f} → {(f.get("slope_head") or 0):.2f}</td>'
             f'<td><span class="chip {cls} sm">{esc(f["verdict"])}</span></td></tr>')
@@ -527,7 +538,8 @@ def render_perf(t: TargetView) -> str:
   {worst}
   {source}
   <figure>{ladder_chart(rep["findings"])}<figcaption>Head/base cachegrind instructions per call, by input size
-  (log-log). Each line is one input family Nemotron proposed; points above 1× are where the "faster" code does more work.</figcaption></figure>
+  (log-log). Each line is one input family Nemotron proposed; points above 1× are where the "faster" code does more work.{
+  " Hollow points are sizes where the base version rejects most of the generated inputs; they are shown but do not count toward the verdict." if any_excluded else ""}</figcaption></figure>
   <div class="table-wrap"><table class="perf"><thead><tr><th>Family</th><th>Inputs</th><th class="num">Ratio range</th>
   <th class="num">Slope base → head</th><th>Verdict</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
 </section>"""
@@ -609,15 +621,10 @@ VERDICT_TEXT = {
 
 
 def perf_summary(perf: dict | None) -> dict | None:
-    """Same summary the backtest stores: worst ladder ratio over slower families with mostly valid inputs."""
-    if not perf:
-        return None
-    slower = [f for f in perf.get("findings", []) if f.get("verdict") in ("slower", "complexity-regression")
-              and (f.get("valid_fraction") or 0) >= 0.5]
-    worst = max(slower, key=lambda f: max((p["ratio"] for p in f["ladder"] if p.get("ratio")), default=0),
-                default=None)
-    ratio = max((p["ratio"] for p in worst["ladder"] if p.get("ratio")), default=None) if worst else None
-    return {"report": perf, "worst_valid_ratio": ratio, "worst_family": worst["family"] if worst else None}
+    """Same summary the backtest stores (perf.summarize): judged points only."""
+    from breakwater.perf import summarize
+
+    return summarize(perf) if perf else None
 
 
 def run_cards(report: dict) -> list[Card]:

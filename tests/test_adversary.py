@@ -197,3 +197,24 @@ def test_planner_drops_attacks_that_predict_no_difference():
     assert [a.assumption for a in attacks] == ["the fast path trusts int() to see only ASCII digits"]
     assert attacks[0].id == "A1" and attacks[0].difference == "accepts what base rejects"
     assert attacks[0].why_it_breaks.startswith("base: raises InvalidVersion; head: accepts")
+
+
+def test_invalid_ladder_points_do_not_decide_the_verdict():
+    from breakwater.perf import LadderPoint, PerfFinding, judge_slopes
+
+    # The 2026-10-09 demo run: a claimed speedup (~0.36x) whose generator emitted one invalid input
+    # at n=1024, where head's failing fast path cost 2.2x. That one point made the family "slower".
+    f = PerfFinding("F2", "claimed_speedup", "simple versions", "why")
+    for n, r, v in ((2, 0.34, 1.0), (16, 0.37, 1.0), (256, 0.36, 1.0), (1024, 2.2, 0.0), (4096, 0.37, 1.0)):
+        f.ladder.append(LadderPoint(n, 100.0, 100.0 * r, float(n), v))
+    judge_slopes(f)
+    assert f.verdict == "faster" and max(f.judged_ratios) < 0.4
+    assert [p.n for p in f.excluded_points] == [1024] and max(f.ladder_ratios) == 2.2  # still shown
+    # A family where every size is mostly invalid is judged on everything (it is an error-path family).
+    g = PerfFinding("F3", "suspected_slowdown", "invalid", "why")
+    g.ladder = [LadderPoint(n, 100.0, 150.0, float(n), 0.0) for n in (4, 16, 64)]
+    assert g.verdict == "slower" and g.excluded_points == []
+    # Ladders recorded before validity was tracked behave as before.
+    h = PerfFinding("F4", "suspected_slowdown", "old", "why")
+    h.ladder = [LadderPoint(n, 100.0, 130.0, float(n)) for n in (4, 16, 64)]
+    assert h.verdict == "slower"

@@ -156,12 +156,18 @@ class LadderPoint:
     base_ir: float | None
     head_ir: float | None
     input_chars: float = 0.0  # mean JSON size of one input at this n; the slope's x axis
+    valid_fraction: float | None = None  # share of this size's inputs the base version accepts
 
     @property
     def ratio(self) -> float | None:
         if self.base_ir and self.head_ir:
             return self.head_ir / self.base_ir
         return None
+
+    @property
+    def valid(self) -> bool:
+        """Unknown validity (ladders measured before it was recorded) counts as valid."""
+        return self.valid_fraction is None or self.valid_fraction >= VALID_POINT
 
 
 @dataclass
@@ -184,6 +190,24 @@ class PerfFinding:
         return [p.ratio for p in self.ladder if p.ratio]
 
     @property
+    def judged_points(self) -> list[LadderPoint]:
+        """The points the verdict and slopes use: sizes where most inputs are valid. A family whose
+        every size is mostly invalid is judged on all points (it is flagged as an error-path family).
+        Before this, one invalid input at one size could flip a claimed speedup to "slower"."""
+        measured = [p for p in self.ladder if p.ratio]
+        valid = [p for p in measured if p.valid]
+        return valid or measured
+
+    @property
+    def judged_ratios(self) -> list[float]:
+        return [p.ratio for p in self.judged_points if p.ratio]
+
+    @property
+    def excluded_points(self) -> list[LadderPoint]:
+        judged = {id(p) for p in self.judged_points}
+        return [p for p in self.ladder if p.ratio and id(p) not in judged]
+
+    @property
     def worst_search(self) -> dict | None:
         """Search inputs can drift outside the family, so they are reported separately from the ladder."""
         measured = [t for t in self.top_inputs if t.get("ir_ratio")]
@@ -191,13 +215,14 @@ class PerfFinding:
 
     @property
     def worst_ratio(self) -> float | None:
-        ratios = self.ladder_ratios + ([self.worst_search["ir_ratio"]] if self.worst_search else [])
+        ratios = self.judged_ratios + ([self.worst_search["ir_ratio"]] if self.worst_search else [])
         return max(ratios) if ratios else None
 
     @property
     def verdict(self) -> str:
-        """Family verdict from the deterministic ladder: complexity-regression > slower > faster > neutral."""
-        ratios = self.ladder_ratios
+        """Family verdict from the deterministic ladder (judged points only):
+        complexity-regression > slower > faster > neutral."""
+        ratios = self.judged_ratios
         if not ratios:
             return "unmeasured"
         # A steeper head slope only matters if head ends up slower: a fast path whose advantage
@@ -227,7 +252,7 @@ class PerfReport:
         for f, fd in zip(self.findings, d["findings"], strict=True):
             fd["verdict"], fd["worst_ratio"], fd["worst_search"] = f.verdict, f.worst_ratio, f.worst_search
             for p, pd in zip(f.ladder, fd["ladder"], strict=True):
-                pd["ratio"] = p.ratio
+                pd["ratio"], pd["judged"] = p.ratio, p in f.judged_points
         return d
 
 
@@ -401,6 +426,7 @@ def _validate_make(src: str) -> str | None:
 
 
 SCREEN_SIZE = 16  # one mid size per family is enough to rank families before full ladders
+VALID_POINT = 0.5  # a ladder point counts toward the verdict if base accepts at least this share
 SCREEN_SLOWER = 1.02  # screened head/base ratio above this counts as "slower" for expansion / archive
 EXPAND_TOP = 2  # expand this many of the slowest families
 EXPAND_VARIANTS = 3
@@ -485,6 +511,21 @@ def make_ladder(backend: Backend, image: PairImage, fam: Family, seed: int) -> d
     return {n: v for n, v in made.get("ladder", {}).items() if v}
 
 
+def validity(backend: Backend, image: PairImage, target: Target, inputs: list) -> float | None:
+    """Share of inputs the base version accepts (constructs without raising). One plain worker call."""
+    res = backend.run(image.ref, [image.BASE_PY, image.WORKER], timeout_s=120, stdin=json.dumps(
+        {"target": target.callable, "observe": [], "ops": [{"op": "construct", "inputs": inputs}]}))
+    outcomes = json.loads(res.stdout)["results"][0]["outcomes"] if res.exit_code == 0 else []
+    return sum(o["status"] == "ok" for o in outcomes) / len(outcomes) if outcomes else None
+
+
+def judge_slopes(finding: PerfFinding) -> None:
+    """Slopes over the judged points only, like the verdict."""
+    pts = finding.judged_points
+    finding.slope_base = slope([(p.input_chars, p.base_ir) for p in pts])
+    finding.slope_head = slope([(p.input_chars, p.head_ir) for p in pts])
+
+
 def screen(backend: Backend, image: PairImage, target: Target, fam: Family, ladder: dict[str, list]) -> None:
     """head/base Ir per call at one size (SCREEN_SIZE, or the closest smaller size the generator reached)."""
     sizes = sorted((int(n) for n in ladder), key=lambda n: (n > SCREEN_SIZE, abs(n - SCREEN_SIZE)))
@@ -492,10 +533,7 @@ def screen(backend: Backend, image: PairImage, target: Target, fam: Family, ladd
         return
     inputs = ladder[str(sizes[0])]
     try:
-        res = backend.run(image.ref, [image.BASE_PY, image.WORKER], timeout_s=120, stdin=json.dumps(
-            {"target": target.callable, "observe": [], "ops": [{"op": "construct", "inputs": inputs}]}))
-        outcomes = json.loads(res.stdout)["results"][0]["outcomes"] if res.exit_code == 0 else []
-        fam.valid_fraction = sum(o["status"] == "ok" for o in outcomes) / len(outcomes) if outcomes else None
+        fam.valid_fraction = validity(backend, image, target, inputs)
         b = ir_per_call(backend, image, "base", target, inputs, _reps_for(inputs))
         h = ir_per_call(backend, image, "head", target, inputs, _reps_for(inputs))
         fam.screen_ratio = h / b if b > 0 else None
@@ -545,9 +583,16 @@ def full_measure(backend: Backend, image: PairImage, target: Target, fam: Family
     for i, t in enumerate(tops):
         jobs[("top", str(i))] = ([t["args"]], _reps_for([t["args"]]))
     results: dict[tuple[str, str, str], float | None] = {}
+    valid: dict[str, float | None] = {}
     with cf.ThreadPoolExecutor(max_workers=6) as pool:
+        vfuts = {pool.submit(validity, backend, image, target, inputs): n for n, inputs in ladder.items()}
         futs = {pool.submit(ir_per_call, backend, image, side, target, inputs, reps): (kind, key, side)
                 for (kind, key), (inputs, reps) in jobs.items() for side in ("base", "head")}
+        for fut in cf.as_completed(vfuts):
+            try:
+                valid[vfuts[fut]] = fut.result()
+            except Exception:  # noqa: BLE001 - unknown validity is treated as valid
+                valid[vfuts[fut]] = None
         for fut in cf.as_completed(futs):
             try:
                 results[futs[fut]] = fut.result()
@@ -557,9 +602,9 @@ def full_measure(backend: Backend, image: PairImage, target: Target, fam: Family
 
     for n in sorted(ladder, key=int):
         chars = sum(len(json.dumps(a, ensure_ascii=False)) for a in ladder[n]) / len(ladder[n])
-        finding.ladder.append(LadderPoint(int(n), results.get(("ladder", n, "base")), results.get(("ladder", n, "head")), chars))
-    finding.slope_base = slope([(p.input_chars, p.base_ir) for p in finding.ladder])
-    finding.slope_head = slope([(p.input_chars, p.head_ir) for p in finding.ladder])
+        finding.ladder.append(LadderPoint(int(n), results.get(("ladder", n, "base")), results.get(("ladder", n, "head")),
+                                          chars, valid.get(n)))
+    judge_slopes(finding)
     for i, t in enumerate(tops):
         b, h = results.get(("top", str(i), "base")), results.get(("top", str(i), "head"))
         finding.top_inputs.append({"args": t["args"], "cpu_ratio": round(t["ratio"], 3), "base_ir": b, "head_ir": h,
@@ -625,7 +670,8 @@ def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, targe
                            max_examples=max_examples, seed=seed)
         events("measured", family_id=res.family_id, family=res.family, family_kind=res.kind, verdict=res.verdict,
                valid_fraction=res.valid_fraction, slope_base=res.slope_base, slope_head=res.slope_head,
-               ladder=[{"input_chars": p.input_chars, "ratio": p.ratio} for p in res.ladder])
+               ladder=[{"input_chars": p.input_chars, "ratio": p.ratio, "valid_fraction": p.valid_fraction,
+                        "judged": p in res.judged_points} for p in res.ladder])
         return res
 
     with cf.ThreadPoolExecutor(max_workers=2) as pool:
@@ -639,6 +685,28 @@ def perf_audit(ctx: Context, image: PairImage, llm: LLM, backend: Backend, targe
     timings["total"] = time.perf_counter() - t0
     return PerfReport(run_id, ctx.target, image.ref, backend.name, families, findings,
                       {k: round(v, 2) for k, v in timings.items()})
+
+
+def judged(f: dict) -> list[float]:
+    """Judged ratios of a finding in report JSON (points recorded before validity was tracked count)."""
+    return [pt["ratio"] for pt in f.get("ladder", []) if pt.get("ratio") and pt.get("judged", True)]
+
+
+def summarize(report: dict) -> dict:
+    """The perf summary the backtest stores and the site shows, from report JSON: the worst judged
+    ratio among slower families with mostly valid inputs, and the claimed speedup at small sizes."""
+    realistic = [f for f in report.get("findings", []) if (f.get("valid_fraction") or 0) >= 0.5]
+    slower = [f for f in realistic if f.get("verdict") in ("slower", "complexity-regression") and judged(f)]
+    worst = max(slower, key=lambda f: max(judged(f)), default=None)
+    speed = [f for f in realistic if f.get("kind") == "claimed_speedup" and judged(f)]
+    return {
+        "slower_families": [{"id": f["family_id"], "family": f["family"], "verdict": f["verdict"],
+                             "ladder": judged(f), "origin": f.get("origin")} for f in slower],
+        "worst_valid_ratio": max(judged(worst)) if worst else None,
+        "worst_family": worst["family"] if worst else None,
+        "speedup_ratio_small": min(judged(speed[0])) if speed else None,
+        "report": report,
+    }
 
 
 def _fmt(x: float | None) -> str:

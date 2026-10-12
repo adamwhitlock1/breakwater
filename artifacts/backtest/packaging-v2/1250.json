@@ -151,7 +151,8 @@
             "screen": 51.16,
             "full": 0.0,
             "total": 63.79
-          }
+          },
+          "ladder_validity": "backfilled 2026-10-11 (scripts/backtest/backfill_ladder_validity.py)"
         }
       }
     }

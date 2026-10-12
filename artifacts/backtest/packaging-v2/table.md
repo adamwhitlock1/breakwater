@@ -49,3 +49,5 @@ Cells are distinct divergence classes per arm. † merged after Nemotron 3 Ultra
 Re-scored after the P4 control fix (`scripts/backtest/rescore_p4.py`): removed #1030 hypothesis 1, mutations 1, breakwater 1, llm-plan 1; #1064 hypothesis 1, mutations 1, breakwater 1, llm-plan 1; #1081 mutations 1, breakwater 1; #1106 mutations 2, breakwater 1; #1258 mutations 1, breakwater 1; #1320 mutations 1, breakwater 1.
 
 Re-scored after a P4 fix (P4 round-trip control; `scripts/backtest/rescore_p4.py`): removed #1115 mutations 1, breakwater 1, llm-plan 1; #1429 breakwater 1, llm-plan 1.
+
+Perf ladders re-judged with per-size validity (`scripts/backtest/backfill_ladder_validity.py`, no model calls).

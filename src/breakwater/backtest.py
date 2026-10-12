@@ -167,18 +167,7 @@ def run_target(item: dict, tgt: dict, repo: str, backend: Backend, *, arms: tupl
     if do_perf:
         try:
             pr = perf.perf_audit(ctx, image, llm, backend, target, run_id=run_id, seed=seed, log=lambda *_: None)
-            realistic = [f for f in pr.findings if (f.valid_fraction or 0) >= 0.5]
-            slower = [f for f in realistic if f.verdict in ("slower", "complexity-regression")]
-            worst = max(slower, key=lambda f: max(f.ladder_ratios or [0]), default=None)
-            speed = [f for f in realistic if f.kind == "claimed_speedup" and f.ladder_ratios]
-            perf_summary = {
-                "slower_families": [{"id": f.family_id, "family": f.family, "verdict": f.verdict,
-                                     "ladder": f.ladder_ratios, "origin": f.origin} for f in slower],
-                "worst_valid_ratio": max(worst.ladder_ratios) if worst else None,
-                "worst_family": worst.family if worst else None,
-                "speedup_ratio_small": min(speed[0].ladder_ratios) if speed else None,
-                "report": pr.to_json(),
-            }
+            perf_summary = perf.summarize(pr.to_json())
         except Exception as e:  # noqa: BLE001
             perf_summary = {"error": f"{type(e).__name__}: {str(e)[:300]}"}
 

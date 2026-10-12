@@ -205,49 +205,63 @@
                   "base_ir": 15092.655,
                   "head_ir": 15008.655,
                   "input_chars": 10.0,
-                  "ratio": 0.9944343788418937
+                  "ratio": 0.9944343788418937,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 15559.37125,
                   "head_ir": 15483.33625,
                   "input_chars": 12.75,
-                  "ratio": 0.9951132344117054
+                  "ratio": 0.9951132344117054,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 16469.79649390244,
                   "head_ir": 15716.921493902439,
                   "input_chars": 13.1875,
-                  "ratio": 0.954287534744055
+                  "ratio": 0.954287534744055,
+                  "valid_fraction": 0.875,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 16439.5828125,
                   "head_ir": 15395.5328125,
                   "input_chars": 13.475,
-                  "ratio": 0.9364916973923361
+                  "ratio": 0.9364916973923361,
+                  "valid_fraction": 0.875,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 16439.5828125,
                   "head_ir": 15395.5328125,
                   "input_chars": 13.475,
-                  "ratio": 0.9364916973923361
+                  "ratio": 0.9364916973923361,
+                  "valid_fraction": 0.875,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 16439.5828125,
                   "head_ir": 15395.5328125,
                   "input_chars": 13.475,
-                  "ratio": 0.9364916973923361
+                  "ratio": 0.9364916973923361,
+                  "valid_fraction": 0.875,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 16439.5828125,
                   "head_ir": 15395.5328125,
                   "input_chars": 13.475,
-                  "ratio": 0.9364916973923361
+                  "ratio": 0.9364916973923361,
+                  "valid_fraction": 0.875,
+                  "judged": true
                 }
               ],
               "slope_base": null,
@@ -264,7 +278,8 @@
             "screen": 171.03,
             "full": 128.92,
             "total": 317.08
-          }
+          },
+          "ladder_validity": "backfilled 2026-10-11 (scripts/backtest/backfill_ladder_validity.py)"
         }
       },
       "image_rescored": "bw-pair:6c9a610c08b433b1"

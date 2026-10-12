@@ -187,49 +187,63 @@
                   "base_ir": 274910.86,
                   "head_ir": 276340.36,
                   "input_chars": 35.0,
-                  "ratio": 1.0051998673315417
+                  "ratio": 1.0051998673315417,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 399902.1350574713,
                   "head_ir": 401916.1982758621,
                   "input_chars": 55.0,
-                  "ratio": 1.0050363902610857
+                  "ratio": 1.0050363902610857,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 654986.605,
                   "head_ir": 656167.315,
                   "input_chars": 95.0,
-                  "ratio": 1.0018026475518533
+                  "ratio": 1.0018026475518533,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 654986.605,
                   "head_ir": 656167.315,
                   "input_chars": 95.0,
-                  "ratio": 1.0018026475518533
+                  "ratio": 1.0018026475518533,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 654986.605,
                   "head_ir": 656167.315,
                   "input_chars": 95.0,
-                  "ratio": 1.0018026475518533
+                  "ratio": 1.0018026475518533,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 654986.605,
                   "head_ir": 656167.315,
                   "input_chars": 95.0,
-                  "ratio": 1.0018026475518533
+                  "ratio": 1.0018026475518533,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 654986.605,
                   "head_ir": 656167.315,
                   "input_chars": 95.0,
-                  "ratio": 1.0018026475518533
+                  "ratio": 1.0018026475518533,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 }
               ],
               "slope_base": null,
@@ -246,7 +260,8 @@
             "screen": 194.91,
             "full": 220.91,
             "total": 432.71
-          }
+          },
+          "ladder_validity": "backfilled 2026-10-11 (scripts/backtest/backfill_ladder_validity.py)"
         }
       },
       "rescored": "eq-hash-contract class removed: base also violates it (probe fix, deterministic re-check)"

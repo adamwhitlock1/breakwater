@@ -2,6 +2,15 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-11: Perf verdicts use only ladder sizes with mostly valid inputs
+- **What:**
+  - Every ladder size records `valid_fraction`: the share of its inputs that the base version accepts.
+  - The verdict, slopes and worst ratio use only sizes with `valid_fraction >= 0.5`. A family whose every size is mostly invalid is judged on all sizes and is already flagged as error-path.
+  - Excluded sizes stay visible: hollow points on the chart, with a count in the table.
+- **Why:** LLM-written generators drift. In the 2026-10-09 demo run, a claimed-speedup family (head ~0.36× on simple versions) emitted one invalid input at n=1024, where head's failed fast path costs 2.2×. That single point labelled the family `slower`.
+- **Backfill:** generators run seeded in the sandbox, so published ladders regenerate exactly. Each regenerated size is checked against the recorded mean input size before its validity is used.
+- **Reverse if:** never. The error-path cost is still reported, as error-path families and excluded points.
+
 ## 2026-10-09: Planner v3: attacks must predict a difference, checked against the old code
 - **What:**
   - The plan schema leads with the false assumption, then base behaviour, head behaviour and a required `difference` kind (with an explicit "no difference expected" option).

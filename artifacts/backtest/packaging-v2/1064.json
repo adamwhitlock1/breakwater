@@ -488,49 +488,63 @@
                   "base_ir": 5205.435,
                   "head_ir": 5470.06,
                   "input_chars": 8.0,
-                  "ratio": 1.0508362893783132
+                  "ratio": 1.0508362893783132,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 6530.435,
                   "head_ir": 6843.06,
                   "input_chars": 12.0,
-                  "ratio": 1.0478720024010653
+                  "ratio": 1.0478720024010653,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 11480.435,
                   "head_ir": 12158.06,
                   "input_chars": 36.0,
-                  "ratio": 1.0590243313951082
+                  "ratio": 1.0590243313951082,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 26641.335570469797,
                   "head_ir": 28650.8322147651,
                   "input_chars": 132.0,
-                  "ratio": 1.0754277742187484
+                  "ratio": 1.0754277742187484,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 83159.0,
                   "head_ir": 90943.0,
                   "input_chars": 516.0,
-                  "ratio": 1.093603819189745
+                  "ratio": 1.093603819189745,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 305470.8888888889,
                   "head_ir": 336226.8888888889,
                   "input_chars": 2052.0,
-                  "ratio": 1.1006838985929919
+                  "ratio": 1.1006838985929919,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 1205032.0,
                   "head_ir": 1323058.0,
                   "input_chars": 8196.0,
-                  "ratio": 1.0979442869566949
+                  "ratio": 1.0979442869566949,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 }
               ],
               "slope_base": 0.7785900612391276,
@@ -555,49 +569,63 @@
                   "base_ir": 3800.435,
                   "head_ir": 4123.06,
                   "input_chars": 6.0,
-                  "ratio": 1.0848915979354996
+                  "ratio": 1.0848915979354996,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 4851.435,
                   "head_ir": 5193.06,
                   "input_chars": 8.0,
-                  "ratio": 1.0704173095176994
+                  "ratio": 1.0704173095176994,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 8085.435,
                   "head_ir": 8514.06,
                   "input_chars": 20.0,
-                  "ratio": 1.0530119900784558
+                  "ratio": 1.0530119900784558,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 16455.435,
                   "head_ir": 17130.06,
                   "input_chars": 68.0,
-                  "ratio": 1.040997093057704
+                  "ratio": 1.040997093057704,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 45295.52631578947,
                   "head_ir": 47038.52631578947,
                   "input_chars": 260.0,
-                  "ratio": 1.0384806214160804
+                  "ratio": 1.0384806214160804,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 157339.0,
                   "head_ir": 163909.0,
                   "input_chars": 1028.0,
-                  "ratio": 1.0417569706175838
+                  "ratio": 1.0417569706175838,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 603434.0,
                   "head_ir": 626925.0,
                   "input_chars": 4100.0,
-                  "ratio": 1.0389288638028351
+                  "ratio": 1.0389288638028351,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 }
               ],
               "slope_base": 0.7569826946909044,
@@ -652,49 +680,63 @@
                   "base_ir": 3800.435,
                   "head_ir": 4123.06,
                   "input_chars": 6.0,
-                  "ratio": 1.0848915979354996
+                  "ratio": 1.0848915979354996,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 4851.435,
                   "head_ir": 5193.06,
                   "input_chars": 8.0,
-                  "ratio": 1.0704173095176994
+                  "ratio": 1.0704173095176994,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 8085.435,
                   "head_ir": 8514.06,
                   "input_chars": 20.0,
-                  "ratio": 1.0530119900784558
+                  "ratio": 1.0530119900784558,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 16455.435,
                   "head_ir": 17130.06,
                   "input_chars": 68.0,
-                  "ratio": 1.040997093057704
+                  "ratio": 1.040997093057704,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 45295.52631578947,
                   "head_ir": 47038.52631578947,
                   "input_chars": 260.0,
-                  "ratio": 1.0384806214160804
+                  "ratio": 1.0384806214160804,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 157339.0,
                   "head_ir": 163909.0,
                   "input_chars": 1028.0,
-                  "ratio": 1.0417569706175838
+                  "ratio": 1.0417569706175838,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 603434.0,
                   "head_ir": 626925.0,
                   "input_chars": 4100.0,
-                  "ratio": 1.0389288638028351
+                  "ratio": 1.0389288638028351,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 }
               ],
               "slope_base": 0.7569826946909044,
@@ -749,49 +791,63 @@
                   "base_ir": 4996.435,
                   "head_ir": 3041.06,
                   "input_chars": 6.0,
-                  "ratio": 0.6086459645727403
+                  "ratio": 0.6086459645727403,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 7370.435,
                   "head_ir": 3081.06,
                   "input_chars": 8.0,
-                  "ratio": 0.41802960069520995
+                  "ratio": 0.41802960069520995,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 18121.435,
                   "head_ir": 3209.06,
                   "input_chars": 20.0,
-                  "ratio": 0.17708641727324573
+                  "ratio": 0.17708641727324573,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 37692.435,
                   "head_ir": 3709.06,
                   "input_chars": 68.0,
-                  "ratio": 0.09840330029089392
+                  "ratio": 0.09840330029089392,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 48841.52631578947,
                   "head_ir": 5625.526315789473,
                   "input_chars": 260.0,
-                  "ratio": 0.11517916699443635
+                  "ratio": 0.11517916699443635,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 61495.0,
                   "head_ir": 14306.0,
                   "input_chars": 1028.0,
-                  "ratio": 0.23263679973981624
+                  "ratio": 0.23263679973981624,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 109719.0,
                   "head_ir": 46314.0,
                   "input_chars": 4100.0,
-                  "ratio": 0.4221146747600689
+                  "ratio": 0.4221146747600689,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 }
               ],
               "slope_base": 0.4365678712815275,
@@ -808,7 +864,8 @@
             "screen": 323.78,
             "full": 471.06,
             "total": 806.1
-          }
+          },
+          "ladder_validity": "backfilled 2026-10-11 (scripts/backtest/backfill_ladder_validity.py)"
         }
       },
       "image_rescored": "bw-pair:810b943be062d4e3"

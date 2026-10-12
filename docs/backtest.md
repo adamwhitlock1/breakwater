@@ -89,6 +89,11 @@ Same corpus, the four semantic arms re-run with planner v3 (see `decisions.md`).
 2. After bounding the schema and accepting escaped whitespace, #1108 still lost samples to runaways. All three hit the 24k cap with little reasoning, which suggests runaway output outside the bounded fields.
 3. Fix: at most 8 classes per call and a 16k-token cap, which only changes items with more than 8 classes. #1108 was re-adjudicated alone (12 likely-bug, 3 needs-human) and the summary re-computed with no model calls. Every other item comes from attempt 2.
 
+**Per-size validity (2026-10-11, no model calls):** perf verdicts now use only ladder sizes where the base version accepts most inputs. The v2 ladders were regenerated from their recorded generators: every size reproduced exactly. Validity was then measured and the families re-judged:
+- the worst ratios below are unchanged;
+- #1082's claimed-speedup family F2 changed from `neutral` to `faster` (its n=2 size was mostly invalid);
+- #1236's R1.1 changed from `complexity-regression` to `slower` (all sizes but n=2 mostly invalid; not #1236's worst family).
+
 ## Performance (worst valid input family per PR, head/base Ir per call)
 
 | PR | Worst valid family | Ratio | Corroboration |

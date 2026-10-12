@@ -501,49 +501,63 @@
                   "base_ir": 16129.96,
                   "head_ir": 17543.91,
                   "input_chars": 16.0,
-                  "ratio": 1.0876598578049792
+                  "ratio": 1.0876598578049792,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 15995.1275,
                   "head_ir": 17387.97875,
                   "input_chars": 16.0,
-                  "ratio": 1.087079721621475
+                  "ratio": 1.087079721621475,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 15897.758152173914,
                   "head_ir": 17320.732789855072,
                   "input_chars": 16.0,
-                  "ratio": 1.0895078805489675
+                  "ratio": 1.0895078805489675,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 15897.758152173914,
                   "head_ir": 17320.732789855072,
                   "input_chars": 16.0,
-                  "ratio": 1.0895078805489675
+                  "ratio": 1.0895078805489675,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 15897.758152173914,
                   "head_ir": 17320.732789855072,
                   "input_chars": 16.0,
-                  "ratio": 1.0895078805489675
+                  "ratio": 1.0895078805489675,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 15897.758152173914,
                   "head_ir": 17320.732789855072,
                   "input_chars": 16.0,
-                  "ratio": 1.0895078805489675
+                  "ratio": 1.0895078805489675,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 15897.758152173914,
                   "head_ir": 17320.732789855072,
                   "input_chars": 16.0,
-                  "ratio": 1.0895078805489675
+                  "ratio": 1.0895078805489675,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 }
               ],
               "slope_base": null,
@@ -616,57 +630,71 @@
                   "base_ir": 15889.665,
                   "head_ir": 17376.835,
                   "input_chars": 13.0,
-                  "ratio": 1.093593540203648
+                  "ratio": 1.093593540203648,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 7849.01,
                   "head_ir": 14443.885,
                   "input_chars": 17.0,
-                  "ratio": 1.840217428694829
+                  "ratio": 1.840217428694829,
+                  "valid_fraction": 0.0,
+                  "judged": false
                 },
                 {
                   "n": 16,
                   "base_ir": 9054.8,
                   "head_ir": 28130.575,
                   "input_chars": 41.0,
-                  "ratio": 3.1067030746123607
+                  "ratio": 3.1067030746123607,
+                  "valid_fraction": 0.0,
+                  "judged": false
                 },
                 {
                   "n": 64,
                   "base_ir": 15231.132867132867,
                   "head_ir": 83797.96503496503,
                   "input_chars": 137.0,
-                  "ratio": 5.5017552381669494
+                  "ratio": 5.5017552381669494,
+                  "valid_fraction": 0.0,
+                  "judged": false
                 },
                 {
                   "n": 256,
                   "base_ir": 39175.10526315789,
                   "head_ir": 339275.1052631579,
                   "input_chars": 521.0,
-                  "ratio": 8.660477182743607
+                  "ratio": 8.660477182743607,
+                  "valid_fraction": 0.0,
+                  "judged": false
                 },
                 {
                   "n": 1024,
                   "base_ir": 124539.0,
                   "head_ir": 1494332.0,
                   "input_chars": 2057.0,
-                  "ratio": 11.998907972602959
+                  "ratio": 11.998907972602959,
+                  "valid_fraction": 0.0,
+                  "judged": false
                 },
                 {
                   "n": 4096,
                   "base_ir": 460302.0,
                   "head_ir": 6160055.0,
                   "input_chars": 8201.0,
-                  "ratio": 13.382637920321876
+                  "ratio": 13.382637920321876,
+                  "valid_fraction": 0.0,
+                  "judged": false
                 }
               ],
-              "slope_base": 0.5758000863584467,
-              "slope_head": 0.9486144293536538,
+              "slope_base": null,
+              "slope_head": null,
               "top_inputs": [],
               "error": null,
-              "verdict": "complexity-regression",
-              "worst_ratio": 13.382637920321876,
+              "verdict": "slower",
+              "worst_ratio": 1.093593540203648,
               "worst_search": null
             },
             {
@@ -683,49 +711,63 @@
                   "base_ir": 8221.01,
                   "head_ir": 11548.18,
                   "input_chars": 7.0,
-                  "ratio": 1.4047154789983225
+                  "ratio": 1.4047154789983225,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 7583.01,
                   "head_ir": 12922.885,
                   "input_chars": 11.0,
-                  "ratio": 1.7041893654366802
+                  "ratio": 1.7041893654366802,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 8736.8,
                   "head_ir": 26562.075,
                   "input_chars": 35.0,
-                  "ratio": 3.0402521518175996
+                  "ratio": 3.0402521518175996,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 14928.013333333334,
                   "head_ir": 82049.84666666666,
                   "input_chars": 131.0,
-                  "ratio": 5.496367455906166
+                  "ratio": 5.496367455906166,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 38872.10526315789,
                   "head_ir": 340123.1052631579,
                   "input_chars": 515.0,
-                  "ratio": 8.749798935781309
+                  "ratio": 8.749798935781309,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 122970.77777777778,
                   "head_ir": 1493054.7777777778,
                   "input_chars": 2051.0,
-                  "ratio": 12.141541305657983
+                  "ratio": 12.141541305657983,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 454419.0,
                   "head_ir": 6160135.0,
                   "input_chars": 8195.0,
-                  "ratio": 13.55606829820056
+                  "ratio": 13.55606829820056,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 }
               ],
               "slope_base": 0.5706152082632364,
@@ -750,49 +792,63 @@
                   "base_ir": 8425.01,
                   "head_ir": 13821.885,
                   "input_chars": 23.0,
-                  "ratio": 1.6405778746850153
+                  "ratio": 1.6405778746850153,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 8968.8,
                   "head_ir": 16666.075,
                   "input_chars": 33.0,
-                  "ratio": 1.8582279680670772
+                  "ratio": 1.8582279680670772,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 12706.83,
                   "head_ir": 33241.705,
                   "input_chars": 93.0,
-                  "ratio": 2.6160501871827986
+                  "ratio": 2.6160501871827986,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 28994.677966101695,
                   "head_ir": 100513.67796610169,
                   "input_chars": 333.0,
-                  "ratio": 3.466625084907458
+                  "ratio": 3.466625084907458,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 93720.8,
                   "head_ir": 404232.8,
                   "input_chars": 1293.0,
-                  "ratio": 4.313159938882297
+                  "ratio": 4.313159938882297,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 340124.0,
                   "head_ir": 1750131.6666666667,
                   "input_chars": 5133.0,
-                  "ratio": 5.145569458981626
+                  "ratio": 5.145569458981626,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 1325820.5,
                   "head_ir": 7159074.0,
                   "input_chars": 20493.0,
-                  "ratio": 5.399730959055166
+                  "ratio": 5.399730959055166,
+                  "valid_fraction": 0.0,
+                  "judged": true
                 }
               ],
               "slope_base": 0.7516826171353747,
@@ -853,49 +909,63 @@
                   "base_ir": 25441.665,
                   "head_ir": 25345.54,
                   "input_chars": 20.0,
-                  "ratio": 0.996221748851736
+                  "ratio": 0.996221748851736,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4,
                   "base_ir": 42636.455,
                   "head_ir": 39845.73,
                   "input_chars": 28.0,
-                  "ratio": 0.9345460357808828
+                  "ratio": 0.9345460357808828,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 16,
                   "base_ir": 147761.665,
                   "head_ir": 127731.54,
                   "input_chars": 84.0,
-                  "ratio": 0.8644430204545949
+                  "ratio": 0.8644430204545949,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 64,
                   "base_ir": 570791.7213114754,
                   "head_ir": 481001.737704918,
                   "input_chars": 324.0,
-                  "ratio": 0.8426922110918987
+                  "ratio": 0.8426922110918987,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 256,
                   "base_ir": 2261242.846153846,
                   "head_ir": 1896309.8461538462,
                   "input_chars": 1442.0,
-                  "ratio": 0.8386139725679109
+                  "ratio": 0.8386139725679109,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 1024,
                   "base_ir": 9324739.333333334,
                   "head_ir": 7867361.666666667,
                   "input_chars": 6076.0,
-                  "ratio": 0.8437084818599755
+                  "ratio": 0.8437084818599755,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 },
                 {
                   "n": 4096,
                   "base_ir": 37920471.5,
                   "head_ir": 32084014.0,
                   "input_chars": 27580.0,
-                  "ratio": 0.8460868953066684
+                  "ratio": 0.8460868953066684,
+                  "valid_fraction": 1.0,
+                  "judged": true
                 }
               ],
               "slope_base": 0.9978931663266013,
@@ -912,7 +982,8 @@
             "screen": 121.82,
             "full": 290.74,
             "total": 434.92
-          }
+          },
+          "ladder_validity": "backfilled 2026-10-11 (scripts/backtest/backfill_ladder_validity.py)"
         }
       }
     }

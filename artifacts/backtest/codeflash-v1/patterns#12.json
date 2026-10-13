@@ -1,0 +1,276 @@
+{
+  "id": "patterns#12",
+  "pr": 12,
+  "title": "⚡️ Speed up function `sanitize_pattern` by 11,547%",
+  "base": "1a4a2d4e42342721e2e46f479864e8741042ebf6",
+  "head": "fb284892f1cd90ee55fd99a8383f537fef1d520e",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/fabriziosalmi/patterns",
+  "install": {
+    "mode": "src",
+    "subdir": "",
+    "deps": [],
+    "exclude_newer": "2025-02-10"
+  },
+  "targets": [
+    {
+      "target": "json2nginx:sanitize_pattern",
+      "run_id": "bt-patterns#12-270b7b",
+      "image": "bw-pair:f0f8b0ed31b501dd",
+      "usd": 0.0393,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.0,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 15.5,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.9,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.05401238235870887,
+        "report": {
+          "run_id": "bt-patterns#12-270b7b",
+          "target": "json2nginx:sanitize_pattern",
+          "image": "bw-pair:f0f8b0ed31b501dd",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical pattern (cache hit)",
+              "why": "Head version caches the result of _sanitize_pattern via lru_cache. When the same pattern is processed many times the cached value is returned instantly, while the base version re‑executes the whole sanitisation logic each call.",
+              "size_meaning": "Number of calls with the same pattern (n repetitions).",
+              "make_source": "\ndef make(n):\n    # a simple valid pattern without special markers\n    pat = \"^foo.*bar$\"\n    return [[pat] for _ in range(n)]",
+              "example_args": [
+                [
+                  "^foo.*bar$"
+                ],
+                [
+                  "^foo.*bar$"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.07134406664649413,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "repeated identical pattern",
+              "why": "The head version caches the result of _sanitize_pattern with @lru_cache. When the same pattern is processed many times the cache returns the saved value after the first call, while the base version re‑executes the whole validation logic on every call.",
+              "size_meaning": "Number of calls (n) with the exact same pattern; cost grows linearly with n in the base version but O(1) after the first call in the head version.",
+              "make_source": "\ndef make(n):\n    # a simple valid pattern that passes all checks\n    pat = r\"abc.*def\"\n    return [[pat] for _ in range(n)]",
+              "example_args": [
+                [
+                  "abc.*def"
+                ],
+                [
+                  "abc.*def"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.07462396160692128,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "identical pattern repeated many times",
+              "why": "The change adds an LRU cache (size 128) on both regex compilation and the whole sanitisation routine. When the same pattern is seen repeatedly the cached result is returned instantly, avoiding recompilation and re‑escaping.",
+              "size_meaning": "n = number of calls to sanitize_pattern (all with the same pattern). Cost grows linearly with n in the base version, but stays O(1) after the first call in the head version.",
+              "make_source": "def make(n):\n    # one pattern, repeated n times\n    pattern = \"sql_injection_attack\"\n    return [[pattern] for _ in range(n)]",
+              "example_args": [
+                [
+                  "sql_injection_attack"
+                ],
+                [
+                  "sql_injection_attack"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.05466147314814352,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct valid patterns (cache miss every call)",
+              "why": "Each call sees a previously unseen pattern, so the lru_cache is consulted, a miss occurs, the full sanitisation runs, and the result is stored. The extra dictionary lookup and function‑call wrapper add overhead compared with the base version that has no cache at all.",
+              "size_meaning": "Number of distinct patterns (n).",
+              "make_source": "\ndef make(n):\n    # generate n different but syntactically valid regexes\n    return [[f\"^seg{i}.*val{i}$\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "^seg0.*val0$"
+                ],
+                [
+                  "^seg1.*val1$"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.05998896828491971,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "many distinct valid patterns",
+              "why": "Each distinct pattern incurs a cache miss, a function‑call indirection through _sanitize_pattern and _compile_pattern, and the LRU bookkeeping overhead. The base version does the same work directly without the extra call stack and dictionary lookup.",
+              "size_meaning": "Number of distinct patterns (n); each call processes a new pattern, so cost grows with n in both versions but the head version has higher constant factor.",
+              "make_source": "\ndef make(n):\n    # generate n distinct simple regexes that all validate\n    return [[f\"pat{i}.*\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "pat0.*"
+                ],
+                [
+                  "pat1.*"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.08292120369103645,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "large number of distinct patterns (> cache size)",
+              "why": "Each distinct pattern misses the 128‑entry LRU cache, causing a dictionary lookup, cache‑miss bookkeeping and eventual eviction. The base version simply performed the work once per pattern with no extra bookkeeping, so for >128 unique patterns the head version does strictly more work.",
+              "size_meaning": "n = number of distinct patterns supplied (each called once). When n > 128 the cache thrashes and the overhead dominates.",
+              "make_source": "def make(n):\n    # generate n distinct harmless patterns\n    return [[f\"pattern_{i}\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "pattern_0"
+                ],
+                [
+                  "pattern_1"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.06831890102636012,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F3",
+              "kind": "claimed_speedup",
+              "family": "identical pattern repeated many times",
+              "why": "The change adds an LRU cache (size 128) on both regex compilation and the whole sanitisation routine. When the same pattern is seen repeatedly the cached result is returned instantly, avoiding recompilation and re‑escaping.",
+              "origin": "plan",
+              "screen_ratio": 0.05466147314814352,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 27582.4525,
+                  "head_ir": 1740.09125,
+                  "input_chars": 24.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.06308689374159168,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 27458.571614583332,
+                  "head_ir": 1606.0638020833333,
+                  "input_chars": 24.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0584904351408559,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 27362.83203125,
+                  "head_ir": 1495.6927083333333,
+                  "input_chars": 24.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.05466147314814352,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 27336.227864583332,
+                  "head_ir": 1476.4947916666667,
+                  "input_chars": 24.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.05401238235870887,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 27336.227864583332,
+                  "head_ir": 1476.4947916666667,
+                  "input_chars": 24.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.05401238235870887,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 27336.227864583332,
+                  "head_ir": 1476.4947916666667,
+                  "input_chars": 24.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.05401238235870887,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 27336.227864583332,
+                  "head_ir": 1476.4947916666667,
+                  "input_chars": 24.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.05401238235870887,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.06308689374159168,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 11.01,
+            "screen": 95.09,
+            "full": 78.53,
+            "total": 184.62
+          }
+        }
+      }
+    }
+  ]
+}

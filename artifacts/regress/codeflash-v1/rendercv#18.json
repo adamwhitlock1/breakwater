@@ -1,0 +1,30 @@
+{
+  "id": "rendercv#18",
+  "pr": 18,
+  "targets": [
+    {
+      "target": "rendercv.data.models.computers:get_date_object",
+      "image": "bw-pair:e5d6e3b80a12bd08",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested",
+          "name": "test_rendercv_18_p2_outcome_0",
+          "source": "def test_rendercv_18_p2_outcome_0():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from rendercv.data.models.computers import get_date_object\n    with pytest.raises(TypeError) as excinfo:\n        get_date_object([])\n    assert type(excinfo.value) is TypeError  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "error:ValueError",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "name": "test_rendercv_18_p2_outcome_1",
+          "source": "def test_rendercv_18_p2_outcome_1():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from rendercv.data.models.computers import get_date_object\n    with pytest.raises(TypeError) as excinfo:\n        get_date_object(['present', 'present', '´¢¯', '´¢¯'])\n    assert type(excinfo.value) is TypeError  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "error:AttributeError",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

@@ -116,3 +116,24 @@ Same corpus, the four semantic arms re-run with planner v3 (see `decisions.md`).
 
 - **Adjudication:** see below.
 - **Pre-existing bugs are invisible by design.** A differential tool reports what changed. The eq/hash bug above existed on both sides of #1258, so it is out of scope even though it is real.
+
+# Codeflash corpus (2026-10-12, Token Factory)
+
+Ten merged Codeflash-bot speedup PRs in seven repos (`corpus/codeflash.json`; selection and install modes in `decisions.md`). There are no known regressions: the question is how many merged AI speedups change behaviour or don't deliver. Full results: `artifacts/backtest/codeflash-v1/`, `artifacts/adjudication/codeflash-v1/` and `artifacts/regress/codeflash-v1/`. Cost: **$1.01** (backtest $0.95 including a failed pyhs3 attempt; adjudication $0.06).
+
+**3 of 10 change behaviour** (all classes adjudicated likely-bug; 6 of 6 regression tests verified):
+- **Math-Interpreter #1** ("Speed up method `Lexer.generate_number` by 11%"). It swapped `ch in DIGITS` for `ch.isdigit()`, so the lexer now tokenises `"0٠"` and `"1١ "` (Arabic-Indic digits) as numbers where the original raised "Illegal character". This is the same bug class as packaging #1082. Found by the full pipeline (3 classes); the plan alone found 1.
+- **caddy-feeds #4** ("Speed up function `is_excluded` by 17,376%"). `@lru_cache` makes an unhashable argument (a list) raise `TypeError` where the original returned a result. Wrong-type input. The adjudicator's label is right but its rationale (a Python-version claim about `maxsize`) is wrong: the quote check can't catch a wrong explanation built on a real quote.
+- **rendercv #18** ("Speed up function `validate_date_field` by 47%"). A list argument raises `ValueError`/`AttributeError` instead of `TypeError`. Wrong-type input.
+
+**1 of 10 has a performance reversal on valid input:**
+- **json_repair #113** ("Speed up method `ObjectComparer.is_same_object` by 109%"), labelled `complexity-regression`. Base compares two dicts' key sets and returns at once when the keys differ. Head checks only the lengths, then recursively compares values key by key until it reaches the missing key. On same-sized JSON objects that differ by one key and have large values, head runs 1.6× the instructions at ~175 characters, 15× at ~2 KB, 86× at ~33 KB and 393× at ~600 KB. Both return the same answer. Its claimed-speedup family does measure faster (0.48–0.58×).
+
+**Smaller or no effect:**
+- micropie #3: cookie headers with many parts missing `=` cost up to 1.34× (1.71× in the dev run).
+- rendercv #18: `"present"` costs 1.11×.
+- Math-Interpreter #1: single-digit-heavy expressions cost up to 1.05×.
+- **pyhs3 #154** (an `lru_cache` on a sympy parser): all six perf families are **unmeasured**. The instruction count isn't linear in repetitions (caching), so no honest per-call number exists. The first run's arms failed on a harness bug (sympy's symbolic comparisons broke JSON output); fixed, then the item was re-run.
+- No behaviour change found in json_repair #113, rendercv #17 and #19, patterns #9 and #12, micropie #3 or pyhs3 #154.
+
+The no-LLM baselines (plain Hypothesis; mutations of the project's test strings) found nothing on this corpus. Most of these repos have no tests next to the changed function to harvest, so the Nemotron plan and search did all the finding.

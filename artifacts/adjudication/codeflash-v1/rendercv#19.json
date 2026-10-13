@@ -1,0 +1,10 @@
+{
+  "id": "rendercv#19",
+  "pr": 19,
+  "title": "⚡️ Speed up function `validate_start_and_end_date_fields` by 34%",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

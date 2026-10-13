@@ -1,0 +1,1534 @@
+{
+  "id": "json_repair#113",
+  "pr": 113,
+  "title": "⚡️ Speed up method `ObjectComparer.is_same_object` by 109%",
+  "base": "ec462b47b30464b66eaaec6753a8db3d79522253",
+  "head": "cbfa7a1c6fa8360f90303c5b9b8054ef2f6298bb",
+  "merged": "2025-05-16",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/mangiucugna/json_repair",
+  "install": {
+    "exclude_newer": "2025-05-17"
+  },
+  "targets": [
+    {
+      "target": "json_repair.object_comparer:ObjectComparer.is_same_object",
+      "run_id": "bt-json_repair#113-c8deff",
+      "image": "bw-pair:96f330402286ff0e",
+      "usd": 0.147,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.0,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 107.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 2.7,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "F6",
+            "family": "large dicts with identical length but one key swapped, and deep equal values on the shared keys",
+            "verdict": "complexity-regression",
+            "ladder": [
+              1.3231200875060702,
+              4.379161513115582,
+              32.8561528289074,
+              172.37602661022075
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F6.2",
+            "family": "swap position of the mismatched key within dict ordering",
+            "verdict": "complexity-regression",
+            "ladder": [
+              0.3598368597322638,
+              1.597063379225866,
+              15.44234866165968,
+              85.59282541851725,
+              393.3802801943978
+            ],
+            "origin": "expand:F6"
+          },
+          {
+            "id": "F4",
+            "family": "Large dictionaries with same length but almost no common keys",
+            "verdict": "complexity-regression",
+            "ladder": [
+              0.6659641424589758,
+              1.1306941355385955,
+              2.359513660630453,
+              3.2260938773658694,
+              3.725495522465287,
+              3.95541474410029,
+              4.028267213279691
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F4.3",
+            "family": "Dicts with numeric string keys where only the first matches",
+            "verdict": "complexity-regression",
+            "ladder": [
+              0.36154081584931175,
+              1.14270055979134,
+              1.4702232197510714,
+              1.4766877598374346,
+              3.661023126439161,
+              1.3959131817897548
+            ],
+            "origin": "expand:F4"
+          }
+        ],
+        "worst_valid_ratio": 393.3802801943978,
+        "worst_family": "swap position of the mismatched key within dict ordering",
+        "speedup_ratio_small": 0.4788948675319401,
+        "report": {
+          "run_id": "bt-json_repair#113-c8deff",
+          "target": "json_repair.object_comparer:ObjectComparer.is_same_object",
+          "image": "bw-pair:96f330402286ff0e",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Equal nested dictionaries of growing size",
+              "why": "The new version removes the temporary set construction and the `path` string concatenation for every recursive call. For large, fully matching structures the old code spends O(k) time in Python‑level set operations and string building at each level, while the new code walks the structure with only cheap dict look‑ups and no extra allocations.",
+              "size_meaning": "n = number of keys at each dictionary level (depth is fixed at 2)",
+              "make_source": "def make(n):\n    # Build two identical nested dicts: {k0:{sub0:0}, k1:{sub1:1}, ...}\n    inner = {f'sub{i}': i for i in range(n)}\n    obj = {f'k{i}': inner for i in range(n)}\n    return [[obj, obj]]",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.625444200066309,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=1024; ladder stops here"
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "deep_nesting_path_overhead",
+              "why": "The old implementation built a `path` string (`f\"{path}/{key}\"` and `f\"{path}[{i}]\"`) at every recursive call. For very deep but otherwise identical structures this string concatenation dominates run‑time. The new version drops the `path` argument entirely, so the cost grows only with the recursion depth, not with string allocation.",
+              "size_meaning": "nesting depth (number of recursive levels)",
+              "make_source": "def make(n):\n    # Build two identical deeply‑nested dicts of depth n\n    obj = {}\n    cur = obj\n    for i in range(n):\n        cur['k'] = {}\n        cur = cur['k']\n    # Return a single test case (list of argument lists)\n    return [[obj, obj]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "exit 1: nks\n  File \"/usr/local/lib/python3.12/json/encoder.py\", line 406, in _iterencode_dict\n    yield from chunks\n  [Previous line repeated 988 more times]\n  File \"/usr/local/lib/python3.12/json/encoder.py\", line 403, in _iterencode_dict\n    chunks = _iterencode_dict(value, _current_indent_level)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRecursionError: maximum recursion depth exceeded"
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "deeply nested dicts and lists that are completely equal",
+              "why": "Both versions must traverse the entire structure, but the head version avoids creating path strings on every recursive call, saving allocation and string concatenation overhead.",
+              "size_meaning": "n controls the branching factor and depth; total number of visited nodes grows roughly n².",
+              "make_source": "def make(n):\n    # Build a balanced tree: each dict has n keys, each value is a list of n ints,\n    # and each int is replaced by a smaller copy of the same pattern down to depth 2.\n    def build(depth):\n        if depth == 0:\n            return list(range(n))\n        return {f'k{i}': build(depth-1) for i in range(n)}\n    obj = build(2)\n    # Two identical objects\n    return [[obj, obj]] * 4",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.577573375976582,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=64; ladder stops here"
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Large dictionaries with same length but almost no common keys",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "size_meaning": "n = number of keys in each dictionary (both have length n, only 1 key overlaps)",
+              "make_source": "def make(n):\n    # dict1: keys k0..k{n-1}\n    # dict2: keys k0..k{n-2} plus 'extra' -> same length, 1 common key\n    d1 = {f'k{i}': i for i in range(n)}\n    d2 = {f'k{i}': i for i in range(n-1)}\n    d2['extra'] = n\n    return [[d1, d2]]",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 2.359513660630453,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "large_dict_missing_last_key",
+              "why": "Both versions first check `len(obj1) != len(obj2)`. When the lengths are equal but the key sets differ, the old code creates two `set`s of the keys and computes `extra_keys1 = keys1 - keys2` in C. That detects the mismatch without a Python‑level loop. The new code iterates over `obj1` keys in Python (`for key in obj1:`) and performs a dict lookup for each key; if the missing key is the last one in insertion order the loop runs `n` times in pure Python, which is slower than the C‑level set difference.",
+              "size_meaning": "number of keys in the dictionaries",
+              "make_source": "def make(n):\n    # obj1 has keys k0 … k{n‑1}; obj2 is identical except the last key is absent\n    obj1 = {f'k{i}': i for i in range(n)}\n    obj2 = {f'k{i}': i for i in range(n - 1)}\n    return [[obj1, obj2]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.12655399639540113,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "large dicts with identical length but one key swapped, and deep equal values on the shared keys",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "def make(n):\n    # shared keys k0..k{n-2} map to identical large lists\n    shared = {f'k{i}': list(range(n)) for i in range(n-1)}\n    # each side has its own extra key\n    obj1 = dict(shared)\n    obj1[f'extra1_{n}'] = list(range(n))\n    obj2 = dict(shared)\n    obj2[f'extra2_{n}'] = list(range(n))\n    # both dicts have length n\n    return [[obj1, obj2]] * 4",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 32.8561528289074,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=256; ladder stops here"
+            },
+            {
+              "id": "F6.1",
+              "kind": "suspected_slowdown",
+              "family": "large nested objects with identical structure except one differing top-level key",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "\ndef make(n):\n    shared_val = [{}] * n\n    shared = {f'a{i}': shared_val[:] for i in range(n - 1)}\n    o1 = dict(shared)\n    o1['x'] = []\n    o2 = dict(shared)\n    o2['y'] = []\n    return [[o1, o2], [list(o1.items()), list(o2.items())]]",
+              "example_args": [],
+              "origin": "expand:F6",
+              "screen_ratio": 0.536508916974118,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=1024; ladder stops here"
+            },
+            {
+              "id": "F6.2",
+              "kind": "suspected_slowdown",
+              "family": "swap position of the mismatched key within dict ordering",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "\ndef make(n):\n    shared_val = list(range(n))\n    prefixed_key = f'{chr(97 + n % 26)}key'\n    other_keys = [f'{chr(97+i%26)}{i}' for i in range(n - 1)]\n    all_keys = other_keys[:]\n    idx = len(all_keys)//2\n    all_keys.insert(idx, prefixed_key)\n    o1 = {}\n    for k in all_keys:\n        val = shared_val if k != prefixed_key else list(range(n+1))\n        o1[k] = val\n    all_keys.remove(prefixed_key)\n    alt_key = f'zzz_{n}'\n    all_keys.append(alt_key)\n    o2 = {}\n    for k in all_keys:\n        val = shared_val if k != alt_key else list(range(n+1))\n        o2[k] = val\n    return [[o1, o2]]",
+              "example_args": [],
+              "origin": "expand:F6",
+              "screen_ratio": 15.44234866165968,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=1024; ladder stops here"
+            },
+            {
+              "id": "F6.3",
+              "kind": "suspected_slowdown",
+              "family": "differ by one key in a deeply nested field path instead of top level",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "\ndef make(n):\n    base = {'data': {'items': [{'id': i, 'val': list(range(n))} for i in range(n)]}}\n    o1 = dict(base)\n    o1['meta'] = {'ver': 1}\n    o2 = dict(base)\n    o2['meta'] = {'ver': 2}\n    return [[o1, o2]]",
+              "example_args": [],
+              "origin": "expand:F6",
+              "screen_ratio": 0.5461298923063392,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=1024; ladder stops here"
+            },
+            {
+              "id": "F4.1",
+              "kind": "suspected_slowdown",
+              "family": "Large dictionaries with increasing overlap",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "size_meaning": "n = number of keys in each dictionary (both have length n, only 1 key overlaps)",
+              "make_source": "def make(n):\n    half_n = max(1, n // 2)\n    shared_base = sum(range(max(1, n - half_n)))\n    extra_offset = shared_base + len(str(shared_base))\n    offset_for_d1_additional_keys = extra_offset\n    offset_for_d2_additional_keys = extra_offset + half_n\n    d1 = {} ; count = 0\n    for _ in range(half_n):\n        d1[f'k{count}'] = f'val{count}' \n        count += 1\n    base_val = shared_base\n    for _ in range(half_n):\n        d1[f'k{count}'] = str(base_val)\n        base_val -= 1\n        count += 1\n    d2 = {} ; c2 = 0\n    for _ in range(half_n):\n        d2[f'k{c2}'] = f'val{c2}' \n        c2 += 1\n    val_shared_start = shared_base\n    for _ in range(half_n):\n        d2[f'k{c2}'] = str(val_shared_start)\n        val_shared_start -= 1\n        c2 += 1\n    def append_unique(dct, start_idx, num_to_add, prefix_char):\n        nonlocal count, c2\n        current = start_idx\n        for _ in range(num_to_add):\n            key_name = f'{prefix_char}{current}'\n            if prefix_char == 'k':\n                dct[key_name] = f'unique_val_{current}'\n            else:\n                dct[key_name] = unique_val_gen()\n            current += 1\n    try:\n        pass\n    except:\n        pass\n    appended_count1 = append_unique(d1, 1000 + count, half_n, 'z') if False else None\n    appended_count2 = append_unique(d2, 2000 + c2, half_n, 'z') if False else None\n    final_d1 = {**d1, **{f'z{1000+i}': f'uniq_{i}' for i in range(half_n)}} if False else {**d1}\n    final_d2 = {**d2, **{f'z{2000+i}': f'uniq_{i}' for i in range(half_n)}} if False else {**d2}\n    actual_d1 = {f'k{i}': f'val{i}' for i in range(half_n)} | {f'k{i+half_n}': str(i) for i in range(half_n)}\n    actual_d2 = {f'k{i}': f'val{i}' for i in range(half_n)} | {f'z{2000+i}': f'uniq_{i}' for i in range(half_n)}\n    result_dict1 = {}\n    result_dict2 = {}\n    iterator_var = 0\n    while iterator_var < half_n:\n        result_dict1[f'k{iterator_var}'] = f'val{iterator_var}'\n        iterator_var += 1\n    iterator_var = 0\n    while iterator_var < half_n:\n        result_dict1[f'k{iterator_var + half_n}'] = str(iterator_var)\n        iterator_var += 1\n    iterator_var = 0\n    while iterator_var < half_n:\n        result_dict2[f'k{iterator_var}'] = f'val{iterator_var}'\n        iterator_var += 1\n    iterator_var = 0\n    while iterator_var < half_n:\n        result_dict2[f'z{2000 + iterator_var}'] = f'uniq_{iterator_var}'\n        iterator_var += 1\n    return [[result_dict1, result_dict2]]",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "expand:F4",
+              "screen_ratio": 1.267527383235387,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4.2",
+              "kind": "suspected_slowdown",
+              "family": "Same-length dicts with exponentially growing keys and single shared key",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "size_meaning": "n = number of keys in each dictionary (both have length n, only 1 key overlaps)",
+              "make_source": "def make(n):\n    power_of_two = 2 ** int(math.log2(max(1, n)))\n    remainder = n - power_of_two\n    base_size = max(1, power_of_two // 2)\n    overflow_adjustment = remainder // 2\n    effective_size_d1 = base_size + overflow_adjustment\n    effective_size_d2 = base_size + (remainder - overflow_adjustment)\n    delta_compensation = abs(effective_size_d1 - effective_size_d2)\n    if effective_size_d1 < base_size:\n        effective_size_d1 += delta_compensation\n        effective_size_d2 -= delta_compensation\n    if effective_size_d2 < base_size:\n        effective_size_d2 += delta_compensation\n        effective_size_d1 -= delta_compensation\n    d1 = {f'key_{i:010d}': i * 3 + 7 for i in range(effective_size_d1)}\n    start_for_d2_unique = effective_size_d1 + 10000\n    d2 = {f'key_{i:010d}': i * 3 + 7 for i in range(min(effective_size_d2, effective_size_d1))}\n    for j in range(effective_size_d2 - min(effective_size_d2, effective_size_d1)):\n        d2[f'uniq_{start_for_d2_unique + j:010d}'] = (start_for_d2_unique + j) * 5 + 11\n    total_attempted_size = effective_size_d1 + effective_size_d2\n    size_difference = abs(len(d1) - len(d2))\n    correction_factor = size_difference // 2\n    if len(d1) < len(d2):\n        for k in range(correction_factor):\n            d1[f'adj_{k:05d}'] = k * 13 + 17\n    elif len(d2) < len(d1):\n        for k in range(correction_factor):\n            d2[f'adj_{k:05d}'] = k * 13 + 17\n    final_len_d1 = len(d1)\n    final_len_d2 = len(d2)\n    balance_iterations = abs(final_len_d1 - final_len_d2)\n    for l in range(balance_iterations):\n        if final_len_d1 < final_len_d2:\n            d1[f'bal_{l:04d}'] = l * 29 + 31\n            final_len_d1 += 1\n        else:\n            d2[f'bal_{l:04d}'] = l * 29 + 31\n            final_len_d2 += 1\n    assert len(d1) == len(d2) == n, f'Length mismatch: {len(d1)} vs {len(d2)} expected {n}'\n    return [[d1, d2]]",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "expand:F4",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(2): AssertionError: Length mismatch: 1 vs 1 expected 2"
+            },
+            {
+              "id": "F4.3",
+              "kind": "suspected_slowdown",
+              "family": "Dicts with numeric string keys where only the first matches",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "size_meaning": "n = number of keys in each dictionary (both have length n, only 1 key overlaps)",
+              "make_source": "def make(n):\n    seq_a = [] ; running_total = 0\n    for idx in range(n):\n        element_value = idx * 17 + 42\n        seq_a.append((f'num_{idx:05d}', element_value))\n        running_total += element_value\n    seq_b = [] ; accumulator = 0\n    for idx in range(n - 1):\n        element_value = idx * 17 + 42\n        seq_b.append((f'num_{idx:05d}', element_value))\n        accumulator += element_value\n    unique_val = running_total + accumulator + 1\n    seq_b.append((f'special_{unique_val}', unique_val))\n    random.shuffle(seq_a)\n    random.shuffle(seq_b)\n    dict_a = dict(seq_a)\n    dict_b = dict(seq_b)\n    verification_sum_a = sum(dict_a.values())\n    verification_sum_b = sum(dict_b.values())\n    if verification_sum_a != running_total:\n        pass\n    if verification_sum_b != (running_total - ((n-2)*17+42 if n>=2 else 0) + unique_val):\n        pass\n    shuffle_attempts = 0\n    while shuffle_attempts < 3:\n        temp_list_a = list(dict_a.items())\n        random.shuffle(temp_list_a)\n        dict_a = dict(temp_list_a)\n        temp_list_b = list(dict_b.items())\n        random.shuffle(temp_list_b)\n        dict_b = dict(temp_list_b)\n        shuffle_attempts += 1\n    final_dict_a = {} ; final_dict_b = {}\n    for key_val, value_val in dict_a.items():\n        final_dict_a[key_val] = value_val\n    for key_val, value_val in dict_b.items():\n        final_dict_b[key_val] = value_val\n    return [[final_dict_a, final_dict_b]]",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "expand:F4",
+              "screen_ratio": 1.4702232197510714,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "large dicts with identical length but one key swapped, and deep equal values on the shared keys",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "origin": "plan",
+              "screen_ratio": 32.8561528289074,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 7987.505597014925,
+                  "head_ir": 10568.429104477613,
+                  "input_chars": 72.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3231200875060702,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 9023.482142857143,
+                  "head_ir": 39515.28571428572,
+                  "input_chars": 176.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 4.379161513115582,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 17486.875,
+                  "head_ir": 574551.4375,
+                  "input_chars": 2012.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 32.8561528289074,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 51671.875,
+                  "head_ir": 8906992.5,
+                  "input_chars": 32636.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 172.37602661022075,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.30886155361775103,
+              "slope_head": 1.087165516425455,
+              "top_inputs": [],
+              "error": "ladder inputs exceed 2000000 chars at n=256; ladder stops here",
+              "verdict": "complexity-regression",
+              "worst_ratio": 172.37602661022075,
+              "worst_search": null
+            },
+            {
+              "family_id": "F6.2",
+              "kind": "suspected_slowdown",
+              "family": "swap position of the mismatched key within dict ordering",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "origin": "expand:F6",
+              "screen_ratio": 15.44234866165968,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 8496.9825,
+                  "head_ir": 3057.5275,
+                  "input_chars": 71.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.3598368597322638,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 9617.77232142857,
+                  "head_ir": 15360.191964285714,
+                  "input_chars": 175.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.597063379225866,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 17471.88888888889,
+                  "head_ir": 269807.0,
+                  "input_chars": 2012.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 15.44234866165968,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 51222.5,
+                  "head_ir": 4384278.5,
+                  "input_chars": 32636.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 85.59282541851725,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 178911.5,
+                  "head_ir": 70380256.0,
+                  "input_chars": 603957.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 393.3802801943978,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.3395084669125551,
+              "slope_head": 1.0885241785835233,
+              "top_inputs": [
+                {
+                  "args": [
+                    {
+                      "Ñ": [
+                        8273,
+                        274877906945,
+                        787,
+                        -43943,
+                        -15397528809,
+                        -2264,
+                        6607,
+                        5011,
+                        -9169055,
+                        307834,
+                        -1250678359887697920,
+                        33081805118349929410776268800,
+                        -360,
+                        646
+                      ],
+                      "x\u0005ó": [
+                        658,
+                        -246,
+                        5447851,
+                        -151,
+                        -8863860
+                      ],
+                      "𣨕Ñu¸𝦎񦌢û󲮁¯": [
+                        -116530,
+                        -33136,
+                        135512385001654
+                      ],
+                      "¼": [
+                        -24624784,
+                        253076,
+                        -24639,
+                        -237992206,
+                        -203375,
+                        -2480,
+                        170563,
+                        -1089005246
+                      ],
+                      "_": [
+                        -202932,
+                        -195,
+                        914247818375078029632705102698512384,
+                        -885,
+                        99,
+                        -1000
+                      ],
+                      "𕑀§򻀧4𼍌f0Ô񸡤ó": [
+                        -379,
+                        1282,
+                        15778,
+                        2447,
+                        7161564845180,
+                        10904,
+                        -1466,
+                        -733913,
+                        -1058804395
+                      ],
+                      "è򂵓«èÒ3äô\u000e": [
+                        124,
+                        98,
+                        -12077752,
+                        1049251,
+                        6973,
+                        -1087,
+                        1395680292474993
+                      ],
+                      "]Þü": [
+                        -410410,
+                        3888971222
+                      ],
+                      "񅐝r􈧋": [
+                        8798,
+                        -2633,
+                        4556
+                      ],
+                      "\u000b": [
+                        -200,
+                        15968,
+                        23464165,
+                        -664,
+                        2097152,
+                        -1421,
+                        98120327283904704,
+                        1024,
+                        68428,
+                        32420356118444936,
+                        70,
+                        745,
+                        -307143,
+                        -4183,
+                        -9021655067,
+                        374,
+                        -114,
+                        -3473021238987116544,
+                        2118827727004915,
+                        -251452533
+                      ],
+                      "examples": [
+                        -3732,
+                        -1399515,
+                        -4307,
+                        -25,
+                        -5291,
+                        1210,
+                        -351862742489,
+                        41927308,
+                        112,
+                        329,
+                        11372
+                      ],
+                      "²²": [
+                        -767251,
+                        -101618665,
+                        -27223025978933477381124189768480980992,
+                        108191110,
+                        -17429386030,
+                        -5575728,
+                        307
+                      ],
+                      "\u001c¥ß; \u0013󇢆": [
+                        8399565083,
+                        18258,
+                        -19201543154477,
+                        -68877991163502368,
+                        -2071700,
+                        948488203,
+                        151,
+                        -418,
+                        -6462256
+                      ],
+                      "򚥹򀱅󖐘": [
+                        -10684935,
+                        5486480,
+                        133,
+                        26543673,
+                        150,
+                        31,
+                        -38,
+                        -1320896188633931656986624,
+                        1667509909751706
+                      ],
+                      "Ó": [
+                        -60307,
+                        625,
+                        133682,
+                        11172,
+                        1425757961,
+                        228669162,
+                        -3043,
+                        -15167,
+                        -13043174926233972736,
+                        26409395,
+                        -13294,
+                        1089227400854,
+                        22190791,
+                        -844
+                      ],
+                      "0": [
+                        0,
+                        0,
+                        -414,
+                        -18446744073709551616,
+                        53046
+                      ],
+                      "þÐt": [
+                        1499506925,
+                        259503896243,
+                        -5266
+                      ]
+                    },
+                    {
+                      "Ñ": [
+                        8273,
+                        274877906945,
+                        787,
+                        -43943,
+                        -15397528809,
+                        -2264,
+                        6607,
+                        5011,
+                        -9169055,
+                        307834,
+                        -1250678359887697920,
+                        33081805118349929410776268800,
+                        -360,
+                        646
+                      ],
+                      "x\u0005ó": [
+                        658,
+                        -246,
+                        5447851,
+                        -151,
+                        -8863860
+                      ],
+                      "𣨕Ñu¸𝦎񦌢û󲮁¯": [
+                        -116530,
+                        -33136,
+                        135512385001654
+                      ],
+                      "¼": [
+                        -24624784,
+                        253076,
+                        -24639,
+                        -237992206,
+                        -203375,
+                        -2480,
+                        170563,
+                        -1089005246
+                      ],
+                      "_": [
+                        -202932,
+                        -195,
+                        914247818375078029632705102698512384,
+                        -885,
+                        99,
+                        -1000
+                      ],
+                      "𕑀§򻀧4𼍌f0Ô񸡤ó": [
+                        -379,
+                        1282,
+                        15778,
+                        2447,
+                        7161564845180,
+                        10904,
+                        -1466,
+                        -733913,
+                        -1058804395
+                      ],
+                      "è򂵓«èÒ3äô\u000e": [
+                        124,
+                        98,
+                        -12077752,
+                        1049251,
+                        6973,
+                        -1087,
+                        1395680292474993
+                      ],
+                      "]Þü": [
+                        -410410,
+                        3888971222
+                      ],
+                      "񅐝r􈧋": [
+                        8798,
+                        -2633,
+                        4556
+                      ],
+                      "\u000b": [
+                        -200,
+                        15968,
+                        23464165,
+                        -664,
+                        2097152,
+                        -1421,
+                        98120327283904704,
+                        1024,
+                        68428,
+                        32420356118444936,
+                        70,
+                        745,
+                        -307143,
+                        -4183,
+                        -9021655067,
+                        374,
+                        -114,
+                        -3473021238987116544,
+                        2118827727004915,
+                        -251452533
+                      ],
+                      "examples": [
+                        -3732,
+                        -1399515,
+                        -4307,
+                        -25,
+                        -5291,
+                        1210,
+                        -351862742489,
+                        41927308,
+                        112,
+                        329,
+                        11372
+                      ],
+                      "²²": [
+                        -767251,
+                        -101618665,
+                        -27223025978933477381124189768480980992,
+                        108191110,
+                        -17429386030,
+                        -5575728,
+                        307
+                      ],
+                      "\u001c¥ß; \u0013󇢆": [
+                        8399565083,
+                        18258,
+                        -19201543154477,
+                        -68877991163502368,
+                        -2071700,
+                        948488203,
+                        151,
+                        -418,
+                        -6462256
+                      ],
+                      "򚥹򀱅󖐘": [
+                        -10684935,
+                        5486480,
+                        133,
+                        26543673,
+                        150,
+                        31,
+                        -38,
+                        -1320896188633931656986624,
+                        1667509909751706
+                      ],
+                      "Ó": [
+                        -60307,
+                        625,
+                        133682,
+                        11172,
+                        1425757961,
+                        228669162,
+                        -3043,
+                        -15167,
+                        -13043174926233972736,
+                        26409395,
+                        -13294,
+                        1089227400854,
+                        22190791,
+                        -844
+                      ],
+                      "0": [
+                        0,
+                        0,
+                        -414,
+                        -18446744073709551616,
+                        53046
+                      ],
+                      "þÐt": [
+                        1499506925,
+                        259503896243,
+                        -5266,
+                        0,
+                        8273,
+                        274877906945,
+                        787,
+                        -43943,
+                        -15397528809,
+                        -2264,
+                        6607,
+                        5011,
+                        -9169055,
+                        307835
+                      ]
+                    }
+                  ],
+                  "cpu_ratio": 4.34,
+                  "base_ir": 217556.5,
+                  "head_ir": 351705.6,
+                  "ir_ratio": 1.6166172925194144,
+                  "outcome": "ok"
+                },
+                {
+                  "args": [
+                    6,
+                    {},
+                    {
+                      "´\u001dn\u0000": [
+                        37,
+                        51,
+                        21,
+                        46
+                      ],
+                      "Þ": [
+                        71,
+                        27,
+                        47,
+                        41,
+                        11,
+                        68,
+                        89,
+                        32,
+                        89,
+                        68
+                      ],
+                      "󰣈p4󝎟Ö\u000eù𞀮B": [
+                        34,
+                        96,
+                        99,
+                        90,
+                        38,
+                        16,
+                        1,
+                        42,
+                        2,
+                        39
+                      ],
+                      "󅁏µñ": [
+                        12,
+                        52,
+                        29,
+                        42
+                      ],
+                      "e©񨰳񒯃򖬑ûãó\u0012\u000e|": [
+                        48,
+                        64,
+                        50,
+                        48,
+                        3
+                      ],
+                      "ÇO\u000bú": [
+                        90
+                      ],
+                      "UV\u0017󝆛µ\tØ&": [],
+                      "l\b<ç<񌓺ý\u0017񹘂|#»𱄗\u0013\u001d񫚶(ô": [],
+                      "¼fseH򺠇󝭭âå#frÄw": [
+                        60,
+                        70
+                      ],
+                      "Ç": [
+                        89
+                      ],
+                      "eÍZéµ¨": [
+                        94,
+                        27,
+                        48,
+                        71,
+                        56,
+                        4,
+                        74,
+                        57,
+                        26,
+                        88
+                      ],
+                      "􅴄ïF󛔝¦": [
+                        22,
+                        75,
+                        8,
+                        52,
+                        83,
+                        33,
+                        7,
+                        89
+                      ],
+                      "\u000f񄣹򶷧½": [
+                        37
+                      ],
+                      "ôH°ò": [
+                        33,
+                        59,
+                        63,
+                        1,
+                        83,
+                        82,
+                        15,
+                        12,
+                        14,
+                        87
+                      ],
+                      "O𩰷£â": [
+                        12,
+                        20,
+                        82,
+                        97,
+                        29,
+                        5,
+                        31,
+                        85,
+                        15,
+                        28
+                      ],
+                      "j󩐞íØ°": [
+                        55,
+                        14,
+                        50,
+                        54,
+                        55,
+                        81,
+                        74
+                      ],
+                      "o": [
+                        11,
+                        33,
+                        37,
+                        86,
+                        30,
+                        40,
+                        61,
+                        28,
+                        66,
+                        73
+                      ],
+                      "\b8\u001c": [
+                        24
+                      ],
+                      "\u0013y?êÛz¥}􋖺¼𯎑ºàHv[񊪂V": [
+                        47,
+                        23,
+                        55,
+                        24,
+                        19,
+                        17,
+                        59,
+                        18
+                      ],
+                      "¶\u0006򑄤": [],
+                      "񉿦3B": [
+                        92,
+                        15,
+                        3,
+                        32,
+                        71,
+                        95
+                      ],
+                      "û!\r 򾘱񒀘񿘖ÿ񚏖½󬼰X𭬞Y¸": [
+                        92,
+                        91,
+                        95,
+                        43,
+                        93,
+                        73
+                      ]
+                    }
+                  ],
+                  "cpu_ratio": 4.096,
+                  "base_ir": 1607.0,
+                  "head_ir": 1571.0,
+                  "ir_ratio": 0.9775980087118855,
+                  "outcome": "ok"
+                }
+              ],
+              "error": "ladder inputs exceed 2000000 chars at n=1024; ladder stops here",
+              "verdict": "complexity-regression",
+              "worst_ratio": 393.3802801943978,
+              "worst_search": {
+                "args": [
+                  {
+                    "Ñ": [
+                      8273,
+                      274877906945,
+                      787,
+                      -43943,
+                      -15397528809,
+                      -2264,
+                      6607,
+                      5011,
+                      -9169055,
+                      307834,
+                      -1250678359887697920,
+                      33081805118349929410776268800,
+                      -360,
+                      646
+                    ],
+                    "x\u0005ó": [
+                      658,
+                      -246,
+                      5447851,
+                      -151,
+                      -8863860
+                    ],
+                    "𣨕Ñu¸𝦎񦌢û󲮁¯": [
+                      -116530,
+                      -33136,
+                      135512385001654
+                    ],
+                    "¼": [
+                      -24624784,
+                      253076,
+                      -24639,
+                      -237992206,
+                      -203375,
+                      -2480,
+                      170563,
+                      -1089005246
+                    ],
+                    "_": [
+                      -202932,
+                      -195,
+                      914247818375078029632705102698512384,
+                      -885,
+                      99,
+                      -1000
+                    ],
+                    "𕑀§򻀧4𼍌f0Ô񸡤ó": [
+                      -379,
+                      1282,
+                      15778,
+                      2447,
+                      7161564845180,
+                      10904,
+                      -1466,
+                      -733913,
+                      -1058804395
+                    ],
+                    "è򂵓«èÒ3äô\u000e": [
+                      124,
+                      98,
+                      -12077752,
+                      1049251,
+                      6973,
+                      -1087,
+                      1395680292474993
+                    ],
+                    "]Þü": [
+                      -410410,
+                      3888971222
+                    ],
+                    "񅐝r􈧋": [
+                      8798,
+                      -2633,
+                      4556
+                    ],
+                    "\u000b": [
+                      -200,
+                      15968,
+                      23464165,
+                      -664,
+                      2097152,
+                      -1421,
+                      98120327283904704,
+                      1024,
+                      68428,
+                      32420356118444936,
+                      70,
+                      745,
+                      -307143,
+                      -4183,
+                      -9021655067,
+                      374,
+                      -114,
+                      -3473021238987116544,
+                      2118827727004915,
+                      -251452533
+                    ],
+                    "examples": [
+                      -3732,
+                      -1399515,
+                      -4307,
+                      -25,
+                      -5291,
+                      1210,
+                      -351862742489,
+                      41927308,
+                      112,
+                      329,
+                      11372
+                    ],
+                    "²²": [
+                      -767251,
+                      -101618665,
+                      -27223025978933477381124189768480980992,
+                      108191110,
+                      -17429386030,
+                      -5575728,
+                      307
+                    ],
+                    "\u001c¥ß; \u0013󇢆": [
+                      8399565083,
+                      18258,
+                      -19201543154477,
+                      -68877991163502368,
+                      -2071700,
+                      948488203,
+                      151,
+                      -418,
+                      -6462256
+                    ],
+                    "򚥹򀱅󖐘": [
+                      -10684935,
+                      5486480,
+                      133,
+                      26543673,
+                      150,
+                      31,
+                      -38,
+                      -1320896188633931656986624,
+                      1667509909751706
+                    ],
+                    "Ó": [
+                      -60307,
+                      625,
+                      133682,
+                      11172,
+                      1425757961,
+                      228669162,
+                      -3043,
+                      -15167,
+                      -13043174926233972736,
+                      26409395,
+                      -13294,
+                      1089227400854,
+                      22190791,
+                      -844
+                    ],
+                    "0": [
+                      0,
+                      0,
+                      -414,
+                      -18446744073709551616,
+                      53046
+                    ],
+                    "þÐt": [
+                      1499506925,
+                      259503896243,
+                      -5266
+                    ]
+                  },
+                  {
+                    "Ñ": [
+                      8273,
+                      274877906945,
+                      787,
+                      -43943,
+                      -15397528809,
+                      -2264,
+                      6607,
+                      5011,
+                      -9169055,
+                      307834,
+                      -1250678359887697920,
+                      33081805118349929410776268800,
+                      -360,
+                      646
+                    ],
+                    "x\u0005ó": [
+                      658,
+                      -246,
+                      5447851,
+                      -151,
+                      -8863860
+                    ],
+                    "𣨕Ñu¸𝦎񦌢û󲮁¯": [
+                      -116530,
+                      -33136,
+                      135512385001654
+                    ],
+                    "¼": [
+                      -24624784,
+                      253076,
+                      -24639,
+                      -237992206,
+                      -203375,
+                      -2480,
+                      170563,
+                      -1089005246
+                    ],
+                    "_": [
+                      -202932,
+                      -195,
+                      914247818375078029632705102698512384,
+                      -885,
+                      99,
+                      -1000
+                    ],
+                    "𕑀§򻀧4𼍌f0Ô񸡤ó": [
+                      -379,
+                      1282,
+                      15778,
+                      2447,
+                      7161564845180,
+                      10904,
+                      -1466,
+                      -733913,
+                      -1058804395
+                    ],
+                    "è򂵓«èÒ3äô\u000e": [
+                      124,
+                      98,
+                      -12077752,
+                      1049251,
+                      6973,
+                      -1087,
+                      1395680292474993
+                    ],
+                    "]Þü": [
+                      -410410,
+                      3888971222
+                    ],
+                    "񅐝r􈧋": [
+                      8798,
+                      -2633,
+                      4556
+                    ],
+                    "\u000b": [
+                      -200,
+                      15968,
+                      23464165,
+                      -664,
+                      2097152,
+                      -1421,
+                      98120327283904704,
+                      1024,
+                      68428,
+                      32420356118444936,
+                      70,
+                      745,
+                      -307143,
+                      -4183,
+                      -9021655067,
+                      374,
+                      -114,
+                      -3473021238987116544,
+                      2118827727004915,
+                      -251452533
+                    ],
+                    "examples": [
+                      -3732,
+                      -1399515,
+                      -4307,
+                      -25,
+                      -5291,
+                      1210,
+                      -351862742489,
+                      41927308,
+                      112,
+                      329,
+                      11372
+                    ],
+                    "²²": [
+                      -767251,
+                      -101618665,
+                      -27223025978933477381124189768480980992,
+                      108191110,
+                      -17429386030,
+                      -5575728,
+                      307
+                    ],
+                    "\u001c¥ß; \u0013󇢆": [
+                      8399565083,
+                      18258,
+                      -19201543154477,
+                      -68877991163502368,
+                      -2071700,
+                      948488203,
+                      151,
+                      -418,
+                      -6462256
+                    ],
+                    "򚥹򀱅󖐘": [
+                      -10684935,
+                      5486480,
+                      133,
+                      26543673,
+                      150,
+                      31,
+                      -38,
+                      -1320896188633931656986624,
+                      1667509909751706
+                    ],
+                    "Ó": [
+                      -60307,
+                      625,
+                      133682,
+                      11172,
+                      1425757961,
+                      228669162,
+                      -3043,
+                      -15167,
+                      -13043174926233972736,
+                      26409395,
+                      -13294,
+                      1089227400854,
+                      22190791,
+                      -844
+                    ],
+                    "0": [
+                      0,
+                      0,
+                      -414,
+                      -18446744073709551616,
+                      53046
+                    ],
+                    "þÐt": [
+                      1499506925,
+                      259503896243,
+                      -5266,
+                      0,
+                      8273,
+                      274877906945,
+                      787,
+                      -43943,
+                      -15397528809,
+                      -2264,
+                      6607,
+                      5011,
+                      -9169055,
+                      307835
+                    ]
+                  }
+                ],
+                "cpu_ratio": 4.34,
+                "base_ir": 217556.5,
+                "head_ir": 351705.6,
+                "ir_ratio": 1.6166172925194144,
+                "outcome": "ok"
+              }
+            },
+            {
+              "family_id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Large dictionaries with same length but almost no common keys",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "origin": "plan",
+              "screen_ratio": 2.359513660630453,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 8505.045,
+                  "head_ir": 5664.055,
+                  "input_chars": 43.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6659641424589758,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 9597.045,
+                  "head_ir": 10851.3225,
+                  "input_chars": 79.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1306941355385955,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 17805.16935483871,
+                  "head_ir": 42011.540322580644,
+                  "input_chars": 318.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.359513660630453,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 51962.92857142857,
+                  "head_ir": 167637.2857142857,
+                  "input_chars": 1374.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.2260938773658694,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 180382.0,
+                  "head_ir": 672012.3333333334,
+                  "input_chars": 6221.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.725495522465287,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 683656.5,
+                  "head_ir": 2704145.0,
+                  "input_chars": 26284.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.95541474410029,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 2688556.5,
+                  "head_ir": 10830224.0,
+                  "input_chars": 118444.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 4.028267213279691,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.7403416575786624,
+              "slope_head": 0.9500987478171693,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "complexity-regression",
+              "worst_ratio": 4.028267213279691,
+              "worst_search": null
+            },
+            {
+              "family_id": "F4.3",
+              "kind": "suspected_slowdown",
+              "family": "Dicts with numeric string keys where only the first matches",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "origin": "expand:F4",
+              "screen_ratio": 1.4702232197510714,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 8446.045,
+                  "head_ir": 3053.59,
+                  "input_chars": 75.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.36154081584931175,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 9473.029197080292,
+                  "head_ir": 10824.835766423357,
+                  "input_chars": 143.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.14270055979134,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 18018.382352941175,
+                  "head_ir": 26491.04411764706,
+                  "input_chars": 576.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.4702232197510714,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": null,
+                  "head_ir": 124826.0625,
+                  "input_chars": 2319.0,
+                  "valid_fraction": 1.0,
+                  "ratio": null,
+                  "judged": false
+                },
+                {
+                  "n": 256,
+                  "base_ir": 176913.5,
+                  "head_ir": 261246.0,
+                  "input_chars": 9619.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.4766877598374346,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 685946.5,
+                  "head_ir": 2511266.0,
+                  "input_chars": 39680.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.661023126439161,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 2694296.5,
+                  "head_ir": 3761004.0,
+                  "input_chars": 162562.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3959131817897548,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.7642774275988333,
+              "slope_head": 0.9261474402151513,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "complexity-regression",
+              "worst_ratio": 3.661023126439161,
+              "worst_search": null
+            },
+            {
+              "family_id": "F3",
+              "kind": "claimed_speedup",
+              "family": "deeply nested dicts and lists that are completely equal",
+              "why": "Both versions must traverse the entire structure, but the head version avoids creating path strings on every recursive call, saving allocation and string concatenation overhead.",
+              "origin": "plan",
+              "screen_ratio": 0.577573375976582,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 83128.38636363637,
+                  "head_ir": 39809.757575757576,
+                  "input_chars": 148.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4788948675319401,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 391469.78571428574,
+                  "head_ir": 210470.44642857142,
+                  "input_chars": 708.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5376416114580636,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 16979749.125,
+                  "head_ir": 9807028.5,
+                  "input_chars": 32208.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5775720493750228,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.9880946803420871,
+              "slope_head": 1.019902407074333,
+              "top_inputs": [],
+              "error": "ladder inputs exceed 2000000 chars at n=64; ladder stops here",
+              "verdict": "faster",
+              "worst_ratio": 0.5775720493750228,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 21.79,
+            "screen": 301.33,
+            "full": 297.13,
+            "total": 620.26
+          }
+        }
+      }
+    }
+  ]
+}

@@ -105,3 +105,10 @@ def test_method_targets_and_value_observations():
     t = generate(F("P1", "value", [[">=1", ["1.0", "2.0"]]], ["2.0"], ["1.0", "2.0"]), "pkg.s:SpecifierSet#filter")
     assert "assert list(SpecifierSet('>=1').filter(['1.0', '2.0'])) == ['2.0']" in t.source
     assert json.dumps(t.to_json())  # serialisable for the report
+
+
+def test_generator_methods_are_iterated_inside_the_check():
+    t = generate(F("P2", "outcome", [["1²"]], {"status": "exc", "exc": "builtins.Exception"},
+                   {"status": "exc", "exc": "builtins.ValueError"}), "lexer:Lexer#generate_tokens")
+    assert "    result = Lexer('1²').generate_tokens()" in t.source and "        list(result)" in t.source
+    compile(t.source, t.name, "exec")

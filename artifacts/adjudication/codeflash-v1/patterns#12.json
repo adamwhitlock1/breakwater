@@ -1,0 +1,10 @@
+{
+  "id": "patterns#12",
+  "pr": 12,
+  "title": "⚡️ Speed up function `sanitize_pattern` by 11,547%",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

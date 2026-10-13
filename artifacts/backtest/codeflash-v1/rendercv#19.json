@@ -1,0 +1,263 @@
+{
+  "id": "rendercv#19",
+  "pr": 19,
+  "title": "⚡️ Speed up function `validate_start_and_end_date_fields` by 34%",
+  "base": "7f7abe4ebf939e25ebac92b9d1d43f226e80b373",
+  "head": "9ec5e7bd90913bce5b157e34b11a6e797fe57164",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "repo": "https://github.com/IanHollow/rendercv",
+  "install": {
+    "exclude_newer": "2026-08-11"
+  },
+  "targets": [
+    {
+      "target": "rendercv.data.models.computers:get_date_object",
+      "run_id": "bt-rendercv#19-e13ff1",
+      "image": "bw-pair:813ce5547446e295",
+      "usd": 0.0477,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.0,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 47.0,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.8,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.4504383153193379,
+        "report": {
+          "run_id": "bt-rendercv#19-e13ff1",
+          "target": "rendercv.data.models.computers:get_date_object",
+          "image": "bw-pair:813ce5547446e295",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "The literal string \"present\" which now matches early before any regex work.",
+              "why": "The new code checks `date == \"present\"` before the three compiled regexes, eliminating three fullmatch calls for this common sentinel value.",
+              "size_meaning": "Number of calls (n) – each call avoids three regex matches.",
+              "make_source": "def make(n):\n    # Return up to 8 calls with the \"present\" sentinel.\n    return [[\"present\"] for _ in range(min(n, 8))]",
+              "example_args": [
+                [
+                  "present"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.4504500481434408,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "Well‑formed YYYY‑MM‑DD dates (e.g. \"2023-07-15\").",
+              "why": "The old version matched the first inline regex and returned immediately. The new version first performs an extra string equality test against \"present\" before reaching the compiled YMD pattern, adding constant overhead on every call.",
+              "size_meaning": "Number of calls (n) – each call pays the extra equality check.",
+              "make_source": "def make(n):\n    # Generate up to 8 distinct valid YYYY‑MM‑DD strings.\n    res = []\n    for i in range(min(n, 8)):\n        year = 2000 + i\n        res.append([f\"{year:04d}-01-01\"])\n    return res",
+              "example_args": [
+                [
+                  "2000-01-01"
+                ],
+                [
+                  "2001-01-01"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6892066382428168,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "Well‑formed YYYY‑MM dates (e.g. \"2023-07\").",
+              "why": "Same extra \"present\" equality test is executed before the YM pattern is tried, so every YYYY‑MM call does one more cheap operation than before.",
+              "size_meaning": "Number of calls (n).",
+              "make_source": "def make(n):\n    res = []\n    for i in range(min(n, 8)):\n        year = 2000 + i\n        res.append([f\"{year:04d}-01\"])\n    return res",
+              "example_args": [
+                [
+                  "2000-01"
+                ],
+                [
+                  "2001-01"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5727908525003483,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Well‑formed YYYY dates (e.g. \"2023\").",
+              "why": "Again the new ordering forces an unnecessary `date == \"present\"` comparison before the final YYYY pattern, adding a constant cost per call.",
+              "size_meaning": "Number of calls (n).",
+              "make_source": "def make(n):\n    res = []\n    for i in range(min(n, 8)):\n        year = 2000 + i\n        res.append([f\"{year:04d}\"])\n    return res",
+              "example_args": [
+                [
+                  "2000"
+                ],
+                [
+                  "2001"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5112805813055908,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Invalid date strings that fall through all checks (e.g. \"abcd-ef-gh\").",
+              "why": "Both versions must try all three regexes before raising, but the new version also performs the extra \"present\" equality test, making the worst‑case path slightly slower.",
+              "size_meaning": "Number of calls (n).",
+              "make_source": "def make(n):\n    res = []\n    for i in range(min(n, 8)):\n        res.append([f\"invalid-{i}\"])\n    return res",
+              "example_args": [
+                [
+                  "invalid-0"
+                ],
+                [
+                  "invalid-1"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5322990304712177,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "claimed_speedup",
+              "family": "Removed two dead branches ('present' handling and duplicate error branch) reducing branch count and branch‑prediction pressure in the hot path.",
+              "why": "Removed two dead branches ('present' handling and duplicate error branch) reducing branch count and branch‑prediction pressure in the hot path.",
+              "size_meaning": "branch_reduction",
+              "make_source": "def make(n):\n    args = []\n    for _ in range(1, min(n, 8) + 1):\n        args.append([_])\n    return args",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0148825363233136,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "The literal string \"present\" which now matches early before any regex work.",
+              "why": "The new code checks `date == \"present\"` before the three compiled regexes, eliminating three fullmatch calls for this common sentinel value.",
+              "origin": "plan",
+              "screen_ratio": 0.4504500481434408,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 24230.35375,
+                  "head_ir": 11184.30125,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4615822519718682,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 23911.286875,
+                  "head_ir": null,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": null,
+                  "judged": false
+                },
+                {
+                  "n": 16,
+                  "base_ir": 24091.932942708332,
+                  "head_ir": 10851.9296875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4504383153193379,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 24091.407877604168,
+                  "head_ir": 10851.9599609375,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4504493890963379,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 24091.675130208332,
+                  "head_ir": 10852.142903645834,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4504519857997932,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 24091.673502604168,
+                  "head_ir": 10851.978841145834,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.45044520630635304,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 24091.7265625,
+                  "head_ir": 10852.318033854166,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4504582934602268,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.4615822519718682,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 39.09,
+            "screen": 838.6,
+            "full": 322.84,
+            "total": 1200.53
+          }
+        }
+      }
+    }
+  ]
+}

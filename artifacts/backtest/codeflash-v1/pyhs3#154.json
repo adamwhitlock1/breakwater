@@ -1,0 +1,169 @@
+{
+  "id": "pyhs3#154",
+  "pr": 154,
+  "title": "perf: Speed up function `parse_expression` by 785%",
+  "base": "6ed3734a99ae4d14758d3e6c9c79dfdfc28b3279",
+  "head": "483202e2a159a3e4e642b0d46a14a8b34600f72a",
+  "merged": "2026-01-26",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/scipp-atlas/pyhs3",
+  "install": {
+    "exclude_newer": "2026-01-27"
+  },
+  "targets": [
+    {
+      "target": "pyhs3.generic_parse:parse_expression",
+      "run_id": "bt-pyhs3#154-783d5e",
+      "image": "bw-pair:151227bd3d3aa868",
+      "usd": 0.0423,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 18.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 13.3,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 57.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 11.3,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-pyhs3#154-783d5e",
+          "target": "pyhs3.generic_parse:parse_expression",
+          "image": "bw-pair:151227bd3d3aa868",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical expression – the cache should turn the 2nd…nth parses into O(1) look‑ups.",
+              "why": "The change adds an `lru_cache` around the SymPy parser. When the same `expr_str` is supplied many times the first call does the full parse, all subsequent calls hit the cache and only pay a dict lookup and string hash.",
+              "size_meaning": "n = number of calls (size of the returned list).",
+              "make_source": "def make(n):\n    # a simple, well‑formed expression that SymPy accepts\n    expr = \"x + 1\"\n    return [[expr] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "repeated identical expression",
+              "why": "The new version caches the parsed SymPy expression with @lru_cache. When the same expression string is parsed many times, the cached result is returned instantly, while the base version re‑parses on every call.",
+              "size_meaning": "Number of repetitions (n) of the same expression string.",
+              "make_source": "def make(n):\n    expr = \"sin(x) + cos(y) * 2.5\"\n    return [[expr] for _ in range(n)]",
+              "example_args": [
+                [
+                  "sin(x) + cos(y) * 2.5"
+                ],
+                [
+                  "sin(x) + cos(y) * 2.5"
+                ],
+                [
+                  "sin(x) + cos(y) * 2.5"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical long expression (cache hit). The head version caches the parse result, so the first call pays the full parsing cost and the next seven calls are served from the LRU cache. The base version parses every call. Cost grows with the expression length n.",
+              "why": "Head adds @lru_cache on _parse_expr_cached; identical strings hit the cache, base has no cache.",
+              "size_meaning": "Length of the generated expression (number of '+y' segments). Larger n → more work for the parser, more benefit from caching.",
+              "make_source": "def make(n):\n    expr = 'x' + '+y' * n          # e.g. 'x+y+y+...+y' (≈2n characters)\n    return [[expr]] * 8               # eight identical calls",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "All‑different expressions – every call misses the cache, so we pay the cache‑lookup overhead on top of the normal parse.",
+              "why": "With a fresh string each time the `lru_cache` never hits. The wrapper still hashes the string and performs a dict lookup before delegating to `sympy_parser.parse_expr`, adding constant overhead per call.",
+              "size_meaning": "n = number of distinct expressions (length of returned list).",
+              "make_source": "def make(n):\n    # generate n syntactically different but valid expressions: \"x+0\", \"x+1\", …\n    return [[f\"x+{i}\"] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "many distinct short expressions (cache miss each time)",
+              "why": "Each call incurs the LRU‑cache wrapper overhead (function call, dict lookup, key hashing) but never benefits from a hit because every expression is unique. For very short strings the parsing work itself is tiny, so the constant cache overhead can make the head version marginally slower.",
+              "size_meaning": "Number of distinct short expressions (n).",
+              "make_source": "def make(n):\n    base = \"x\"\n    ops = [\"+1\", \"-1\", \"*2\", \"/2\"]\n    exprs = []\n    for i in range(n):\n        exprs.append([base + ops[i % len(ops)] + str(i)])\n    return exprs",
+              "example_args": [
+                [
+                  "x+10"
+                ],
+                [
+                  "x-11"
+                ],
+                [
+                  "x*212"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Eight distinct expressions per benchmark run. Every call is a cache miss, so the head version pays the cache‑lookup + hashing overhead in addition to the normal parse cost. The base version only does the parse.",
+              "why": "Head must compute the string hash, look up the LRU dict, miss, then store the result. Base calls sympy_parser.parse_expr directly.",
+              "size_meaning": "Length of each distinct expression (number of '+z' filler segments). Larger n → more hashing work and larger cache entries.",
+              "make_source": "def make(n):\n    exprs = [f'x{i}+y{i}' + '+z' * n for i in range(8)]\n    return [[e] for e in exprs]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            }
+          ],
+          "findings": [],
+          "seconds": {
+            "plan": 13.93,
+            "screen": 1248.88,
+            "full": 0.0,
+            "total": 1262.81
+          }
+        }
+      }
+    }
+  ]
+}

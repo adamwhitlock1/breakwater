@@ -1,0 +1,290 @@
+{
+  "id": "patterns#9",
+  "pr": 9,
+  "title": "⚡️ Speed up function `validate_regex` by 9,172%",
+  "base": "1a98411808332cac22183dfc4182a74759d0cca4",
+  "head": "1a4a2d4e42342721e2e46f479864e8741042ebf6",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/fabriziosalmi/patterns",
+  "install": {
+    "mode": "src",
+    "subdir": "",
+    "deps": [],
+    "exclude_newer": "2025-02-10"
+  },
+  "targets": [
+    {
+      "target": "json2haproxy:validate_regex",
+      "run_id": "bt-patterns#9-b47760",
+      "image": "bw-pair:5b48db9fac153930",
+      "usd": 0.0284,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.4,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 1.8,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 30.3,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.5,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.21644640487224528,
+        "report": {
+          "run_id": "bt-patterns#9-b47760",
+          "target": "json2haproxy:validate_regex",
+          "image": "bw-pair:5b48db9fac153930",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "repeated identical pattern",
+              "why": "The lru_cache stores the result of the first compilation; subsequent calls with the same pattern hit the cache and avoid the expensive re.compile call.",
+              "size_meaning": "Number of calls (n) with the exact same pattern",
+              "make_source": "def make(n):\n    # a simple valid regex that compiles quickly\n    pat = r'^[a-z]+$'\n    # return n argument lists, each a single‑element list for the positional argument\n    return [[pat] for _ in range(min(n, 8))]",
+              "example_args": [
+                [
+                  "^[a-z]+$"
+                ],
+                [
+                  "^[a-z]+$",
+                  "^[a-z]+$"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.22990159649364322,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "repeated identical valid pattern",
+              "why": "The added @lru_cache should turn many identical calls into O(1) dictionary look‑ups after the first compilation, giving a large speed‑up.",
+              "size_meaning": "number of calls (n) to validate_regex with the same pattern",
+              "make_source": "def make(n):\n    # single simple valid regex, repeated n times\n    pat = r\"a.*b\"\n    return [[pat] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.2216710368234219,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "repeated_same_pattern",
+              "why": "The new @lru_cache should return the cached result after the first compile, so many calls with the identical pattern become O(1) look‑ups instead of repeated re.compile work.",
+              "size_meaning": "Number of calls (n) made with the exact same valid regex.",
+              "make_source": "def make(n):\n    # a simple, valid regex that compiles quickly\n    pat = r\"^test$\"\n    # Return up to 8 calls; cost grows with n because we call the function n times\n    return [[pat] for _ in range(min(n, 8))]",
+              "example_args": [
+                [
+                  "^test$"
+                ],
+                [
+                  "^test$"
+                ],
+                [
+                  "^test$"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.2303367962083575,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "many distinct valid patterns",
+              "why": "Each call sees a previously unseen pattern, so the cache is missed on every invocation. The cache adds dictionary‑lookup and insertion overhead on top of the normal re.compile cost.",
+              "size_meaning": "Number of distinct patterns (n) supplied to the function",
+              "make_source": "def make(n):\n    # generate n different simple patterns like '^a$', '^b$', …\n    letters = string.ascii_lowercase\n    patterns = [f'^{ch}$' for ch in itertools.islice(letters, n)]\n    return [[p] for p in patterns[:8]]",
+              "example_args": [
+                [
+                  "^a$"
+                ],
+                [
+                  "^a$",
+                  "^b$"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.22540116958206485,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "many distinct simple valid patterns",
+              "why": "Each call sees a new pattern; the cache adds a dictionary lookup and an entry insertion for every call, which is overhead compared to the uncached direct compile.",
+              "size_meaning": "number of distinct patterns (n)",
+              "make_source": "def make(n):\n    # generate n different but trivially valid regexes\n    return [[f\"a{i}b\"] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.21975355523082016,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "many_unique_short_patterns",
+              "why": "Each distinct pattern misses the cache, so the wrapper adds a dict‑lookup and an entry insertion on top of the re.compile cost. With many unique patterns the extra overhead is measurable.",
+              "size_meaning": "Number of distinct short patterns (n).",
+              "make_source": "def make(n):\n    # generate n distinct simple patterns like \"a0\", \"a1\", …\n    patterns = [f\"a{i}\" for i in range(n)]\n    return [[p] for p in patterns[:8]]",
+              "example_args": [
+                [
+                  "a0"
+                ],
+                [
+                  "a1"
+                ],
+                [
+                  "a2"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.22753060892026641,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "repeated identical valid pattern",
+              "why": "The added @lru_cache should turn many identical calls into O(1) dictionary look‑ups after the first compilation, giving a large speed‑up.",
+              "origin": "plan",
+              "screen_ratio": 0.2216710368234219,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 3854.19625,
+                  "head_ir": 1049.19625,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.27222180240562477,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 3747.13875,
+                  "head_ir": 918.63875,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.2451573884206983,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 3656.71475,
+                  "head_ir": 810.58775,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.2216710368234219,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 3637.953125,
+                  "head_ir": 787.421875,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.21644640487224528,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 3637.953125,
+                  "head_ir": 787.421875,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.21644640487224528,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 3637.953125,
+                  "head_ir": 787.421875,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.21644640487224528,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 3637.953125,
+                  "head_ir": 787.421875,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.21644640487224528,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [
+                {
+                  "args": [
+                    "a.*b"
+                  ],
+                  "cpu_ratio": 0.288,
+                  "base_ir": 4100.17,
+                  "head_ir": 1342.17,
+                  "ir_ratio": 0.32734496374540567,
+                  "outcome": "ok"
+                }
+              ],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.32734496374540567,
+              "worst_search": {
+                "args": [
+                  "a.*b"
+                ],
+                "cpu_ratio": 0.288,
+                "base_ir": 4100.17,
+                "head_ir": 1342.17,
+                "ir_ratio": 0.32734496374540567,
+                "outcome": "ok"
+              }
+            }
+          ],
+          "seconds": {
+            "plan": 27.91,
+            "screen": 209.49,
+            "full": 137.02,
+            "total": 374.42
+          }
+        }
+      }
+    }
+  ]
+}

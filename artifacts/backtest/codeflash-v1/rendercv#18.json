@@ -1,0 +1,453 @@
+{
+  "id": "rendercv#18",
+  "pr": 18,
+  "title": "⚡️ Speed up function `validate_date_field` by 47%",
+  "base": "9ec5e7bd90913bce5b157e34b11a6e797fe57164",
+  "head": "d5f419015d7370b104f2e7620819df1ec0ff64ee",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "repo": "https://github.com/IanHollow/rendercv",
+  "install": {
+    "exclude_newer": "2026-08-11"
+  },
+  "targets": [
+    {
+      "target": "rendercv.data.models.computers:get_date_object",
+      "run_id": "bt-rendercv#18-4bf335",
+      "image": "bw-pair:e5d6e3b80a12bd08",
+      "usd": 0.0624,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 10.4,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+            "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested"
+          ],
+          "known": [],
+          "seconds": 55.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.9,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              []
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "found_by": [
+            "A2/s1",
+            "A2/s4",
+            "A2/s2",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              [
+                "present",
+                "present",
+                "´¢¯",
+                "´¢¯"
+              ]
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "found_by": [
+            "A2/s2",
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "F1",
+            "family": "present_string",
+            "verdict": "slower",
+            "ladder": [
+              1.1086199576605362,
+              1.10404534470125,
+              1.1042829451861822,
+              1.1042624891058823,
+              1.1042504479302269,
+              1.1042184934394863
+            ],
+            "origin": "plan"
+          }
+        ],
+        "worst_valid_ratio": 1.1086199576605362,
+        "worst_family": "present_string",
+        "speedup_ratio_small": 0.5082513181202372,
+        "report": {
+          "run_id": "bt-rendercv#18-4bf335",
+          "target": "rendercv.data.models.computers:get_date_object",
+          "image": "bw-pair:e5d6e3b80a12bd08",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "present_string",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "size_meaning": "Number of calls (each call receives the same \"present\" argument).",
+              "make_source": "def make(n):\n    # Return n calls each with the string \"present\"\n    return [[\"present\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "present"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.1039701293539939,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "very_long_invalid_string",
+              "why": "For a long bogus string the new code evaluates three `len(date) == …` checks (and two indexing operations) before falling through to the error case. The old regex `fullmatch` can reject the string after a quick length mismatch, so the new path does more per‑call work.",
+              "size_meaning": "Length of the bogus input string (grows with n).",
+              "make_source": "def make(n):\n    # One call with a string of length n+10 (guarantees it matches none of the length checks)\n    return [[\"x\" * (n + 10)]]",
+              "example_args": [
+                [
+                  "xxxxxxxxxx"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5614012301654637,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "valid_ymd_dates",
+              "why": "The change removes the compiled regex objects and the `re` import. For the common valid YYYY‑MM‑DD format the new code takes a single length test and two character checks, which is cheaper than a regex fullmatch.",
+              "size_meaning": "Number of distinct valid YYYY‑MM‑DD dates supplied (up to 8).",
+              "make_source": "def make(n):\n    # Produce up to 8 different valid YYYY‑MM‑DD strings, cycling years if n>8\n    res = []\n    for i in range(min(n, 8)):\n        year = 2000 + i\n        res.append([f\"{year:04d}-01-01\"])\n    return res",
+              "example_args": [
+                [
+                  "2000-01-01"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6455719648370005,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "valid_ym_dates",
+              "why": "Same reasoning as for YYYY‑MM‑DD: the new length/character checks avoid a regex fullmatch for the YYYY‑MM format.",
+              "size_meaning": "Number of distinct valid YYYY‑MM dates supplied (up to 8).",
+              "make_source": "def make(n):\n    res = []\n    for i in range(min(n, 8)):\n        year = 2000 + i\n        res.append([f\"{year:04d}-01\"])\n    return res",
+              "example_args": [
+                [
+                  "2000-01"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5518609110423578,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "claimed_speedup",
+              "family": "valid_y_dates",
+              "why": "For pure year strings the new code only checks `len(date)==4` and `date.isdigit()`, avoiding the `_Y_PATTERN.fullmatch` regex.",
+              "size_meaning": "Number of distinct valid YYYY strings supplied (up to 8).",
+              "make_source": "def make(n):\n    res = []\n    for i in range(min(n, 8)):\n        year = 2000 + i\n        res.append([f\"{year:04d}\"])\n    return res",
+              "example_args": [
+                [
+                  "2000"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5082617830565056,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "claimed_speedup",
+              "family": "regex_removal",
+              "why": "Replaced `re.fullmatch(r\"\\\\d{4}-\\\\d{2}(-\\\\d{2})?\", ...)` and `re.fullmatch(r\"\\\\d{4}\", ...)` with cheap length checks (`len(date) == 10`, `len(date) == 7`, `len(date) == 4`) and cheap character checks (`date[4] == '-'`, `date[7] == '-'`, `date.isdigit()`).  Python‑level string ops avoid the overhead of compiling and executing a regular‑expression engine, which is a common micro‑optimisation claim.",
+              "size_meaning": "micro‑optimisation",
+              "make_source": "\ndef make(n):\n    ops = []\n    for _ in range(math.ceil(n / 3)):\n        d1 = ''.join(string.digits[math.floor((i * 123456789) % 10)] for i in range(4))\n        d2 = ''.join(string.digits[math.floor((i * 987654321) % 10)] for i in range(2))\n        ops.append([d1])\n        if len(ops) < 8:\n            ops.append([d1 + '-' + d2])\n        if len(ops) < 8:\n            ops.append([d1 + '-' + d2 + '-'])\n    return ops[:8]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.5173465473733467,
+              "valid_fraction": 0.75,
+              "error": null
+            },
+            {
+              "id": "F1.1",
+              "kind": "suspected_slowdown",
+              "family": "lowercase_alias",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "size_meaning": "Number of calls (each call receives the same \"present\" argument).",
+              "make_source": "import sys\nsys.path.insert(0, '/proc/self/fd/0')\ndef make(n):\n    return [[\"Present\".lower()] for _ in range(n)]",
+              "example_args": [
+                [
+                  "present"
+                ]
+              ],
+              "origin": "expand:F1",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: imports are not allowed"
+            },
+            {
+              "id": "F1.2",
+              "kind": "suspected_slowdown",
+              "family": "concatenated_build_up",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "size_meaning": "Number of calls (each call receives the same \"present\" argument).",
+              "make_source": "def make(n):\n    lvl = ['p', 'r', 'e', 's', 'e', 'n', 't']\n    s = ''\n    out = []\n    while len(lvl) > 0:\n        s += lvl.pop(0)\n        out.append([s])\n    while len(out) < n:\n        out.extend([])\n    return out[:n]",
+              "example_args": [
+                [
+                  "present"
+                ]
+              ],
+              "origin": "expand:F1",
+              "screen_ratio": 0.5474894216186766,
+              "valid_fraction": 0.0,
+              "error": "make(16) timed out; ladder stops at the previous size"
+            },
+            {
+              "id": "F1.3",
+              "kind": "suspected_slowdown",
+              "family": "whitespace_padded_optionals",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "size_meaning": "Number of calls (each call receives the same \"present\" argument).",
+              "make_source": "def make(n):\n    opts = [' ', '\\t', '', '  ']\n    def rnd_opt(i):\n        return opts[i % len(opts)]\n    base = 'present'\n    return [[rnd_opt(i) + base + rnd_opt(i+1)] for i in range(n)]}], ",
+              "example_args": [
+                [
+                  "present"
+                ]
+              ],
+              "origin": "expand:F1",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: unmatched '}' (line 7)"
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "present_string",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "origin": "plan",
+              "screen_ratio": 1.1039701293539939,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 11185.19125,
+                  "head_ir": 12400.12625,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1086199576605362,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": null,
+                  "head_ir": 11936.5725,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": null,
+                  "judged": false
+                },
+                {
+                  "n": 16,
+                  "base_ir": 10884.448893229166,
+                  "head_ir": 12016.925130208334,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.10404534470125,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 10857.189778645834,
+                  "head_ir": 11989.409505208334,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1042829451861822,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 10857.4248046875,
+                  "head_ir": 11989.446940104166,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1042624891058823,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 10857.4111328125,
+                  "head_ir": 11989.301106770834,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1042504479302269,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 10857.651041666666,
+                  "head_ir": 11989.219075520834,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1042184934394863,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.1086199576605362,
+              "worst_search": null
+            },
+            {
+              "family_id": "F5",
+              "kind": "claimed_speedup",
+              "family": "valid_y_dates",
+              "why": "For pure year strings the new code only checks `len(date)==4` and `date.isdigit()`, avoiding the `_Y_PATTERN.fullmatch` regex.",
+              "origin": "plan",
+              "screen_ratio": 0.5082617830565056,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 8885.9025,
+                  "head_ir": 4681.3975,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5268342185838748,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": null,
+                  "head_ir": 4217.165625,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": null,
+                  "judged": false
+                },
+                {
+                  "n": 16,
+                  "base_ir": 8483.9865625,
+                  "head_ir": 4346.2696875,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5122909678700944,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 8551.5965625,
+                  "head_ir": 4346.3725,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.508252753533706,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 8551.4178125,
+                  "head_ir": 4346.269375,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5082513181202372,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 8551.54375,
+                  "head_ir": 4346.370625,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5082556731350406,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 8551.386875,
+                  "head_ir": 4346.481875,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5082780066595923,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.5268342185838748,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 12.81,
+            "screen": 946.63,
+            "full": 690.02,
+            "total": 1649.46
+          }
+        }
+      }
+    }
+  ]
+}

@@ -626,8 +626,8 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
     tests_note = (f'<section><h2>Regression tests</h2><p class="section-lede">{len(verified)} of {len(it.cards)} classes '
                   "have a generated pytest that pins the old behaviour. Each passed on the base commit and failed on "
                   "the head commit in the sandbox before it was offered.</p>"
-                  f'<p><a class="button" href="../tests/test_{esc(it.slug.replace("-", "_"))}.py" download>'
-                  f'Download test_{esc(it.slug.replace("-", "_"))}.py</a></p></section>') if verified else ""
+                  f'<p><a class="button" href="../tests/test_{esc(re.sub(r"[^A-Za-z0-9]+", "_", it.slug))}.py" download>'
+                  f'Download test_{esc(re.sub(r"[^A-Za-z0-9]+", "_", it.slug))}.py</a></p></section>') if verified else ""
     receipt = "".join(
         f'<tr><td><code>{esc(t.target)}</code></td><td><code>{esc(t.image)}</code></td><td><code>{esc(t.run_id)}</code></td>'
         f'<td class="num">{money(t.usd)}</td><td class="num">{money(t.adj_usd)}</td></tr>' for t in it.targets)

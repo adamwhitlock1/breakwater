@@ -19,10 +19,12 @@ artifacts/archive/
 artifacts/backtest/*
 !artifacts/backtest/packaging-v2/
 !artifacts/backtest/packaging-v3/
+!artifacts/backtest/codeflash-v1/
 # Adjudication runs; only Token Factory runs that feed published numbers get committed
 artifacts/adjudication/*
 !artifacts/adjudication/packaging-v2/
 !artifacts/adjudication/packaging-v3/
+!artifacts/adjudication/codeflash-v1/
 # Built report (CI builds it from committed artifacts; see .github/workflows/pages.yml)
 /site/
 .claude/launch.json

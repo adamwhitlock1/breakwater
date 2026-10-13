@@ -1,0 +1,231 @@
+{
+  "id": "rendercv#17",
+  "pr": 17,
+  "title": "⚡️ Speed up function `validate_typst_dimension` by 59%",
+  "base": "ddd75cabd6753939b4c3b18f40c061dae77c8021",
+  "head": "7f7abe4ebf939e25ebac92b9d1d43f226e80b373",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "repo": "https://github.com/IanHollow/rendercv",
+  "install": {
+    "exclude_newer": "2026-08-11"
+  },
+  "targets": [
+    {
+      "target": "rendercv.themes.options:validate_typst_dimension",
+      "run_id": "bt-rendercv#17-d9c63c",
+      "image": "bw-pair:ab04b2c6771378c0",
+      "usd": 0.3081,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 10.2,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 76.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.5720241980922828,
+        "report": {
+          "run_id": "bt-rendercv#17-d9c63c",
+          "target": "rendercv.themes.options:validate_typst_dimension",
+          "image": "bw-pair:ab04b2c6771378c0",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "valid_long_dimensions",
+              "why": "Long valid dimension strings exercise the regex match path; the pre‑compiled pattern avoids recompilation on each call, so the head version should be faster.",
+              "size_meaning": "Number of digits before the unit (string length grows with n).",
+              "make_source": "def make(n):\n    # Produce n test cases with increasing digit count.\n    # Each case is a single‑argument list for validate_typst_dimension.\n    return [[str(i) * n + 'cm'] for i in range(1, min(n, 8) + 1)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.606495991202723,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "valid_many_units",
+              "why": "Cycling through all allowed units forces the regex alternation branch; the compiled pattern caches the DFA, making repeated matches faster in head.",
+              "size_meaning": "Number of different units tested (up to 6).",
+              "make_source": "def make(n):\n    units = ['cm','in','pt','mm','ex','em']\n    # Repeat the first n units (n ≤ 6) with a fixed numeric part.\n    return [[f'12.5{u}'] for u in units[:min(n, len(units))]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.5720784816340604,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "invalid_long_strings",
+              "why": "Very long strings that do not match the pattern cause the engine to scan the entire input before failing; both versions do the same work, but the extra global lookup in head could add a tiny overhead.",
+              "size_meaning": "Length of the non‑matching string (n characters).",
+              "make_source": "def make(n):\n    # Produce up to 8 strings of length n consisting of letters only.\n    base = 'x' * n\n    return [[base + str(i)] for i in range(1, min(n, 8) + 1)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.6552550623896006,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "valid_short_dimensions",
+              "why": "For extremely short valid inputs the cost of the function call dominates; the head version adds a global variable read (_DIMENSION_PATTERN) which can be marginally slower than the inline re.fullmatch that uses the cached compiled pattern.",
+              "size_meaning": "Number of repetitions of the minimal valid dimension (always 1).",
+              "make_source": "def make(n):\n    # Return n copies of the shortest valid dimension.\n    return [['1cm'] for _ in range(min(n, 8))]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.5631634376701471,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "claimed_speedup",
+              "family": "optimized_regex_precompile",
+              "why": "Pre‑compiling the regular expression used for validation removes per‑call compilation overhead.",
+              "size_meaning": "high",
+              "make_source": "def make(n):\n    seq = []\n    for i in range(1, min(n, 8) + 1):\n        args = [i, i * 2, i * 3]\n        seq.append(args)\n    return seq",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.001113696137842,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "repeated_regex_compilation",
+              "why": "If the regex is recompiled on each call instead of being cached, validation becomes slower.",
+              "size_meaning": "high",
+              "make_source": "\ndef make(n):\n    perms = list(itertools.permutations(range(1, 4)))\n    patterns = [f\"\\\\d{{{i}}}\" for i in range(1, 4)]\n    args = []\n    for p, pat in itertools.product(perms, patterns):\n        arg_list = list(p) + [pat]\n        args.append(arg_list)\n        if len(args) == 8:\n            break\n    return args",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.000023833760119,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "valid_many_units",
+              "why": "Cycling through all allowed units forces the regex alternation branch; the compiled pattern caches the DFA, making repeated matches faster in head.",
+              "origin": "plan",
+              "screen_ratio": 0.5720784816340604,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 6490.525,
+                  "head_ir": 3795.39375,
+                  "input_chars": 10.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5847591296543808,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 6362.68375,
+                  "head_ir": 3673.936875,
+                  "input_chars": 10.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5774193751182431,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 6341.96,
+                  "head_ir": 3627.7545833333334,
+                  "input_chars": 10.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5720241980922828,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 6341.8,
+                  "head_ir": 3627.8420833333334,
+                  "input_chars": 10.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5720524272814238,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 6341.847916666667,
+                  "head_ir": 3627.7725,
+                  "input_chars": 10.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.572037132972875,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 6341.725416666667,
+                  "head_ir": 3627.9270833333335,
+                  "input_chars": 10.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5720725583291245,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 6341.28,
+                  "head_ir": 3627.7170833333334,
+                  "input_chars": 10.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5720796248286361,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.5847591296543808,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 93.31,
+            "screen": 652.18,
+            "full": 654.43,
+            "total": 1399.92
+          }
+        }
+      }
+    }
+  ]
+}

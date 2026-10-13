@@ -18,6 +18,7 @@ import ast
 import concurrent.futures as cf
 import json
 import random
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -460,7 +461,7 @@ def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, o
         verified = [regress.RegressionTest(**{k: v for k, v in x.items() if k != "verified"})
                     for t in targets for x in t["tests"]]
         if any(x.verified for x in verified):
-            (out_dir / f"test_{slug.replace('-', '_')}.py").write_text(regress.render_file(
+            (out_dir / f"test_{re.sub(r'[^A-Za-z0-9]+', '_', slug)}.py").write_text(regress.render_file(
                 verified, f"Regression tests for pypa/packaging {item['id']}: {item['title']}"))
         return res
 

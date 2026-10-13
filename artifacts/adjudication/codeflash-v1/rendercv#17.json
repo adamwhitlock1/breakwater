@@ -1,0 +1,10 @@
+{
+  "id": "rendercv#17",
+  "pr": 17,
+  "title": "⚡️ Speed up function `validate_typst_dimension` by 59%",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

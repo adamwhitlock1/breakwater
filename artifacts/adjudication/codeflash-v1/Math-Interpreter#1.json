@@ -1,0 +1,83 @@
+{
+  "id": "Math-Interpreter#1",
+  "pr": 1,
+  "title": "⚡️ Speed up method `Lexer.generate_number` by 11%",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "lexer:Lexer#generate_tokens",
+      "image": "bw-pair:7a0f18c452d5a146",
+      "run_id": "adj-Math-Interpreter#1-c93a95",
+      "samples": 3,
+      "usd": 0.0211,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The PR is described as a pure performance improvement with no documentation or tests indicating a change in accepted numeric literals. The change replaces an explicit ASCII‑digit check (`in DIGITS`) with `str.isdigit()`, which now accepts Unicode digits such as Arabic‑Indic numbers, causing the lexer to succeed on inputs it previously rejected.",
+          "evidence": [
+            "⚡️ Speed up method `Lexer.generate_number` by 11%",
+            "DIGITS = '0123456789'",
+            "while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "- while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+            "+ while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):"
+          ],
+          "rejected": [
+            "PR title: ⚡️ Speed up method `Lexer.generate_number` by 11%"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"0٠\"]: base raises builtins.Exception, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|long-digits+non-ascii",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 2,
+            "needs-human": 1
+          },
+          "rationale": "Same reasoning as C1: the performance‑only PR unintentionally broadens digit acceptance via `isdigit()`, so a very long numeric string containing non‑ASCII digits now parses without error whereas the base version raised an exception.",
+          "evidence": [
+            "⚡️ Speed up method `Lexer.generate_number` by 11%",
+            "DIGITS = '0123456789'",
+            "while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4305 chars): base raises builtins.Exception, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii+whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Identical to C1/C2: the refactor swaps an explicit ASCII‑digit whitelist for `isdigit()`, letting a trailing Arabic‑Indic digit be consumed as part of a number and avoiding the “Illegal character” exception that the original code produced.",
+          "evidence": [
+            "⚡️ Speed up method `Lexer.generate_number` by 11%",
+            "DIGITS = '0123456789'",
+            "while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "- while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+            "+ while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):"
+          ],
+          "rejected": [
+            "PR title: ⚡️ Speed up method `Lexer.generate_number` by 11%"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"1١ \"]: base raises builtins.Exception, head returns normally."
+        }
+      ]
+    }
+  ]
+}

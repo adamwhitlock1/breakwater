@@ -264,14 +264,14 @@ def run(req):
                 fresh, _ = _construct(target, args, observe, timeout_s)
                 entry = {"status": "ok", "obs": _observe(obj, observe, timeout_s)}
                 if fresh is not None:
-                    kk, eq = _guard(lambda obj=obj, fresh=fresh: obj == fresh, timeout_s)
+                    kk, eq = _guard(lambda obj=obj, fresh=fresh: _relation_value(obj == fresh), timeout_s)
                     entry["eq_fresh"] = eq if kk == "ok" else f"<{kk}{':' + eq if eq else ''}>"
                     # Control: two fresh objects from this version. If they don't compare equal
                     # either, an eq_fresh failure says nothing about the pickle.
                     twin, _ = _construct(target, args, observe, timeout_s)
-                    kk, ctl = _guard(lambda fresh=fresh, twin=twin: fresh == twin, timeout_s)
+                    kk, ctl = _guard(lambda fresh=fresh, twin=twin: _relation_value(fresh == twin), timeout_s)
                     entry["eq_control"] = ctl if kk == "ok" else f"<{kk}{':' + ctl if ctl else ''}>"
-                    kk, lt = _guard(lambda obj=obj, fresh=fresh: obj < fresh or obj > fresh, timeout_s)
+                    kk, lt = _guard(lambda obj=obj, fresh=fresh: _relation_value(obj < fresh or obj > fresh), timeout_s)
                     entry["cmp_fresh"] = lt if kk == "ok" else f"<{kk}{':' + lt if lt else ''}>"
                 loads.append(entry)
             results.append({"loads": loads})

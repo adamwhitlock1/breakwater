@@ -1,0 +1,288 @@
+{
+  "id": "caddy-feeds#4",
+  "pr": 4,
+  "title": "⚡️ Speed up function `is_excluded` by 17,376%",
+  "base": "f5e3d0c28fe86f51150194ba903055ab6a146a69",
+  "head": "d94d92d5d9dafa5b20b06ab7b7f129952309187e",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/fabriziosalmi/caddy-feeds",
+  "install": {
+    "mode": "src",
+    "subdir": "scripts",
+    "deps": [
+      "requests",
+      "pyyaml",
+      "aiohttp",
+      "prometheus-client"
+    ],
+    "exclude_newer": "2025-02-10"
+  },
+  "targets": [
+    {
+      "target": "ip:is_excluded",
+      "run_id": "bt-caddy-feeds#4-8a7920",
+      "image": "bw-pair:5a2702d2489d914c",
+      "usd": 0.0376,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.0,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.7,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|ok|exc:builtins.TypeError|nested"
+          ],
+          "known": [],
+          "seconds": 210.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 3.5,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|ok|exc:builtins.TypeError|nested",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              [
+                "0.0.0.0/31"
+              ]
+            ]
+          ],
+          "base": {
+            "status": "ok",
+            "obs": {
+              "value": true
+            }
+          },
+          "head": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "found_by": [
+            "A3/s2",
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.002869475992836489,
+        "report": {
+          "run_id": "bt-caddy-feeds#4-8a7920",
+          "target": "ip:is_excluded",
+          "image": "bw-pair:5a2702d2489d914c",
+          "backend": "docker",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical IP addresses – the cache should turn every call after the first into a cheap dict lookup.",
+              "why": "The new @lru_cache stores the result for a given string. When the same address is queried many times the second‑and‑later calls avoid the loop over EXCLUDE_NETWORKS entirely, so total time should grow sub‑linearly.",
+              "size_meaning": "n = number of calls (each call uses the same address).",
+              "make_source": "def make(n):\n    # n calls, all the same valid public IPv4 address\n    return [[\"8.8.8.8\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "8.8.8.8"
+                ],
+                [
+                  "8.8.8.8"
+                ],
+                [
+                  "8.8.8.8"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.002938667994161182,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical IP address",
+              "why": "The new LRU cache stores the result of the first check; subsequent calls hit the cache and avoid re‑evaluating the 17 exclusion networks. Old version recomputes every time.",
+              "size_meaning": "Number of repeated checks (n).",
+              "make_source": "def make(n):\n    ip = \"8.8.8.8\"          # public IPv4, not excluded\n    return [[ip] for _ in range(min(n, 8))]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.0031087235184058064,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical IP address (cache hit after first call).",
+              "why": "The new @lru_cache stores the result for the first call; subsequent calls return instantly, so total time drops dramatically for workloads that re‑check the same address many times.",
+              "size_meaning": "n = number of calls to is_excluded with the same address.",
+              "make_source": "def make(n):\n    # one valid IPv4 address that is NOT excluded\n    ip = \"8.8.8.8\"\n    return [[ip] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.0029386762501222227,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct valid IPv4 addresses, more than the cache capacity (1024).",
+              "why": "Each call misses the cache, pays the full overlap scan, and also incurs the LRU bookkeeping (hash, dict insert, possible eviction). When the working set exceeds 1024 entries the cache constantly evicts, adding overhead compared with the uncached version.",
+              "size_meaning": "n = number of distinct addresses (n > 1024 to force evictions).",
+              "make_source": "def make(n):\n    # generate n distinct public IPv4 addresses: 1.2.3.i  (i = 0..n-1)\n    return [[f\"1.2.3.{i}\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "1.2.3.0"
+                ],
+                [
+                  "1.2.3.1"
+                ],
+                [
+                  "1.2.3.2"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.0027738601007968443,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct IPv4 addresses (no repeats)",
+              "why": "Each call misses the cache, so the wrapper adds a dict lookup, lock acquisition and cache‑miss bookkeeping on top of the original overlap loop. With no reuse the extra overhead makes the new version slower.",
+              "size_meaning": "Number of distinct IPs generated (n). Only up to 8 calls are emitted because the harness expects ≤8 argument lists.",
+              "make_source": "def make(n):\n    # produce up to 8 distinct public IPv4 addresses\n    base = 11\n    ips = [f\"{base+i}.0.0.1\" for i in range(min(n, 8))]\n    return [[ip] for ip in ips]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.00296713571336913,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct IPv4 addresses (cache misses, possible evictions).",
+              "why": "Each call is a miss; the LRU cache adds dictionary lookup overhead and, once >1024 distinct entries are seen, older entries are evicted and recomputed, so per‑call cost is higher than the uncached version.",
+              "size_meaning": "n = number of distinct IPv4 addresses generated (n can exceed the 1024 cache limit).",
+              "make_source": "def make(n):\n    # generate n distinct public IPv4 addresses, e.g. 11.0.0.<i>\n    return [[f\"11.0.0.{i % 256}\"] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.002745516968539696,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical IP addresses – the cache should turn every call after the first into a cheap dict lookup.",
+              "why": "The new @lru_cache stores the result for a given string. When the same address is queried many times the second‑and‑later calls avoid the loop over EXCLUDE_NETWORKS entirely, so total time should grow sub‑linearly.",
+              "origin": "plan",
+              "screen_ratio": 0.002938667994161182,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 276777.64,
+                  "head_ir": 1075.63375,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0038862740140424637,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 276935.25,
+                  "head_ir": 927.335625,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0033485647818397987,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 276811.1389973958,
+                  "head_ir": 813.4560546875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0029386680667325056,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 276851.0068359375,
+                  "head_ir": 794.4173177083334,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.002869475992836489,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 276851.0068359375,
+                  "head_ir": 794.421875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0028694924540071335,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 276851.0068359375,
+                  "head_ir": 794.421875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0028694924540071335,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 276851.0091145833,
+                  "head_ir": 794.4241536458334,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0028695006609747863,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.0038862740140424637,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 11.8,
+            "screen": 534.13,
+            "full": 521.2,
+            "total": 1067.13
+          }
+        }
+      }
+    }
+  ]
+}

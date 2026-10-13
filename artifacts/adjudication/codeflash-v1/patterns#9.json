@@ -1,0 +1,10 @@
+{
+  "id": "patterns#9",
+  "pr": 9,
+  "title": "⚡️ Speed up function `validate_regex` by 9,172%",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

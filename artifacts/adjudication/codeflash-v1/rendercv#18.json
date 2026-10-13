@@ -1,0 +1,63 @@
+{
+  "id": "rendercv#18",
+  "pr": 18,
+  "title": "⚡️ Speed up function `validate_date_field` by 47%",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "rendercv.data.models.computers:get_date_object",
+      "image": "bw-pair:e5d6e3b80a12bd08",
+      "run_id": "adj-rendercv#18-fe8787",
+      "samples": 3,
+      "usd": 0.0293,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 2,
+            "intended": 1
+          },
+          "rationale": "The refactor replaced regex‑based validation with manual length/character checks. For a non‑string input (e.g. an empty list) the old code called `re.fullmatch` which raises `TypeError`; the new code falls through to the final `else` branch and raises `ValueError`. The exception type change is not documented or tested, so callers that catch `TypeError` would break.",
+          "evidence": [
+            "_YMD_PATTERN.fullmatch(date):",
+            "_Y_PATTERN.fullmatch(date):",
+            "elif len(date) == 10 and date[4] == '-' and date[7] == '-':",
+            "         message = (",
+            "             'This is not a valid date! Please use either YYYY-MM-DD, YYYY-MM, or'"
+          ],
+          "rejected": [
+            "     else:"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[]]: base raises builtins.TypeError, head raises builtins.ValueError. (neither exception type subclasses the other.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "With a list argument the old version again hit `re.fullmatch` and raised `TypeError`. The new version reaches `elif len(date) == 4 and date.isdigit():`; a list has no `isdigit` attribute, causing an `AttributeError`. This unintended change in exception type is a regression.",
+          "evidence": [
+            "_YMD_PATTERN.fullmatch(date):",
+            "_Y_PATTERN.fullmatch(date):",
+            "elif len(date) == 4 and date.isdigit():",
+            "+            elif len(date) == 4 and date.isdigit():",
+            "elif date == 'present': date_object = get_date_input()"
+          ],
+          "rejected": [
+            "else: message = ('This is not a valid date! Please use either YYYY-MM-DD, YYYY-MM, or')"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[\"present\", \"present\", \"´¢¯\", \"´¢¯\"]]: base raises builtins.TypeError, head raises builtins.AttributeError. (neither exception type subclasses the other.)"
+        }
+      ]
+    }
+  ]
+}

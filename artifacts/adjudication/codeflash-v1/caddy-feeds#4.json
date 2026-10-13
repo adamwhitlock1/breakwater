@@ -1,0 +1,39 @@
+{
+  "id": "caddy-feeds#4",
+  "pr": 4,
+  "title": "⚡️ Speed up function `is_excluded` by 17,376%",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "ip:is_excluded",
+      "image": "bw-pair:5a2702d2489d914c",
+      "run_id": "adj-caddy-feeds#4-b3d9d1",
+      "samples": 3,
+      "usd": 0.0137,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|ok|exc:builtins.TypeError|nested",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The change adds an @lru_cache(maxsize=1024) decorator to `is_excluded`. The `maxsize` argument was introduced in Python 3.9; on earlier versions the decorator call itself raises a TypeError, causing the function to fail when invoked. The PR does not include any tests, docs, or changelog entries to justify or guard this change.",
+          "evidence": [
+            "+@lru_cache(maxsize=1024)",
+            "None: this PR changes no tests, docs or changelog.",
+            "Checks if the given IP address or network is in the exclusion list.",
+            "@lru_cache(maxsize=1024)",
+            "ip = ipaddress.ip_network(ip_address, strict=False)  # Handle both IPs and networks"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[\"0.0.0.0/31\"]]: base returns normally, head raises builtins.TypeError."
+        }
+      ]
+    }
+  ]
+}

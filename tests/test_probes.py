@@ -263,9 +263,14 @@ def test_relations_survive_non_bool_comparisons(monkeypatch):
     import types
 
     mod = types.ModuleType("bw_sym")
-    mod.Sym = _Symbolic
+    mod.Sym = mod._Symbolic = _Symbolic  # pickle looks the class up by its own name
     _Symbolic.__module__ = "bw_sym"
     monkeypatch.setitem(sys.modules, "bw_sym", mod)
     res = worker.run({"target": "bw_sym:Sym", "observe": ["str"], "ops": [{"op": "relations", "inputs": [["a"], ["b"]]}]})
     rel = res["results"][0]["relations"]["0,1"]
     assert rel["eq"] is False and rel["lt"].startswith("<builtins.tuple:") and json.dumps(res)
+    # The pickle-load comparisons too (sympy's `a < b or a > b` is a BooleanFalse, not False).
+    blobs = worker.run({"target": "bw_sym:Sym", "observe": [], "ops": [{"op": "pickle_dump", "inputs": [["a"]]}]})
+    loads = worker.run({"target": "bw_sym:Sym", "observe": [], "ops": [{"op": "pickle_load", "inputs": [["a"]],
+                        "blobs": blobs["results"][0]["blobs"]}]})
+    assert json.dumps(loads) and loads["results"][0]["loads"][0]["eq_fresh"] is True

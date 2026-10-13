@@ -1,0 +1,10 @@
+{
+  "id": "pyhs3#154",
+  "pr": 154,
+  "title": "perf: Speed up function `parse_expression` by 785%",
+  "merged": "2026-01-26",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

@@ -137,14 +137,17 @@ def generate(f: Any, target: str, *, item: str = "", label: str | None = None, i
     elif probe == "P2":
         b = base if isinstance(base, dict) else {}
         expr = call_expr(target, args[0])
+        # Method targets may return generators, which only run when iterated (the worker drains them).
+        run = [f"result = {expr}", "if hasattr(result, '__next__'):  # generators run when iterated",
+               "    list(result)"] if "#" in target else [expr]
         if b.get("status") == "ok":
-            lines.append(f"{expr}  # base returns normally")
+            lines += run[:-1] + [run[-1] + "  # base returns normally"] if len(run) == 1 else run
         elif b.get("status") == "exc":
             imp, exc = _exc_import(b["exc"])
             if imp:
                 imports.append(imp)
             imports.append("import pytest")
-            lines += [f"with pytest.raises({exc}) as excinfo:", f"    {expr}",
+            lines += [f"with pytest.raises({exc}) as excinfo:", *(f"    {x}" for x in run),
                       f"assert type(excinfo.value) is {exc}  # exact type: a subclass would be a behaviour change"]
         else:
             return RegressionTest(f.signature, name, "", skipped=f"base outcome {b.get('status')!r} can't be pinned")

@@ -2,6 +2,17 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-12: The verdict includes performance, not only behaviour
+- **What:** a PR's verdict is the stricter of behaviour and performance:
+  - behaviour: BLOCK on a likely bug, REVIEW on an unsettled or unlabelled class;
+  - performance: BLOCK on a complexity regression in a family of mostly valid inputs, REVIEW on a valid family at least 1.25× slower.
+  The banner states the performance reason.
+- **Why:** json_repair #113 ("109% faster") does up to 393× the work on valid JSON objects, yet showed PASS, "No behaviour divergence found". A red team for performance PRs can't pass a speedup that reverses.
+- **Effect:**
+  - Codeflash: json_repair #113 becomes BLOCK and micropie #3 (1.34×) becomes REVIEW.
+  - Packaging: no verdict changes. Its slower PRs were already BLOCK, and the rest are under 1.25×.
+- **Reverse if:** the 1.25× bar flags noise in practice. Ir is deterministic, so it shouldn't.
+
 ## 2026-10-12: Instructions per call need a linear fit; relations accept non-bool comparisons
 - **Linear Ir:** instructions per call now come from Ir at R, 2R and 3R repetitions. A point counts only if the two increments agree within 10% and are positive; otherwise it is "unmeasured".
   - **Why:** memoising targets aren't linear in repetitions. In the Codeflash dev run, pyhs3 #154 (`lru_cache` plus sympy's own cache) produced a ladder of 1.59, 0.86, 0.97, 4.65, 1.5, 2.02 and −0.52 under the two-point method, and a 4.65× "slower" verdict that was pure artifact.

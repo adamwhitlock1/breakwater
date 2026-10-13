@@ -313,13 +313,22 @@ def adjudicate(args: argparse.Namespace) -> int:
 def site(args: argparse.Namespace) -> int:
     from pathlib import Path
 
-    from breakwater.site.build import build
+    from breakwater.site.build import Corpus, build
 
     adj = Path(args.adjudication) if args.adjudication else None
     try:
+        specs = args.extra if args.extra is not None else (
+            ["codeflash:artifacts/backtest/codeflash-v1:artifacts/adjudication/codeflash-v1:artifacts/regress/codeflash-v1"]
+            if Path("artifacts/backtest/codeflash-v1/results.json").exists() else [])
+        extras = []
+        for spec in specs:
+            name, bt_dir, *rest = spec.split(":")
+            adj_dir, tests_dir = (rest + [None, None])[:2]
+            extras.append(Corpus(name, Path(bt_dir), Path(adj_dir) if adj_dir and Path(adj_dir).exists() else None,
+                                 Path(tests_dir) if tests_dir and Path(tests_dir).exists() else None))
         pages = build(Path(args.backtest), adj, Path(args.out), allow_dev=args.allow_dev,
                       runs=[Path(r) for r in args.run], perf_from=Path(args.perf_from) if args.perf_from else None,
-                      tests=Path(args.tests) if args.tests and Path(args.tests).exists() else None)
+                      tests=Path(args.tests) if args.tests and Path(args.tests).exists() else None, extras=extras)
     except ValueError as e:
         print(e)
         return 2
@@ -445,6 +454,8 @@ def main(argv: list[str] | None = None) -> int:
     w.add_argument("--run", action="append", default=[], help="audit run dir to include (repeatable)")
     w.add_argument("--tests", default="artifacts/regress/packaging-v3",
                    help="`breakwater regress` output to show on cards ('' to disable)")
+    w.add_argument("--extra", action="append", default=None, metavar="NAME:BACKTEST[:ADJUDICATION[:TESTS]]",
+                   help="another corpus as a sub-site (default: codeflash, if its results exist)")
     w.set_defaults(fn=site)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")

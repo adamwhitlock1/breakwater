@@ -137,3 +137,38 @@ def test_v3_site_reuses_v2_perf_and_says_so(tmp_path):
     with pytest.raises(ValueError, match="different corpus"):
         other = _mini(tmp_path, "tokenfactory", "x")
         build(v3, None, tmp_path / "t", perf_from=other)
+
+
+def test_perf_verdicts():
+    from breakwater.site.build import combine, perf_verdict
+
+    def summary(ratio, verdict):
+        return {"worst_valid_ratio": ratio, "worst_family": "f",
+                "report": {"findings": [{"family": "f", "verdict": verdict}]}}
+
+    assert perf_verdict(summary(393.4, "complexity-regression"))[0] == "BLOCK"
+    assert perf_verdict(summary(1.34, "slower"))[0] == "REVIEW"
+    assert perf_verdict(summary(1.10, "slower")) == ("PASS", "")  # small constant overhead doesn't flip a verdict
+    assert perf_verdict(None) == ("PASS", "")
+    assert combine("REVIEW", ("BLOCK", "x")) == "BLOCK" and combine("BLOCK", ("REVIEW", "x")) == "BLOCK"
+
+
+CODEFLASH = Path("artifacts/backtest/codeflash-v1")
+
+
+@pytest.mark.skipif(not (CODEFLASH / "results.json").exists(), reason="codeflash results not present")
+def test_extra_corpus_is_a_self_contained_sub_site(tmp_path):
+    from breakwater.site.build import Corpus
+
+    build(BACKTEST, ADJUDICATION, tmp_path / "s", extras=[Corpus(
+        "codeflash", CODEFLASH, Path("artifacts/adjudication/codeflash-v1"), Path("artifacts/regress/codeflash-v1"))])
+    sub = tmp_path / "s" / "codeflash"
+    page = (sub / "pr" / "json_repair-113.html").read_text()
+    assert '<span class="verdict block">BLOCK</span>' in page and "complexity regression" in page
+    assert '<a href="../index.html">Codeflash</a>' in page and "mangiucugna/json_repair#113" in page
+    assert (sub / "data" / "backtest" / "json_repair-113.json").exists()  # slugged; the source file has a "#"
+    assert (sub / "tests" / "test_Math_Interpreter_1.py").exists()
+    index = (sub / "index.html").read_text()
+    assert "109% faster" in index and "393" in index
+    root = (tmp_path / "s" / "index.html").read_text()
+    assert 'href="codeflash/index.html">Codeflash</a>' in root and "Also audited: 10 merged AI-written speedups" in root

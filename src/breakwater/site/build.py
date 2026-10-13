@@ -64,6 +64,30 @@ class Card:
         return self.verdict["label"] if self.verdict else None
 
 
+SLOWER_REVIEW = 1.25  # a valid input family this much slower makes a PR at least REVIEW
+_RANK = {"PASS": 0, "REVIEW": 1, "BLOCK": 2}
+
+
+def perf_verdict(perf: dict | None) -> tuple[str, str]:
+    """(verdict, reason) from a perf summary: a complexity regression on a family of mostly valid inputs
+    blocks; a valid family at least SLOWER_REVIEW times slower needs review."""
+    p = perf or {}
+    worst = p.get("worst_valid_ratio")
+    if not worst:
+        return "PASS", ""
+    fam = next((f for f in (p.get("report") or {}).get("findings", []) if f.get("family") == p.get("worst_family")), {})
+    if fam.get("verdict") == "complexity-regression":
+        return "BLOCK", (f"The \u201cfaster\u201d code does up to {worst:.0f}\u00d7 the work on valid inputs, growing with "
+                         "input size (complexity regression).")
+    if worst >= SLOWER_REVIEW:
+        return "REVIEW", f"A valid input family runs {worst:.2f}\u00d7 the instructions of the old code."
+    return "PASS", ""
+
+
+def combine(behaviour: str, perf: tuple[str, str]) -> str:
+    return max(behaviour, perf[0], key=_RANK.__getitem__)
+
+
 def verdict_of(cards: list[Card]) -> str:
     """BLOCK on any likely bug; REVIEW if anything is unsettled or unlabelled; otherwise PASS."""
     labels = {c.label for c in cards}
@@ -93,7 +117,21 @@ class ItemView:
 
     @property
     def slug(self) -> str:
+        """URL-safe: "#1030" -> "1030", "1082@61967cca" -> "1082-61967cca", "json_repair#113" -> "json_repair-113"."""
+        return re.sub(r"[^A-Za-z0-9_]+", "-", self.raw["id"].strip("#")).strip("-")
+
+    @property
+    def source_name(self) -> str:
+        """The file name the backtest wrote for this item (ids may contain "#")."""
         return self.raw["id"].strip("#").replace("@", "-")
+
+    @property
+    def repo(self) -> str:
+        return self.raw.get("repo") or PACKAGING
+
+    @property
+    def repo_name(self) -> str:
+        return self.repo.removeprefix("https://github.com/").removesuffix(".git")
 
     @property
     def cards(self) -> list[Card]:
@@ -101,7 +139,13 @@ class ItemView:
 
     @property
     def verdict(self) -> str:
-        return verdict_of(self.cards)
+        """Behaviour (verdict_of) combined with performance (perf_verdict)."""
+        return combine(verdict_of(self.cards), self.perf_verdict)
+
+    @property
+    def perf_verdict(self) -> tuple[str, str]:
+        found = [perf_verdict(t.perf) for t in self.targets]
+        return max(found, key=lambda v: _RANK[v[0]], default=("PASS", ""))
 
     @property
     def caught(self) -> list[str]:
@@ -117,6 +161,11 @@ def load(backtest: Path, adjudication: Path | None, perf_from: Path | None = Non
     """`perf_from`: a backtest of the same corpus whose perf results fill targets that have none
     (the semantic planner doesn't affect perf, so a semantic-only re-run can reuse them)."""
     results = json.loads((backtest / "results.json").read_text())
+    corpus = Path(results.get("corpus", ""))
+    corpus_repo = json.loads(corpus.read_text()).get("repo") if corpus.is_file() else None
+    for raw in results["items"]:
+        if corpus_repo:
+            raw.setdefault("repo", corpus_repo)
     adj = json.loads((adjudication / "adjudication.json").read_text()) if adjudication else None
     reuse: dict[tuple[str, str], dict] = {}
     if perf_from:
@@ -259,10 +308,16 @@ def ladder_chart(findings: list[dict]) -> str:
 # Page shell
 
 
+# Extra corpora shown in the nav ([(label, path from the site root)]); set by build().
+NAV_EXTRA: list[tuple[str, str]] = []
+
+
 def page(title: str, body: str, *, depth: int, dev: str | None, description: str, site_nav: bool = True) -> str:
     """`site_nav=False` for pages that live outside the site (an audit's run directory)."""
     root = "../" * depth
-    nav = (f'<a href="{root}index.html#prs">PRs</a><a href="{root}index.html#method">Method</a>' if site_nav else "")
+    extra = "".join(f'<a href="{root}{esc(href)}">{esc(label)}</a>' for label, href in NAV_EXTRA)
+    nav = (f'<a href="{root}index.html#prs">PRs</a>{extra}<a href="{root}index.html#method">Method</a>'
+           if site_nav else "")
     brand = f'{root}index.html' if site_nav else REPO_URL
     banner = (f'<div class="dev-banner">Development build (provider: {esc(dev)}). Not from Nebius Token Factory; '
               "do not cite these numbers.</div>") if dev else ""
@@ -308,7 +363,7 @@ def verdict_chip(v: str) -> str:
 
 
 def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: str | None,
-                 runs: list[dict] | None = None) -> str:
+                 runs: list[dict] | None = None, extras_html: str = "") -> str:
     s = results["summary"]
     arms = [a for a in results["arms"] if a in ARM_NAMES]
     nv, nc = s["known_verified"], s["known_candidate"]
@@ -357,7 +412,7 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
         rows.append(
             f'<tr><td><a href="pr/{it.slug}.html">{esc(r["id"])}</a>{late}</td>'
             f'<td class="title-cell">{inline(r["title"])}<small><code>{esc(target)}</code> · {esc(r["merged"])}</small></td>'
-            f'<td>{verdict_chip(it.verdict) if it.cards else "<span class='muted nowrap'>no divergence</span>"}</td>'
+            f'<td>{verdict_chip(it.verdict) if it.cards or it.verdict != "PASS" else "<span class='muted nowrap'>no divergence</span>"}</td>'
             f'<td class="labels">{labels}</td><td>{caught if r["known"] else "–"}</td>'
             f'<td class="num">{worst}</td><td class="num">{money(it.usd)}</td></tr>')
 
@@ -404,6 +459,7 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
 </section>
 
 {render_runs_list(runs or [])}
+{extras_html}
 <section id="method" class="method">
   <h2>How a verdict is made</h2>
   <ol class="steps">
@@ -591,7 +647,7 @@ def render_perf(t: TargetView) -> str:
 </section>"""
 
 
-def render_item(it: ItemView, repo: str, dev: str | None) -> str:
+def render_item(it: ItemView, repo: str, dev: str | None, depth: int = 1, home: str = "Backtest") -> str:
     r = it.raw
     late = ('<p class="note">† Merged after Nemotron 3 Ultra was released (2026-06-04): '
             "the model cannot have seen this PR or its fixes.</p>") if r["after_ultra_release"] else ""
@@ -600,7 +656,7 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
         lis = []
         for k in r["known"]:
             fix = k.get("fixed_by")
-            fix_s = f'<a href="{gh_pr(fix)}">#{fix}</a>' if isinstance(fix, int) else esc(fix)
+            fix_s = f'<a href="{gh_pr(fix, it.repo)}">#{fix}</a>' if isinstance(fix, int) else esc(fix)
             got = k["id"] in it.caught
             lis.append(f'<li class="{"hit" if got else "miss"}"><span class="tick-mark">{"✓" if got else "✗"}</span>'
                        f'<code>{esc(k["id"])}</code> · fixed by {fix_s} · {esc(k["status"])}'
@@ -609,16 +665,20 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
     cards_html, n_groups = [], 0
     for t in it.targets:
         fn = t.target.split(":")[1].split("#")[0]
-        html, n = render_cards(t.cards, fn, repo, r["base"], r["head"], t.target)
+        html, n = render_cards(t.cards, fn, it.repo, r["base"], r["head"], t.target)
         cards_html.append(html)
         n_groups += n
     counts = {k: sum(c.label == k for c in it.cards) for k in LABEL_ORDER}
     summary = ", ".join(f"{n} {LABEL_TEXT[k].lower()}" for k, n in counts.items() if n)
-    verdict_text = {
+    behaviour = verdict_of(it.cards)
+    perf_v, perf_reason = it.perf_verdict
+    behaviour_text = {
         "BLOCK": "At least one behaviour change looks like an unintended regression.",
         "REVIEW": "Behaviour changed; the evidence does not settle whether it was intended.",
         "PASS": "No unintended behaviour change found." if it.cards else "No behaviour divergence found by any probe.",
-    }[it.verdict]
+    }[behaviour]
+    verdict_text = " ".join(x for x in (behaviour_text if behaviour != "PASS" or perf_v == "PASS" else "",
+                                        perf_reason) if x) or behaviour_text
     cards_section = (f'<section><h2>Counterexamples <small class="muted">· {groups_text(n_groups, len(it.cards))}: '
                      f'{esc(summary)}</small></h2><div class="cards">{"".join(cards_html)}</div></section>') \
         if it.cards else ""
@@ -632,12 +692,12 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
         f'<tr><td><code>{esc(t.target)}</code></td><td><code>{esc(t.image)}</code></td><td><code>{esc(t.run_id)}</code></td>'
         f'<td class="num">{money(t.usd)}</td><td class="num">{money(t.adj_usd)}</td></tr>' for t in it.targets)
     body = f"""
-<p class="crumbs"><a href="../index.html">Backtest</a> / {esc(r["id"])}</p>
+<p class="crumbs"><a href="../index.html">{esc(home)}</a> / {esc(r["id"])}</p>
 <section class="pr-head">
   <h1>{inline(r["title"])}</h1>
-  <p class="meta"><a href="{gh_pr(r["pr"])}">pypa/packaging#{esc(r["pr"])}</a> · merged {esc(r["merged"])} ·
-  base <a href="{gh_commit(r["base"])}"><code>{esc(r["base"][:10])}</code></a> →
-  head <a href="{gh_commit(r["head"])}"><code>{esc(r["head"][:10])}</code></a></p>
+  <p class="meta"><a href="{gh_pr(r["pr"], it.repo)}">{esc(it.repo_name)}#{esc(r["pr"])}</a> · merged {esc(r["merged"])} ·
+  base <a href="{gh_commit(r["base"], it.repo)}"><code>{esc(r["base"][:10])}</code></a> →
+  head <a href="{gh_commit(r["head"], it.repo)}"><code>{esc(r["head"][:10])}</code></a></p>
   <div class="verdict-box {it.verdict.lower()}">{verdict_chip(it.verdict)}<p>{esc(verdict_text)}</p></div>
   {late}
 </section>
@@ -654,8 +714,138 @@ def render_item(it: ItemView, repo: str, dev: str | None) -> str:
     f', <a href="../data/adjudication/{esc(it.slug)}.json">adjudication</a>' if any(t.adj_usd for t in it.targets) else ""}.</p>
 </section>
 """
-    return page(f"{r['id']}: {r['title']} · Breakwater", body, depth=1, dev=dev,
-                description=f"Breakwater audit of pypa/packaging {r['id']}: {r['title']}")
+    return page(f"{r['id']}: {r['title']} · Breakwater", body, depth=depth, dev=dev,
+                description=f"Breakwater audit of {it.repo_name} {r['id']}: {r['title']}")
+
+
+# ---------------------------------------------------------------------------------------------------
+# Corpus without ground truth (merged AI speedups)
+
+_CLAIM = re.compile(r"by ([\d,]+)%")
+
+
+def claim_of(title: str) -> str:
+    m = _CLAIM.search(title)
+    return f"{m.group(1)}% faster" if m else "–"
+
+
+def ratio_text(r: float) -> str:
+    """Two decimals, or two significant digits below 0.1 (a cache hit can cost 0.004x the original)."""
+    return f"{r:.2f}" if r >= 0.1 else f"{r:.2g}"
+
+
+def perf_cells(t: TargetView) -> tuple[str, str, bool]:
+    """(claimed path, worst valid family, complexity regression?) from a target's perf summary."""
+    from breakwater.perf import judged
+
+    p = t.perf or {}
+    rep = p.get("report") or {}
+    fams = rep.get("families") or []
+    if fams and all((f.get("error") or "").startswith("unmeasured") for f in fams):
+        return ('<span class="muted">unmeasured</span>', '<span class="muted">unmeasured: caching makes '
+                "per-call cost depend on hit rate</span>", False)
+    claimed = f'{ratio_text(p["speedup_ratio_small"])}×' if p.get("speedup_ratio_small") else "–"
+    worst, complexity = "–", False
+    if p.get("worst_valid_ratio"):
+        fam = next((f for f in rep.get("findings", []) if f.get("family") == p.get("worst_family")), {})
+        complexity = fam.get("verdict") == "complexity-regression"
+        worst = (f'<strong>{p["worst_valid_ratio"]:.2f}×</strong>'
+                 + (' <span class="chip bug sm">complexity</span>' if complexity else "")
+                 + f'<small>{esc((p.get("worst_family") or "")[:70])}</small>')
+        if not judged(fam):
+            worst = "–"
+    return claimed, worst, complexity
+
+
+def render_corpus_index(name: str, results: dict, adj: dict | None, items: list[ItemView], dev: str | None,
+                        *, depth: int) -> str:
+    rows, behaviour, complexity, tests = [], 0, [], 0
+    for it in items:
+        r = it.raw
+        t = it.targets[0]
+        claimed, worst, cx = perf_cells(t)
+        if it.cards:
+            behaviour += 1
+        if cx:
+            complexity.append((t.perf or {}).get("worst_valid_ratio") or 0)
+        verified = sum(bool(c.test and c.test.get("verified")) for c in it.cards)
+        tests += verified
+        late = ' <span class="dagger" title="merged after Nemotron 3 Ultra was released">†</span>' \
+            if r["after_ultra_release"] else ""
+        rows.append(
+            f'<tr><td><a href="pr/{it.slug}.html">{esc(r["id"])}</a>{late}</td>'
+            f'<td class="title-cell">{inline(r["title"])}<small><code>{esc(it.repo_name)}</code> · {esc(r["merged"])}'
+            f'</small></td><td class="num">{esc(claim_of(r["title"]))}</td>'
+            f'<td>{verdict_chip(it.verdict) if it.cards or it.verdict != "PASS" else "<span class=\'muted nowrap\'>no divergence</span>"}</td>'
+            f'<td class="num">{claimed}</td><td class="title-cell num">{worst}</td>'
+            f'<td class="num">{verified or "–"}</td><td class="num">{money(it.usd)}</td></tr>')
+    usd = results["summary"]["usd"] + (adj or {}).get("summary", {}).get("usd", 0.0)
+    stats = [
+        (str(len(items)), "merged AI speedup PRs audited", "opened by the Codeflash bot, merged by maintainers"),
+        (f"{behaviour}/{len(items)}", "change behaviour", "every class adjudicated; regression tests verified"),
+        (f"{len(complexity)}", "reverse on valid input" if len(complexity) != 1 else "reverses on valid input",
+         f"complexity regression, up to {max(complexity):.0f}× the instructions" if complexity else "–"),
+        (money(usd), "Nemotron cost of these results", "Token Factory, backtest + adjudication; excludes superseded runs"),
+    ]
+    stat_html = "".join(f'<div class="stat"><div class="stat-num">{esc(n)}</div><div class="stat-label">{esc(label)}'
+                        f'</div><div class="stat-sub">{esc(sub)}</div></div>' for n, label, sub in stats)
+    body = f"""
+<p class="crumbs"><a href="{"../" * depth}index.html">Breakwater</a> / {esc(name)}</p>
+<section class="hero">
+  <p class="eyebrow">Corpus · merged AI-written speedups · {esc(name)}</p>
+  <h1>Every one of these PRs says it's <em>faster</em>.</h1>
+  <p class="lede">{len(items)} speedup PRs written by an AI optimiser and merged by maintainers. There is no list of known bugs
+  here: Breakwater gets the same diff a reviewer saw, and the question is simply how many change behaviour or
+  don't deliver. Claims are the PR titles; measurements are cachegrind instruction counts.</p>
+  <div class="stats">{stat_html}</div>
+</section>
+<section id="prs">
+  <h2>Every PR</h2>
+  <div class="table-wrap"><table class="items">
+  <thead><tr><th>PR</th><th>Change</th><th class="num">Claim</th><th>Verdict</th><th class="num">Claimed path</th>
+  <th class="num">Worst valid input family</th><th class="num">Tests</th><th class="num">Cost</th></tr></thead>
+  <tbody>{"".join(rows)}</tbody></table></div>
+  <ul class="notes">
+    <li>Claimed path: head/base instructions per call on the input family the PR optimised (below 1× is faster).
+    Worst valid input family: the highest head/base ratio on a family where the old code accepts most inputs.</li>
+    <li>Memoising PRs (an added <code>lru_cache</code>) are measured on repeated identical inputs, so the claimed
+    path is their best case: cache hits. When caching makes instruction counts non-linear in repetitions, the PR is
+    marked unmeasured rather than given a number.</li>
+    <li>Tests: verified regression tests (pass on base, fail on head). † merged after Nemotron 3 Ultra's release.</li>
+    <li>Dependencies are resolved as of each PR's merge date; script repos run from source. Raw data:
+    <a href="data/">data/</a>.</li>
+  </ul>
+</section>
+"""
+    return page(f"Breakwater: {name}", body, depth=depth, dev=dev,
+                description=f"Breakwater audit of {len(items)} merged AI-written speedup PRs")
+
+
+def corpus_teaser(name: str, href: str, items: list[ItemView]) -> str:
+    """A section for the root page pointing at another corpus."""
+    lines = []
+    ordered = sorted(items, key=lambda it: not perf_cells(it.targets[0])[2])  # complexity regressions first
+    for it in ordered:
+        t = it.targets[0]
+        _, _, cx = perf_cells(t)
+        if cx:
+            ratio = (t.perf or {}).get("worst_valid_ratio") or 0
+            lines.append(f'<li><a href="{esc(href)}pr/{it.slug}.html">{esc(it.raw["id"])}</a>: claims '
+                         f'{esc(claim_of(it.raw["title"]))}; a valid input family runs up to <strong>{ratio:.0f}×</strong> '
+                         "the instructions (complexity regression).</li>")
+        elif it.cards:
+            c = min(it.cards, key=lambda c: len(json.dumps(c.finding.args)))
+            fn = t.target.split(":")[1].split("#")[0]
+            example = card_text(c.finding.probe, c.finding.detail, c.finding.args, c.finding.base, c.finding.head, fn)
+            lines.append(f'<li><a href="{esc(href)}pr/{it.slug}.html">{esc(it.raw["id"])}</a>: claims '
+                         f'{esc(claim_of(it.raw["title"]))}; changes behaviour, e.g. <code class="bidi">'
+                         f'{esc(example["inputs"][0][1])}</code>: base {esc(example["base"])}, head {esc(example["head"])}.</li>')
+    changed = sum(bool(it.cards) for it in items)
+    return (f'<section id="{esc(name)}"><h2>Also audited: {len(items)} merged AI-written speedups</h2>'
+            f'<p class="section-lede">PRs by the Codeflash optimiser bot, merged by maintainers. No known bugs to score '
+            f'against: {changed} of {len(items)} change behaviour, and the instruction counts check each claim.</p>'
+            f'<ul class="notes">{"".join(lines)}</ul><p><a class="button" href="{esc(href)}index.html">'
+            f'See all {len(items)}</a></p></section>')
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -835,14 +1025,63 @@ def copy_assets(root: Path) -> None:
 # Build
 
 
+@dataclass
+class Corpus:
+    """Another corpus published as a sub-site under <out>/<name>/ (e.g. the Codeflash speedups)."""
+    name: str
+    backtest: Path
+    adjudication: Path | None = None
+    tests: Path | None = None
+
+
+def _provider(meta: dict | None) -> str | None:
+    if meta is None:
+        return None
+    return meta.get("summary", {}).get("provider") or meta.get("provider") or "tokenfactory"
+
+
+def _copy_data(root: Path, items: list[ItemView], backtest: Path, adjudication: Path | None,
+               tests: Path | None) -> None:
+    """Source JSON under <root>/data, one file per item named by its URL-safe slug."""
+    data = root / "data"
+    (data / "backtest").mkdir(parents=True, exist_ok=True)
+    shutil.copy(backtest / "results.json", data / "backtest.json")
+    for sub, src in (("backtest", backtest), ("adjudication", adjudication), ("tests", tests)):
+        if not src:
+            continue
+        (data / sub).mkdir(exist_ok=True)
+        for it in items:
+            f = src / f"{it.source_name}.json"
+            if f.exists():
+                shutil.copy(f, data / sub / f"{it.slug}.json")
+    if adjudication:
+        shutil.copy(adjudication / "adjudication.json", data / "adjudication.json")
+    if tests:
+        (root / "tests").mkdir(exist_ok=True)
+        for f in sorted(tests.glob("test_*.py")):
+            shutil.copy(f, root / "tests" / f.name)
+
+
+def _data_index(root: Path, depth: int, dev: str | None) -> None:
+    data = root / "data"
+    listing = sorted(str(p.relative_to(data)) for p in data.rglob("*.json"))
+    (data / "index.html").write_text(page("Data · Breakwater", '<section><h1>Source data</h1><ul class="files">' + "".join(
+        f'<li><a href="{esc(n)}">{esc(n)}</a></li>' for n in listing) + "</ul></section>", depth=depth, dev=dev,
+        description="Raw JSON behind the Breakwater report"))
+
+
 def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bool = False,
-          runs: list[Path] | None = None, perf_from: Path | None = None, tests: Path | None = None) -> list[Path]:
+          runs: list[Path] | None = None, perf_from: Path | None = None, tests: Path | None = None,
+          extras: list[Corpus] | None = None) -> list[Path]:
     results, adj, items = load(backtest, adjudication, perf_from, tests)
+    loaded = [(c, *load(c.backtest, c.adjudication, None, c.tests)) for c in extras or []]
     run_reports = [json.loads((r / "report.json").read_text()) for r in runs or []]
     providers = {results.get("summary", {}).get("provider", results.get("provider", "tokenfactory"))}
     if adj:
         providers.add(adj.get("provider", "tokenfactory"))
     providers |= {r.get("provider", "tokenfactory") for r in run_reports}
+    for _, r_, a_, _ in loaded:
+        providers |= {p for p in (_provider(r_), _provider(a_)) if p}
     if perf_from:
         pf = json.loads((perf_from / "results.json").read_text())
         providers.add(pf.get("summary", {}).get("provider", pf.get("provider", "tokenfactory")))
@@ -860,8 +1099,21 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
         shutil.rmtree(out)
     (out / "pr").mkdir(parents=True)
     copy_assets(out)
+    NAV_EXTRA[:] = [(c.name.capitalize(), f"{c.name}/index.html") for c, *_ in loaded]
     written = [out / "index.html"]
-    (out / "index.html").write_text(render_index(results, adj, items, dev, run_reports))
+    extras_html = "".join(corpus_teaser(c.name, f"{c.name}/", its) for c, _, _, its in loaded)
+    (out / "index.html").write_text(render_index(results, adj, items, dev, run_reports, extras_html))
+    for c, r_, a_, its in loaded:
+        sub = out / c.name
+        (sub / "pr").mkdir(parents=True)
+        (sub / "index.html").write_text(render_corpus_index(c.name.capitalize(), r_, a_, its, dev, depth=1))
+        written.append(sub / "index.html")
+        for it in its:
+            pth = sub / "pr" / f"{it.slug}.html"
+            pth.write_text(render_item(it, it.repo, dev, depth=2, home=c.name.capitalize()))
+            written.append(pth)
+        _copy_data(sub, its, c.backtest, c.adjudication, c.tests)
+        _data_index(sub, 2, dev)
     if run_reports:
         (out / "runs").mkdir()
         (out / "data" / "runs").mkdir(parents=True)
@@ -877,30 +1129,9 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
         p = out / "pr" / f"{it.slug}.html"
         p.write_text(render_item(it, repo, dev))
         written.append(p)
-    data = out / "data"
-    (data / "backtest").mkdir(parents=True, exist_ok=True)
-    shutil.copy(backtest / "results.json", data / "backtest.json")
-    for f in sorted(backtest.glob("*.json")):
-        if f.name != "results.json":
-            shutil.copy(f, data / "backtest" / f.name)
+    _copy_data(out, items, backtest, adjudication, tests)
     if perf_from:
-        shutil.copy(perf_from / "results.json", data / f"perf-{perf_from.name}.json")
-    if tests:
-        (out / "tests").mkdir(exist_ok=True)
-        for f in sorted(tests.glob("test_*.py")):
-            shutil.copy(f, out / "tests" / f.name)
-        (data / "tests").mkdir()
-        for f in sorted(tests.glob("*.json")):
-            shutil.copy(f, data / "tests" / f.name)
-    if adjudication:
-        (data / "adjudication").mkdir()
-        shutil.copy(adjudication / "adjudication.json", data / "adjudication.json")
-        for f in sorted(adjudication.glob("*.json")):
-            if f.name != "adjudication.json":
-                shutil.copy(f, data / "adjudication" / f.name)
-    listing = sorted(str(p.relative_to(data)) for p in data.rglob("*.json"))
-    (data / "index.html").write_text(page("Data · Breakwater", '<section><h1>Source data</h1><ul class="files">' + "".join(
-        f'<li><a href="{esc(n)}">{esc(n)}</a></li>' for n in listing) + "</ul></section>", depth=1, dev=dev,
-        description="Raw JSON behind the Breakwater report"))
+        shutil.copy(perf_from / "results.json", out / "data" / f"perf-{perf_from.name}.json")
+    _data_index(out, 1, dev)
     (out / ".nojekyll").write_text("")
     return written

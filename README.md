@@ -83,6 +83,8 @@ Build the static report (overview + one page per PR: verdict, counterexample car
 uv run breakwater site --run artifacts/demo/pr1082-61967cca   # writes site/; open site/index.html
 ```
 
+The site includes a judge box (`judge.html`): type a version string and four real versions of pypa/packaging run it in your browser, with differences classified by the same code the probes use. Rebuild its bundle with `uv run python scripts/site/build_judge_bundle.py`.
+
 A manually triggered workflow (`.github/workflows/pages.yml`) builds it from the committed artifacts and publishes it to GitHub Pages.
 
 Day-1 checks (see [docs/day1-checklist.md](docs/day1-checklist.md)):

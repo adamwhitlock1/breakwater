@@ -172,3 +172,43 @@ def test_extra_corpus_is_a_self_contained_sub_site(tmp_path):
     assert "109% faster" in index and "393" in index
     root = (tmp_path / "s" / "index.html").read_text()
     assert 'href="codeflash/index.html">Codeflash</a>' in root and "Also audited: 10 merged AI-written speedups" in root
+
+
+JUDGE_BUNDLE = Path("artifacts/judge/packaging-1082.json")
+
+
+@pytest.mark.skipif(not JUDGE_BUNDLE.exists(), reason="judge bundle not built")
+def test_judge_box_python_reproduces_backtest_classes(monkeypatch, tmp_path):
+    import sys
+
+    from breakwater.harness import compare
+    from breakwater.site.assets import judge  # noqa: F401  (also checks it imports cleanly)
+
+    monkeypatch.setitem(sys.modules, "compare", compare)  # in the browser it's a top-level module
+    bundle = json.loads(JUDGE_BUNDLE.read_text())
+    assert judge.load(bundle["versions"], root=str(tmp_path)) == ["base", "pr", "merged", "fixed"]
+    digits = judge.run("١.٢")  # Arabic-Indic digits
+    assert digits["outcomes"]["base"]["status"] == "exc" and digits["outcomes"]["pr"]["status"] == "ok"
+    # Same class signature as the sandboxed backtest found for 1082@61967cca.
+    assert digits["diffs"]["pr"][0]["signature"] == "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii"
+    assert digits["diffs"]["merged"] == [] and digits["diffs"]["fixed"] == []  # review fixed it before merge
+    huge = judge.run("1" + "0" * 4400)  # Python's int-digit limit
+    assert [d["signature"] for d in huge["diffs"]["merged"]] == [
+        "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits"]
+    assert huge["diffs"]["fixed"] == []  # #1155 restored ValueError
+    assert judge.run("1.0")["diffs"] == {"pr": [], "merged": [], "fixed": []}
+
+
+
+@pytest.mark.skipif(not JUDGE_BUNDLE.exists() or not (BACKTEST.parent / "packaging-v3").exists(), reason="inputs missing")
+def test_judge_page_links_divergences_to_backtest_cards(tmp_path):
+    v3 = Path("artifacts/backtest/packaging-v3")
+    build(v3, Path("artifacts/adjudication/packaging-v3"), tmp_path / "s", judge=JUDGE_BUNDLE)
+    html = (tmp_path / "s" / "judge.html").read_text()
+    meta = json.loads(html.split('id="judge-meta">')[1].split("</script>")[0].replace("<\\/", "</"))
+    assert [v["key"] for v in meta["versions"]] == ["base", "pr", "merged", "fixed"]
+    assert "files" not in meta["versions"][0]  # sources load from data/judge.json, not the page
+    sig = "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii"
+    assert meta["known"]["pr"][sig]["href"] == "pr/1082-61967cca.html"
+    assert (tmp_path / "s" / "data" / "judge.json").exists() and (tmp_path / "s" / "assets" / "compare.py").exists()
+    assert 'href="judge.html">Try it</a>' in (tmp_path / "s" / "index.html").read_text()

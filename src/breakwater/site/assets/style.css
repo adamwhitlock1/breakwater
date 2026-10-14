@@ -80,7 +80,8 @@ header.top {
   border: 2px solid var(--accent);
 }
 header.top nav { display: flex; gap: 18px; font-size: 0.95rem; }
-header.top nav a { color: var(--muted); text-decoration: none; }
+header.top nav { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; }
+header.top nav a { color: var(--muted); text-decoration: none; white-space: nowrap; }
 header.top nav a:hover { color: var(--text); }
 
 main { max-width: 1080px; margin: 0 auto; padding: 0 20px 40px; }
@@ -204,7 +205,8 @@ figcaption { color: var(--muted); font-size: 0.84rem; margin-top: 6px; }
 .files { font-family: var(--mono); font-size: 0.9rem; columns: 2 260px; }
 
 @media (max-width: 640px) {
-  header.top nav { gap: 12px; font-size: 0.88rem; }
+  header.top nav { gap: 4px 12px; font-size: 0.85rem; }
+  header.top { align-items: flex-start; }
   .bar-row { grid-template-columns: 1fr 48px; }
   .bar-row .bar { grid-column: 1 / -1; grid-row: 2; }
   .sides { grid-template-columns: 1fr; }
@@ -298,3 +300,21 @@ details.dups summary { cursor: pointer; color: var(--accent); }
 details.dups ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
 details.dups li { overflow-wrap: anywhere; }
 details.dups .known { margin-left: 6px; }
+
+/* Judge box */
+.versions { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: 0.9rem; }
+.judge { display: grid; gap: 14px; }
+#judge-start { justify-self: start; border: 0; cursor: pointer; font: inherit; padding: 10px 18px; }
+#judge-start:disabled { opacity: 0.6; cursor: progress; }
+#judge-form { display: grid; gap: 10px; }
+#judge-form[hidden] { display: none; }
+#judge-input { font: 1.3rem var(--mono); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); width: 100%; }
+#judge-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.preset { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
+.preset:hover { border-color: var(--accent); }
+.preset small { color: var(--muted); font-size: 0.75rem; }
+.judge-table tr.diff td { background: var(--bug-soft); }
+.judge-out code { display: block; overflow-wrap: anywhere; }
+.judge-out small { display: block; color: var(--muted); overflow-wrap: anywhere; margin-top: 2px; unicode-bidi: bidi-override; direction: ltr; }
+.judge-table td p { margin: 6px 0 0; overflow-wrap: anywhere; }

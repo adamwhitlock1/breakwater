@@ -2,6 +2,11 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-13: The judge box loads Pyodide from a CDN, on request
+- **What:** `judge.html` loads Pyodide 0.27.2 from cdn.jsdelivr.net (version pinned) only after the visitor clicks "Start Python". The page says so. Everything else on the site, including the packaging sources the box runs, is served from the site itself.
+- **Why:** self-hosting Pyodide means committing about 10 MB of third-party release files. The opt-in request keeps the rest of the site free of network requests and keeps the repo small.
+- **Reverse if:** jsDelivr is unreliable during judging (Dec 1–15), or a judge objects to the request. Then vendor the Pyodide release into `site/assets/pyodide/`.
+
 ## 2026-10-12: The verdict includes performance, not only behaviour
 - **What:** a PR's verdict is the stricter of behaviour and performance:
   - behaviour: BLOCK on a likely bug, REVIEW on an unsettled or unlabelled class;

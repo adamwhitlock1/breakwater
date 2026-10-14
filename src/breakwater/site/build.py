@@ -719,6 +719,61 @@ def render_item(it: ItemView, repo: str, dev: str | None, depth: int = 1, home: 
 
 
 # ---------------------------------------------------------------------------------------------------
+# Judge box (Pyodide)
+
+JUDGE_PAIRS = {"pr": "1082@61967cca", "merged": "#1082"}  # bundle version key -> backtest item vs base
+JUDGE_PRESETS = [("١.٢", "Arabic-Indic digits"), ("1. 0", "space inside"), ("١ .٢", "both"),
+                 ("HUGE", "4,401-digit release"), ("1.0", "ordinary"), ("1!2.3.4rc1.post2.dev3+local", "everything")]
+
+
+def render_judge(bundle: dict, items: list[ItemView], dev: str | None) -> str:
+    by_id = {it.raw["id"]: it for it in items}
+    known: dict[str, dict[str, dict]] = {}
+    for key, item_id in JUDGE_PAIRS.items():
+        it = by_id.get(item_id)
+        if it:
+            known[key] = {c.finding.signature: {"label": LABEL_TEXT.get(c.label, "unlabelled"),
+                                                "href": f"pr/{it.slug}.html"} for c in it.cards}
+    meta = {"repo": bundle["repo"], "known": known,
+            "versions": [{k: v[k] for k in ("key", "label", "commit", "note")} for v in bundle["versions"]]}
+    presets = "".join(f'<button type="button" class="preset" data-preset="{esc(v)}">'
+                      f'<code class="bidi">{esc(v if v != "HUGE" else "1000…0")}</code><small>{esc(why)}</small></button>'
+                      for v, why in JUDGE_PRESETS)
+    rows = "".join(f'<li><strong>{esc(v["label"])}</strong> <span class="muted">· {esc(v["note"])} · '
+                   f'<a href="{esc(bundle["repo"])}/commit/{esc(v["commit"])}"><code>{esc(v["commit"][:10])}</code></a></span></li>'
+                   for v in bundle["versions"])
+    body = f"""
+<section class="hero">
+  <p class="eyebrow">Judge box · pypa/packaging #1082</p>
+  <h1>Try to break it <em>yourself</em>.</h1>
+  <p class="lede">Type a version string and watch four real versions of <code>packaging.version.Version</code>, the
+  version parser inside pip, handle it. #1082 added a fast path for "simple" versions. Breakwater found inputs where it
+  disagrees with the original; some were fixed in review, one only in a later PR. Differences are classified with
+  the same comparison code Breakwater's probes use, so they get the same class names as the backtest.</p>
+  <ul class="versions">{rows}</ul>
+</section>
+<section class="judge">
+  <button id="judge-start" class="button">Start Python in this page</button>
+  <p id="judge-status" class="note">Python runs in your browser (Pyodide 0.27.2). Clicking Start downloads it from
+  cdn.jsdelivr.net, about 10 MB: the only request on this site that leaves it. The packaging sources come from this
+  site.</p>
+  <form id="judge-form" hidden>
+    <label for="judge-input" class="k">Version(…)</label>
+    <input id="judge-input" class="bidi" value="١.٢" autocomplete="off" spellcheck="false">
+    <div class="presets">{presets}</div>
+  </form>
+  <div class="table-wrap"><table class="judge-table"><thead><tr><th>Version of packaging</th>
+  <th>What <code>Version(input)</code> does</th><th>Compared with the base</th></tr></thead>
+  <tbody id="judge-rows"></tbody></table></div>
+</section>
+<script type="application/json" id="judge-meta">{json.dumps(meta, ensure_ascii=False).replace("</", "<\\/")}</script>
+<script src="assets/judge.js"></script>
+"""
+    return page("Try it · Breakwater", body, depth=0, dev=dev,
+                description="Run four versions of pypa/packaging in your browser and find the #1082 regressions")
+
+
+# ---------------------------------------------------------------------------------------------------
 # Corpus without ground truth (merged AI speedups)
 
 _CLAIM = re.compile(r"by ([\d,]+)%")
@@ -1018,7 +1073,10 @@ def write_run_page(run_dir: Path, *, allow_dev: bool = True) -> Path:
 def copy_assets(root: Path) -> None:
     (root / "assets").mkdir(parents=True, exist_ok=True)
     for f in sorted(ASSETS.iterdir()):
-        shutil.copy(f, root / "assets" / f.name)
+        if f.is_file() and f.name != "__init__.py":
+            shutil.copy(f, root / "assets" / f.name)
+    # The judge box classifies divergences with the probes' own comparison code.
+    shutil.copy(Path(__file__).parents[1] / "harness" / "compare.py", root / "assets" / "compare.py")
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -1072,7 +1130,7 @@ def _data_index(root: Path, depth: int, dev: str | None) -> None:
 
 def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bool = False,
           runs: list[Path] | None = None, perf_from: Path | None = None, tests: Path | None = None,
-          extras: list[Corpus] | None = None) -> list[Path]:
+          extras: list[Corpus] | None = None, judge: Path | None = None) -> list[Path]:
     results, adj, items = load(backtest, adjudication, perf_from, tests)
     loaded = [(c, *load(c.backtest, c.adjudication, None, c.tests)) for c in extras or []]
     run_reports = [json.loads((r / "report.json").read_text()) for r in runs or []]
@@ -1099,7 +1157,8 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
         shutil.rmtree(out)
     (out / "pr").mkdir(parents=True)
     copy_assets(out)
-    NAV_EXTRA[:] = [(c.name.capitalize(), f"{c.name}/index.html") for c, *_ in loaded]
+    NAV_EXTRA[:] = [(c.name.capitalize(), f"{c.name}/index.html") for c, *_ in loaded] \
+        + ([("Try it", "judge.html")] if judge else [])
     written = [out / "index.html"]
     extras_html = "".join(corpus_teaser(c.name, f"{c.name}/", its) for c, _, _, its in loaded)
     (out / "index.html").write_text(render_index(results, adj, items, dev, run_reports, extras_html))
@@ -1130,6 +1189,11 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
         p.write_text(render_item(it, repo, dev))
         written.append(p)
     _copy_data(out, items, backtest, adjudication, tests)
+    if judge:
+        bundle = json.loads(judge.read_text())
+        (out / "judge.html").write_text(render_judge(bundle, items, dev))
+        shutil.copy(judge, out / "data" / "judge.json")
+        written.append(out / "judge.html")
     if perf_from:
         shutil.copy(perf_from / "results.json", out / "data" / f"perf-{perf_from.name}.json")
     _data_index(out, 1, dev)

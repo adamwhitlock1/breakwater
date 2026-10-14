@@ -71,7 +71,7 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Demo run recorded on Token Factory with planner v3: `artifacts/demo/pr1082-61967cca` (replay with `breakwater replay`).
 - [x] Perf: validity per ladder size. Each size records the share of inputs base accepts; the verdict and slopes use only sizes where most inputs are valid (excluded sizes shown hollow on the chart). Published ladders were backfilled by regenerating them from the recorded generators, with no model calls (`scripts/backtest/backfill_ladder_validity.py`). The earlier demo run's claimed-speedup family F2 goes from `slower` to `faster`.
 - [ ] Report v2: wall-clock CIs once finalist timing exists.
-- [ ] Judge box: in-browser Pyodide "try your own version string" against base / PR / merged.
+- [x] Judge box (`site/judge.html`, "Try it"): four real versions of `packaging.version` run in the browser (Pyodide 0.27.2, loaded from jsDelivr only after the visitor clicks Start). The versions are before #1082, its intermediate commit, merged, and after #1155. Differences are classified with the probes' own `compare.py`, so they get the backtest's class signatures and link to their cards. Sources are bundled by `scripts/site/build_judge_bundle.py` (committed, 122 KB).
 - [ ] GitHub Action that runs the CLI and posts a check + comment.
 - [ ] README "For judges" table ([judging-map.md](judging-map.md)), limitations, the real bill.
 - [ ] Video per [demo-script.md](demo-script.md). Say "Nebius Token Factory", "Sandboxes" and the Nemotron model names aloud.

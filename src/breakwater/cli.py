@@ -328,7 +328,8 @@ def site(args: argparse.Namespace) -> int:
                                  Path(tests_dir) if tests_dir and Path(tests_dir).exists() else None))
         pages = build(Path(args.backtest), adj, Path(args.out), allow_dev=args.allow_dev,
                       runs=[Path(r) for r in args.run], perf_from=Path(args.perf_from) if args.perf_from else None,
-                      tests=Path(args.tests) if args.tests and Path(args.tests).exists() else None, extras=extras)
+                      tests=Path(args.tests) if args.tests and Path(args.tests).exists() else None, extras=extras,
+                      judge=Path(args.judge) if args.judge and Path(args.judge).exists() else None)
     except ValueError as e:
         print(e)
         return 2
@@ -454,6 +455,8 @@ def main(argv: list[str] | None = None) -> int:
     w.add_argument("--run", action="append", default=[], help="audit run dir to include (repeatable)")
     w.add_argument("--tests", default="artifacts/regress/packaging-v3",
                    help="`breakwater regress` output to show on cards ('' to disable)")
+    w.add_argument("--judge", default="artifacts/judge/packaging-1082.json",
+                   help="judge-box bundle (scripts/site/build_judge_bundle.py); '' to leave the page out")
     w.add_argument("--extra", action="append", default=None, metavar="NAME:BACKTEST[:ADJUDICATION[:TESTS]]",
                    help="another corpus as a sub-site (default: codeflash, if its results exist)")
     w.set_defaults(fn=site)

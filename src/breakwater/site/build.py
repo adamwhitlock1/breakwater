@@ -932,6 +932,18 @@ def run_cards(report: dict) -> list[Card]:
     return cards
 
 
+def sandbox_fact(sandbox: dict | None) -> str:
+    """Receipt line for the sandbox runs: Token Factory Sandboxes report a per-run cost (free during beta)."""
+    if not sandbox:
+        return ""
+    if sandbox.get("backend") == "contree":
+        return (f'<p><span class="k">sandbox</span>{money(sandbox.get("cost_usd") or 0.0)} '
+                f'<span class="muted small">Sandbox cost (free during beta) · {sandbox.get("runs", 0)} Token Factory '
+                f'Sandboxes runs · {sandbox.get("cpu_s", 0):.1f}s CPU</span></p>')
+    return (f'<p><span class="k">sandbox</span><span class="muted small">{sandbox.get("runs", 0)} runs on local Docker · '
+            f'{sandbox.get("cpu_s", 0):.1f}s CPU · no cost</span></p>')
+
+
 def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = None, site_nav: bool = True) -> str:
     repo, base, head, target = report["repo"], report["base"], report["head"], report["target"]
     sem = report.get("semantic") or {}
@@ -1002,6 +1014,7 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
   <div class="receipt-facts"><p><span class="k">run</span><code>{esc(report["run_id"])}</code></p>
   <p><span class="k">image</span><code>{esc(image)}</code></p>
   <p><span class="k">backend</span>{esc(sem.get("backend") or (report.get("perf") or {}).get("backend", ""))}</p>
+  {sandbox_fact(report.get("sandbox"))}
   <p class="muted small">{times}</p></div>
   </div>
 </section>
@@ -1029,7 +1042,9 @@ LIVE_BODY = """
     <h2 class="sb-title">Sandboxes</h2>
     <div class="gauge"><span id="sb-gauge"></span></div>
     <div class="sb-stats"><div><strong id="sb-now">0</strong><span>running now</span></div>
-    <div><strong id="sb-runs">0</strong><span>runs</span></div><div><strong id="sb-cpu">0s</strong><span>CPU</span></div></div>
+    <div><strong id="sb-runs">0</strong><span>runs</span></div><div><strong id="sb-cpu">0s</strong><span>CPU</span></div>
+    <div><strong id="sb-usd">$0.0000</strong><span>sandbox cost (free in beta)</span></div></div>
+    <p class="muted small" id="sb-image"></p>
   </aside>
 </div>
 <section><h2>Ultra's plan</h2><ol class="attacks" id="attacks"></ol></section>

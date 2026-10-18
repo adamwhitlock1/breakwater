@@ -2,6 +2,12 @@
 
 Newest first. One entry per decision: what, why, what would reverse it.
 
+## 2026-10-18: Token Factory Sandboxes is the backend of record
+- **What:** `ContreeBackend` (contree-sdk 0.3.6) is the default backend whenever `NEBIUS_API_KEY`, `NEBIUS_PROJECT_ID` and the SDK are present (`BREAKWATER_BACKEND` overrides). Pair images are built as kept Sandboxes images with the Docker layout (`/envs/base`, `/envs/head`, `/harness`, Hypothesis on the system Python), found by a content-addressed tag, and `PairImage.ref` is the image UUID that every report, card and receipt cites. Every untrusted run is a microVM branched from that image: concurrency capped at 24 of the 50 allowed, 10 MiB output cap requested per run, networking dropped with `unshare -n`, `PYTHONHASHSEED=0` passed per run, transient API errors retried with backoff (a kept build is looked up by tag before any retry, never blindly resubmitted). The receipt shows the per-run Sandbox cost as "Sandbox cost (free during beta)".
+- **Why:** the README's first sentence says the adversary runs in Token Factory Sandboxes; until now every artifact said `backend: docker`. Access works (2026-10-17), it is free during the beta, cachegrind runs in the microVM, and with the hash seed fixed Ir repeats to the instruction across runs (858,874,777 × 3 on the pair image). A microVM per strategy is also the real security boundary; `_BANNED_NAMES` is hygiene.
+- **What stays on Docker:** the published 29-item packaging backtest and the Codeflash corpus, labelled by backend, until A4 re-runs the subset on Sandboxes. Docker remains the offline fallback and the dev loop without credentials.
+- **Reverse if:** Sandboxes becomes unavailable or paid at a rate that the remaining credit can't cover during judging. Then Docker is the default again and the README says so.
+
 ## 2026-10-13: The judge box loads Pyodide from a CDN, on request
 - **What:** `judge.html` loads Pyodide 0.27.2 from cdn.jsdelivr.net (version pinned) only after the visitor clicks "Start Python". The page says so. Everything else on the site, including the packaging sources the box runs, is served from the site itself.
 - **Why:** self-hosting Pyodide means committing about 10 MB of third-party release files. The opt-in request keeps the rest of the site free of network requests and keeps the repo small.

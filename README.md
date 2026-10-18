@@ -105,6 +105,12 @@ docker/                local harness image (Python 3.12 + valgrind), the Sandbox
 docs/                  roadmap, day-1 checklist, spec, decisions, risks, demo script, feedback log
 ```
 
+## Limitations
+
+- **Sandbox networking.** contree-sdk 0.3.6 has no option to disable networking in a run and the microVM has internet access by default. Breakwater runs every probe, search and measurement under `unshare -n`, which puts the process in an empty network namespace (verified: name resolution and connections fail). Image builds are the only runs with networking. The local Docker backend uses `--network=none`.
+- **Falsifies, doesn't prove.** "No divergence found" means none was found by these probes and this search budget.
+- **Scope.** Python 3.12 targets with JSON-serialisable arguments; cachegrind instruction counts rather than wall time.
+
 ## License
 
 [Apache-2.0](LICENSE)

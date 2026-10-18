@@ -32,13 +32,60 @@ def doctor(_: argparse.Namespace) -> int:
     checks.append(("breakwater-harness image", image, "built" if image else "docker build -f docker/harness.Dockerfile -t breakwater-harness ."))
     contree = importlib.util.find_spec("contree_sdk") is not None
     checks.append(("contree-sdk", contree, "installed" if contree else "uv sync --extra sandboxes"))
+    checks += _sandboxes_checks(contree)
     for name, ok, detail in checks:
         print(f"{'ok ' if ok else 'XX '} {name:28s} {detail}")
     optional = {"TAVILY_API_KEY", "OPENROUTER_API_KEY", "NEBIUS_PROJECT_ID"} - {PROVIDERS[provider].key_env}
     return 0 if all(ok for name, ok, _ in checks if name not in optional) else 1
 
 
+def _sandboxes_checks(sdk_installed: bool) -> list[tuple[str, bool, str]]:
+    """Token Factory Sandboxes: whoami (auth), the effective limits and whether the harness image exists."""
+    if not (sdk_installed and os.environ.get("NEBIUS_API_KEY") and os.environ.get("NEBIUS_PROJECT_ID")):
+        return [("Sandboxes auth (whoami)", False, "skipped: needs contree-sdk, NEBIUS_API_KEY and NEBIUS_PROJECT_ID")]
+    from breakwater.backends.contree import MAX_CONCURRENCY, MAX_TIMEOUT_S, OUTPUT_CAP, ContreeBackend
+    from breakwater.images import harness_tag
+
+    try:
+        be = ContreeBackend()
+        who = be.whoami()
+    except Exception as e:  # auth failure, no access, network
+        return [("Sandboxes auth (whoami)", False, f"{type(e).__name__}: {str(e)[:120]}")]
+    limits, running = who["limits"], who["running"]
+    perms = ", ".join(k for k, v in sorted(who["permissions"].items()) if v)
+    checks = [("Sandboxes auth (whoami)", True, f"token {who['token']}…; can {perms}")]
+    conc = limits.get("instance_max_concurrency")
+    checks.append(("Sandboxes concurrency", not conc or MAX_CONCURRENCY <= conc,
+                   f"limit {conc} instances; Breakwater runs at most {MAX_CONCURRENCY} "
+                   f"({running.get('running_instances', 0)} running now)"))
+    tmo = limits.get("instance_max_timeout")
+    checks.append(("Sandboxes run timeout", not tmo or MAX_TIMEOUT_S <= tmo,
+                   f"limit {tmo} s per run; Breakwater runs use up to 900 s (image builds 1800 s)"))
+    checks.append(("Sandboxes output cap", True, f"{OUTPUT_CAP // (1024 * 1024)} MiB per stream requested on every run"))
+    harness = be.find_tag(harness_tag())
+    checks.append(("Sandboxes harness image", True, f"{harness} ({harness_tag()})" if harness
+                   else f"not built yet; the first probe or audit builds {harness_tag()} (~1 min)"))
+    return checks
+
+
 DEV_BANNER = ("> **Development run (provider: {}).** Not from Nebius Token Factory; do not publish these numbers.")
+
+
+def sandbox_line(sandbox: dict) -> str:
+    """The receipt's sandbox line. Sandboxes report a per-run cost; it is free during the beta."""
+    if sandbox.get("backend") == "contree":
+        return (f"**Sandbox cost (free during beta):** ${sandbox.get('cost_usd') or 0:.4f} for {sandbox['runs']} "
+                f"Token Factory Sandboxes runs ({sandbox['cpu_s']:.1f} s CPU), image `{sandbox.get('image')}`")
+    return f"**Sandbox runs:** {sandbox['runs']} on local Docker ({sandbox['cpu_s']:.1f} s CPU; no cost)"
+
+
+def default_backend() -> str:
+    """BREAKWATER_BACKEND, else Sandboxes when its credentials and SDK are present, else Docker."""
+    if env := os.environ.get("BREAKWATER_BACKEND"):
+        return env
+    sandboxes = (os.environ.get("NEBIUS_API_KEY") and os.environ.get("NEBIUS_PROJECT_ID")
+                 and importlib.util.find_spec("contree_sdk") is not None)
+    return "contree" if sandboxes else "docker"
 
 
 def _short(v, n: int = 70) -> str:
@@ -65,10 +112,11 @@ def probe(args: argparse.Namespace) -> int:
         print("no inputs: use --input or --inputs-file")
         return 2
 
-    image = build_pair(base_req, head_req)
+    backend = get_backend(args.backend)
+    image = build_pair(base_req, head_req, backend=backend)
     target = Target(args.target, tuple(args.observe.split(",")))
     probes = tuple(args.probes.split(",")) if args.probes else ALL_PROBES
-    report = run_probes(Runner(get_backend(args.backend), image, target), inputs, probes)
+    report = run_probes(Runner(backend, image, target), inputs, probes)
 
     classes = report.classes()
     print(f"{args.target}: {len(inputs)} inputs, {len(report.divergences)} divergences in {len(classes)} classes "
@@ -148,7 +196,8 @@ def audit(args: argparse.Namespace) -> int:
     try:
         events("phase", name="build")
         ctx = gather(args.repo, args.base, args.head, args.target)
-        image = build_pair(git_req(args.repo, args.base), git_req(args.repo, args.head))
+        image = build_pair(git_req(args.repo, args.base), git_req(args.repo, args.head), backend=backend)
+        events("image", backend=backend.name, image=image.ref, tag=image.tag)
         target = Target(args.target, tuple(args.observe.split(",")))
 
         if args.mode in ("semantic", "both"):
@@ -199,15 +248,17 @@ def audit(args: argparse.Namespace) -> int:
     events("phase", name="report")
     usd = {tier: t["usd"] for tier, t in ledger.summarize(run_id=run_id).items()}
     report["usd_by_tier"] = usd
+    report["sandbox"] = sandbox = backend.summary(image.ref)
     sections.append(f"**Total Nemotron cost:** ${sum(usd.values()):.4f} "
-                    f"({', '.join(f'{k} ${v:.4f}' for k, v in sorted(usd.items()))})")
+                    f"({', '.join(f'{k} ${v:.4f}' for k, v in sorted(usd.items()))})  \n"
+                    + sandbox_line(sandbox))
     md = "\n\n".join(sections)
     (out / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False, default=str))
     (out / "report.md").write_text(md)
     write_run_page(out)
     cards = run_cards(report)
     events("done", verdict=verdict_of(cards) if cards else "PASS", classes=len(cards), report="report.html",
-           usd=round(sum(usd.values()), 6), usd_by_tier=usd)
+           usd=round(sum(usd.values()), 6), usd_by_tier=usd, sandbox=sandbox)
     print("\n" + md + f"\n\nwrote {out}/report.json, report.md and report.html")
     if server:
         print(f"still serving http://127.0.0.1:{args.port}/live.html (Ctrl-C to stop)")
@@ -375,7 +426,7 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv()
     ap = argparse.ArgumentParser(prog="breakwater", description=__doc__)
     sub = ap.add_subparsers(required=True)
-    sub.add_parser("doctor", help="check keys, Docker and Sandboxes SDK").set_defaults(fn=doctor)
+    sub.add_parser("doctor", help="check keys, Docker, Sandboxes auth and limits").set_defaults(fn=doctor)
     p = sub.add_parser("probe", help="run deterministic differential probes on base vs head")
     p.add_argument("--target", required=True, help="callable under test, e.g. packaging.version:Version")
     p.add_argument("--repo", help="git URL; use with --base and --head commit/ref")
@@ -387,7 +438,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--inputs-file", help="JSON list of argument lists")
     p.add_argument("--observe", default="str,repr", help="comma list: str,repr,len,attr:<name>")
     p.add_argument("--probes", help="comma list, default P1,P2,P3,P4 (P4down is opt-in)")
-    p.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    p.add_argument("--backend", default=default_backend())
     p.add_argument("--json", help="write the full report here")
     p.set_defaults(fn=probe)
     a = sub.add_parser("audit", help="Nemotron adversary: plan attacks, write strategies, search, probe")
@@ -408,7 +459,7 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--live", action="store_true", help="serve a live view of the run on localhost while it runs")
     a.add_argument("--open", action="store_true", help="with --live: open the live view in a browser")
     a.add_argument("--port", type=int, default=8766, help="with --live: port (default 8766)")
-    a.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    a.add_argument("--backend", default=default_backend())
     a.add_argument("--out", help="output dir (default artifacts/runs/<run_id>)")
     a.set_defaults(fn=audit)
     r = sub.add_parser("replay", help="replay a recorded audit in the live page at a stated speed")
@@ -426,14 +477,14 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--perf", action="store_true", help="also run the perf audit per target")
     t.add_argument("--workers", type=int, default=3, help="items in parallel")
     t.add_argument("--seed", type=int, default=0)
-    t.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    t.add_argument("--backend", default=default_backend())
     t.add_argument("--out")
     t.set_defaults(fn=backtest)
     j = sub.add_parser("adjudicate", help="label a finished backtest's divergences and score them against known issues")
     j.add_argument("backtest", help="backtest output dir (with results.json)")
     j.add_argument("--only", help="comma list of item ids or PR numbers")
     j.add_argument("--workers", type=int, default=3)
-    j.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    j.add_argument("--backend", default=default_backend())
     j.add_argument("--out", help="output dir (default artifacts/adjudication/<time>-<provider>)")
     j.set_defaults(fn=adjudicate)
     g = sub.add_parser("regress", help="one verified pytest per finding class of a finished backtest (no model calls)")
@@ -442,7 +493,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="labels; classes adjudicated intended get no test ('' to ignore)")
     g.add_argument("--only")
     g.add_argument("--workers", type=int, default=3)
-    g.add_argument("--backend", default=os.environ.get("BREAKWATER_BACKEND", "docker"))
+    g.add_argument("--backend", default=default_backend())
     g.add_argument("--out", default="artifacts/regress/packaging-v3")
     g.set_defaults(fn=regress)
     w = sub.add_parser("site", help="build the static web report from backtest + adjudication JSON")

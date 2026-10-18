@@ -123,7 +123,8 @@ def run_target(item: dict, tgt: dict, repo: str, backend: Backend, *, arms: tupl
     target = Target(tgt["callable"], tuple(tgt["observe"]))
     arg_kinds = tgt.get("arg_kinds", ["str"])
     ctx = gather(repo, item["base"], item["head"], tgt["callable"])
-    image = build_pair(req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install")))
+    image = build_pair(req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install")),
+                       backend=backend)
     results: dict[str, ArmResult] = {}
 
     def timed(name: str, fn) -> None:
@@ -300,7 +301,7 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
     Facts are re-derived in the sandbox from the recorded image (exception relations); the model
     sees the PR as a reviewer would at merge time, never the known-issue list."""
     from breakwater import adjudicate as adj
-    from breakwater.images import PairImage, _exists
+    from breakwater.images import PairImage, image_exists
     from breakwater.repo import intent_diff
 
     meta = json.loads((src_dir / "results.json").read_text())
@@ -321,7 +322,8 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
             repo = item.get("repo", corpus_repo)
             ctx = gather(repo, item["base"], item["head"], t["target"])
             base_req, head_req = req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install"))
-            image = PairImage(t["image"], base_req, head_req) if _exists(t["image"]) else build_pair(base_req, head_req)
+            image = (PairImage(t["image"], base_req, head_req) if image_exists(t["image"], backend)
+                     else build_pair(base_req, head_req, backend=backend))
             mros = adj.exception_facts(backend, image, findings)
             res = adj.adjudicate(llm, ctx, findings, title=item["title"],
                                  intent=intent_diff(repo, item["base"], item["head"]), mros=mros)
@@ -430,7 +432,7 @@ def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, o
     """One pytest per finding class of the breakwater arm, verified in the sandbox (passes on base,
     fails on head). No model calls. Writes <item>.json and test_<item>.py (verified tests only)."""
     from breakwater import regress
-    from breakwater.images import PairImage, _exists
+    from breakwater.images import PairImage, image_exists
 
     meta = json.loads((src_dir / "results.json").read_text())
     corpus_repo = json.loads(Path(meta["corpus"]).read_text()).get("repo")
@@ -450,7 +452,8 @@ def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, o
                 continue
             repo = item.get("repo", corpus_repo)
             base_req, head_req = req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install"))
-            image = PairImage(t["image"], base_req, head_req) if _exists(t["image"]) else build_pair(base_req, head_req)
+            image = (PairImage(t["image"], base_req, head_req) if image_exists(t["image"], backend)
+                     else build_pair(base_req, head_req, backend=backend))
             findings = [adversary.Finding(**f) for f in t["findings"]]
             tests = regress.for_findings(backend, image, t["target"], findings, item=slug,
                                          labels=labels.get((item["id"], t["target"])))

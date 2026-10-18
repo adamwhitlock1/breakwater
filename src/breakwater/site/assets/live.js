@@ -202,10 +202,14 @@
           " · " + money(ev.usd) + " · " + (ev.latency_ms / 1000).toFixed(1) + "s", "llm " + ev.tier, ev.t);
         break;
       }
+      case "image":
+        if ($("sb-image")) $("sb-image").textContent = (ev.backend === "contree" ? "Token Factory Sandboxes image " : "image ") + ev.image;
+        break;
       case "sandbox":
         $("sb-now").textContent = String(ev.in_flight);
         $("sb-runs").textContent = num(ev.runs);
         if (ev.cpu_s !== undefined) $("sb-cpu").textContent = ev.cpu_s.toFixed(1) + "s";
+        if (ev.usd !== undefined && $("sb-usd")) $("sb-usd").textContent = money(ev.usd);
         $("sb-gauge").style.width = Math.min(100, ev.in_flight * 12.5) + "%";
         break;
       case "plan":

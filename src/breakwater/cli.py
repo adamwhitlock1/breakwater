@@ -259,9 +259,9 @@ def audit(args: argparse.Namespace) -> int:
     cards = run_cards(report)
     events("done", verdict=verdict_of(cards) if cards else "PASS", classes=len(cards), report="report.html",
            usd=round(sum(usd.values()), 6), usd_by_tier=usd, sandbox=sandbox)
-    print("\n" + md + f"\n\nwrote {out}/report.json, report.md and report.html")
+    print("\n" + md + f"\n\nwrote {out}/report.json, report.md and report.html", flush=True)
     if server:
-        print(f"still serving http://127.0.0.1:{args.port}/live.html (Ctrl-C to stop)")
+        print(f"still serving http://127.0.0.1:{args.port}/live.html (Ctrl-C to stop)", flush=True)  # even into a log file
         try:
             import time
 

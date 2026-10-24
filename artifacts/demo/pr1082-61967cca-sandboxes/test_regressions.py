@@ -10,17 +10,17 @@ def test_p2_outcome_0():
     import pytest
     from packaging.version import InvalidVersion, Version
     with pytest.raises(InvalidVersion) as excinfo:
-        Version('０')
+        Version('0 .0')
     assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change
 
 
 def test_p2_outcome_1():
     """Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug)."""
     import pytest
-    from packaging.version import InvalidVersion, Version
-    with pytest.raises(InvalidVersion) as excinfo:
-        Version('0. 0')
-    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change
+    from packaging.version import Version
+    with pytest.raises(TypeError) as excinfo:
+        Version(['１'])
+    assert type(excinfo.value) is TypeError  # exact type: a subclass would be a behaviour change
 
 
 def test_p2_outcome_2():
@@ -28,5 +28,14 @@ def test_p2_outcome_2():
     import pytest
     from packaging.version import InvalidVersion, Version
     with pytest.raises(InvalidVersion) as excinfo:
-        Version('１ .２.３')
+        Version('٠')
+    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change
+
+
+def test_p2_outcome_3():
+    """Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug)."""
+    import pytest
+    from packaging.version import InvalidVersion, Version
+    with pytest.raises(InvalidVersion) as excinfo:
+        Version('١ .2')
     assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change

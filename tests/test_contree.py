@@ -163,11 +163,10 @@ def test_truncated_output_fails_the_run_and_timeouts_are_noted():
     assert late.exit_code == -1 and "timed out after 5 s" in late.stderr
 
 
-def test_timeout_above_the_sandboxes_limit_is_rejected_before_submission():
-    be, client = backend()
-    with pytest.raises(ValueError):
-        be.run("img", ["python"], timeout_s=4000)
-    assert client.runs == []
+def test_timeout_above_the_sandboxes_limit_is_clamped():
+    be, client = backend([FakeResult(exit_code=0)])
+    be.run("img", ["python"], timeout_s=18860)  # a 940-input probe batch asks for this much
+    assert client.runs[0]["timeout"] == 3600
 
 
 def test_transient_classification():

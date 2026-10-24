@@ -1,0 +1,269 @@
+{
+ "image": "62d98fe8-9c1e-42e6-b250-ab6f630d8680",
+ "tag": "bw-pair:54cecb6bd022b7ef",
+ "runs": 105,
+ "cpu_s": 340.69959199999994,
+ "cost_usd": 3.4886517400000003,
+ "seconds": 139.9,
+ "rows": [
+  {
+   "id": "F1",
+   "docker_screen": 0.9863714559272647,
+   "contree_screen": 0.9623115935771558,
+   "docker_valid": 0.0,
+   "contree_valid": 0.0,
+   "error": null,
+   "ladder_sizes": {
+    "2": 36,
+    "4": 70,
+    "16": 11,
+    "64": 11,
+    "256": 11,
+    "1024": 11,
+    "4096": 11
+   },
+   "max_ladder_chars": 70
+  },
+  {
+   "id": "F2",
+   "docker_screen": 0.644451582146806,
+   "contree_screen": 0.63064009361114,
+   "docker_valid": 1.0,
+   "contree_valid": 1.0,
+   "error": null,
+   "ladder_sizes": {
+    "2": 9,
+    "4": 13,
+    "16": 37,
+    "64": 133,
+    "256": 517,
+    "1024": 2053,
+    "4096": 8197
+   },
+   "max_ladder_chars": 8197
+  },
+  {
+   "id": "F3",
+   "docker_screen": 0.9999545081533796,
+   "contree_screen": 1.0,
+   "docker_valid": 0.0,
+   "contree_valid": 0.0,
+   "error": null,
+   "ladder_sizes": {
+    "2": 81,
+    "4": 90,
+    "16": 18,
+    "64": 18,
+    "256": 18,
+    "1024": 18,
+    "4096": 18
+   },
+   "max_ladder_chars": 90
+  },
+  {
+   "id": "F4",
+   "docker_screen": 1.0900511594405804,
+   "contree_screen": 1.0756819587062099,
+   "docker_valid": 0.0,
+   "contree_valid": 0.0,
+   "error": null,
+   "ladder_sizes": {
+    "2": 15,
+    "4": 18,
+    "16": 20,
+    "64": 31,
+    "256": 72,
+    "1024": 227,
+    "4096": 844
+   },
+   "max_ladder_chars": 844
+  },
+  {
+   "id": "F5",
+   "docker_screen": 0.9247185740303128,
+   "contree_screen": 0.8682710582617184,
+   "docker_valid": 0.125,
+   "contree_valid": 0.125,
+   "error": null,
+   "ladder_sizes": {
+    "2": 22,
+    "4": 54,
+    "16": 142,
+    "64": 142,
+    "256": 142,
+    "1024": 142,
+    "4096": 142
+   },
+   "max_ladder_chars": 142
+  },
+  {
+   "id": "F6",
+   "docker_screen": 0.4404265335596345,
+   "contree_screen": 0.4281395793658671,
+   "docker_valid": 1.0,
+   "contree_valid": 1.0,
+   "error": null,
+   "ladder_sizes": {
+    "2": 30,
+    "4": 60,
+    "16": 123,
+    "64": 123,
+    "256": 123,
+    "1024": 123,
+    "4096": 123
+   },
+   "max_ladder_chars": 123
+  },
+  {
+   "id": "R1",
+   "docker_screen": 2.0933183121944663,
+   "contree_screen": 1.9962265393263607,
+   "docker_valid": 0.0,
+   "contree_valid": 0.0,
+   "error": null,
+   "ladder_sizes": {
+    "2": 9,
+    "4": 13,
+    "16": 37,
+    "64": 133,
+    "256": 517,
+    "1024": 2053,
+    "4096": 8197
+   },
+   "max_ladder_chars": 8197
+  },
+  {
+   "id": "R2",
+   "docker_screen": 2.0933183121944663,
+   "contree_screen": 1.9962265393263607,
+   "docker_valid": 0.0,
+   "contree_valid": 0.0,
+   "error": null,
+   "ladder_sizes": {
+    "2": 9,
+    "4": 13,
+    "16": 37,
+    "64": 133,
+    "256": 517,
+    "1024": 2053,
+    "4096": 8197
+   },
+   "max_ladder_chars": 8197
+  },
+  {
+   "id": "R3",
+   "docker_screen": 1.2879795827846565,
+   "contree_screen": 1.2867937312329798,
+   "docker_valid": 1.0,
+   "contree_valid": 1.0,
+   "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+   "ladder_sizes": {
+    "2": 10,
+    "4": 19,
+    "16": 157,
+    "64": 2149,
+    "256": 33157,
+    "1024": 525829
+   },
+   "max_ladder_chars": 525829
+  },
+  {
+   "id": "R4",
+   "docker_screen": 1.2735706618996405,
+   "contree_screen": 1.269503447881838,
+   "docker_valid": 1.0,
+   "contree_valid": 1.0,
+   "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+   "ladder_sizes": {
+    "2": 10,
+    "4": 19,
+    "16": 157,
+    "64": 2149,
+    "256": 33157,
+    "1024": 525829
+   },
+   "max_ladder_chars": 525829
+  },
+  {
+   "id": "R3.1",
+   "docker_screen": 2.3848235530124784,
+   "contree_screen": 2.2444239666002184,
+   "docker_valid": 0.0,
+   "contree_valid": 0.0,
+   "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+   "ladder_sizes": {
+    "2": 9,
+    "4": 16,
+    "16": 142,
+    "64": 2086,
+    "256": 32902,
+    "1024": 524806
+   },
+   "max_ladder_chars": 524806
+  },
+  {
+   "id": "R3.2",
+   "docker_screen": 1.3151357893422584,
+   "contree_screen": 1.289682789117718,
+   "docker_valid": 1.0,
+   "contree_valid": 1.0,
+   "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+   "ladder_sizes": {
+    "2": 16,
+    "4": 25,
+    "16": 163,
+    "64": 2155,
+    "256": 33163,
+    "1024": 525835
+   },
+   "max_ladder_chars": 525835
+  },
+  {
+   "id": "R3.3",
+   "docker_screen": 1.2324345567588313,
+   "contree_screen": 1.242973322325474,
+   "docker_valid": 1.0,
+   "contree_valid": 1.0,
+   "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+   "ladder_sizes": {
+    "2": 16,
+    "4": 25,
+    "16": 163,
+    "64": 2155,
+    "256": 33163,
+    "1024": 525835
+   },
+   "max_ladder_chars": 525835
+  },
+  {
+   "id": "R4.1",
+   "docker_screen": null,
+   "contree_screen": null,
+   "docker_valid": null,
+   "contree_valid": null,
+   "error": "make(n) rejected: syntax error: unexpected character after line continuation character (line 3)",
+   "ladder_sizes": {},
+   "max_ladder_chars": 0
+  },
+  {
+   "id": "R4.2",
+   "docker_screen": null,
+   "contree_screen": null,
+   "docker_valid": null,
+   "contree_valid": null,
+   "error": "make(n) rejected: syntax error: unexpected character after line continuation character (line 3)",
+   "ladder_sizes": {},
+   "max_ladder_chars": 0
+  },
+  {
+   "id": "R4.3",
+   "docker_screen": null,
+   "contree_screen": null,
+   "docker_valid": null,
+   "contree_valid": null,
+   "error": "make(n) rejected: syntax error: unmatched '}' (line 15)",
+   "ladder_sizes": {},
+   "max_ladder_chars": 0
+  }
+ ]
+}

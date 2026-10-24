@@ -124,8 +124,9 @@ class ContreeBackend:
 
     def run(self, image_ref, cmd, *, files=None, stdin=None, timeout_s=300, keep=False, tag=None,
             network: bool | None = None, env: dict[str, str] | None = None) -> RunResult:
-        if timeout_s > MAX_TIMEOUT_S:
-            raise ValueError(f"timeout_s={timeout_s} exceeds the Sandboxes limit of {MAX_TIMEOUT_S} s")
+        if timeout_s > MAX_TIMEOUT_S:  # probe batches ask for 60 + 20 s per input; the sandbox kills at the limit
+            logger.info("contree: timeout_s=%d clamped to the Sandboxes limit of %d s", timeout_s, MAX_TIMEOUT_S)
+            timeout_s = MAX_TIMEOUT_S
         argv = list(cmd)
         if not (self.network if network is None else network):
             argv = [*NO_NETWORK, *argv]

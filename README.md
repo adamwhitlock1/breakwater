@@ -9,7 +9,7 @@ Entry for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackat
 | Criterion | Claim | Check it in a minute |
 |---|---|---|
 | Technological Implementation | Three Nemotron tiers on Token Factory, each with explicit reasoning control, structured output and its own line on the bill. LLM-written code runs only in Sandboxes microVMs branched from a recorded image. Measurement is deterministic (cachegrind Ir). Adjudication must quote its evidence. Regression tests are verified in the sandbox before they're offered | [`llm.py`](src/breakwater/llm.py), [`backends/contree.py`](src/breakwater/backends/contree.py), the receipt on any run page (tier bill, backend, image UUID), [`artifacts/day1/contree.json`](artifacts/day1/contree.json) |
-| Design | One command gives a verdict, counterexample cards with tests, a report page and a live view. A recorded run can be replayed. The judge box runs four real versions of pip's version parser in your browser | Demo site: index, a PR page, the Codeflash sub-site, "Try it" |
+| Design | One command or a GitHub Action gives a verdict, counterexample cards with tests, a report page, a PR comment and a live view. A recorded run can be replayed. The judge box runs four real versions of pip's version parser in your browser | Demo site: index, a PR page, the Codeflash sub-site, "Try it" |
 | Potential Impact | 9/9 documented regressions in pip's version parser caught pre-merge, on Docker and again on Sandboxes (best no-LLM baseline 7/9). 4/10 merged AI-written speedups change behaviour (3 adjudicated likely-bug). One does 363× the work on valid input | [`docs/backtest.md`](docs/backtest.md), [`scripts/day1/ground_truth.py`](scripts/day1/ground_truth.py), the Codeflash sub-site |
 | Quality of the Idea | Falsify rather than prove: the adversary tries to break the speed and equivalence claims, and honest baselines show what the model adds | [Why](#why) below, "What Nemotron adds" in [`docs/backtest.md`](docs/backtest.md) |
 | Track fit | A coding agent that writes, runs and tests code in Token Factory Sandboxes | The live page's sandbox gauge; an image UUID on every number |
@@ -144,6 +144,9 @@ It writes `report.json`, `report.md`, `report.html`, `events.jsonl` and `test_re
 - `breakwater adjudicate <backtest-dir>` labels a backtest's classes.
 - `breakwater regress` generates verified tests for a backtest.
 - `breakwater bill` shows spend by tier.
+- `breakwater comment <run>` and `breakwater verdict <run>` render a run as a PR comment and print its verdict.
+
+**GitHub Action.** `uses: adamwhitlock1/breakwater@main` audits each pull request against its merge base. It posts one comment that is updated on every push, uploads the report, and fails the check on BLOCK. Pass `nebius-project-id` to run the untrusted code in Sandboxes. Setup and limits are in [docs/github-action.md](docs/github-action.md).
 
 For development, `BREAKWATER_PROVIDER=openrouter` runs the same Nemotron tiers on OpenRouter's free routes. The site refuses non-Token-Factory artifacts unless you pass `--allow-dev`.
 

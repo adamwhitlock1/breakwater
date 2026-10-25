@@ -41,6 +41,29 @@ ARM_NAMES = {
 }
 LABEL_ORDER = {"likely-bug": 0, "needs-human": 1, "intended": 2, None: 3}
 LABEL_TEXT = {"likely-bug": "Likely bug", "needs-human": "Needs a human", "intended": "Intended", None: "Unlabelled"}
+BACKEND_TEXT = {"contree": "Token Factory Sandboxes", "docker": "local Docker"}
+BACKEND_SHORT = {"contree": "Sandboxes", "docker": "Docker"}
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+def backend_of(image: str, recorded: str | None = None) -> str:
+    """The backend a recorded image ran on: the recorded name when the artifact has one (backtests
+    since 2026-10-24), else inferred from the ref: a Sandboxes image is a UUID, a Docker image a tag."""
+    if recorded:
+        return recorded
+    return "contree" if _UUID.fullmatch(image or "") else "docker"
+
+
+def backend_chip(backend: str, image: str = "") -> str:
+    """Where the untrusted code ran; the image that reproduces it on hover."""
+    title = f' title="image {esc(image)}"' if image else ""
+    return f'<span class="chip backend sm {esc(backend)}"{title}>{esc(BACKEND_SHORT.get(backend, backend))}</span>'
+
+
+def provenance(backend: str, image: str) -> str:
+    """One line under a card: backend and the image UUID or tag that re-runs it."""
+    return (f'<p class="prov"><span class="k">ran on</span>{esc(BACKEND_TEXT.get(backend, backend))} · image '
+            f'<code>{esc(image)}</code></p>')
 
 
 def esc(v: Any) -> str:
@@ -108,6 +131,7 @@ class TargetView:
     cards: list[Card]
     perf: dict | None
     perf_source: str | None = None  # another backtest the perf was taken from, if not this one
+    backend: str = "docker"  # where this target's runs happened (backend_of)
 
 
 @dataclass
@@ -154,6 +178,17 @@ class ItemView:
     @property
     def usd(self) -> float:
         return sum(t.usd + t.adj_usd for t in self.targets)
+
+    @property
+    def backends(self) -> list[str]:
+        return sorted({t.backend for t in self.targets})
+
+    @property
+    def perf_worst(self) -> dict:
+        return next((t.perf for t in self.targets if t.perf), None) or {}
+
+    def chips(self) -> str:
+        return " ".join(backend_chip(t.backend, t.image) for t in self.targets)
 
 
 def load(backtest: Path, adjudication: Path | None, perf_from: Path | None = None,
@@ -203,7 +238,8 @@ def load(backtest: Path, adjudication: Path | None, perf_from: Path | None = Non
             if not perf and (raw["id"], t["target"]) in reuse:
                 perf, source = reuse[(raw["id"], t["target"])], perf_from.name if perf_from else None
             view.targets.append(TargetView(t["target"], t["image"], t["run_id"], t.get("usd", 0.0),
-                                           at.get("usd", 0.0), cards, perf, source))
+                                           at.get("usd", 0.0), cards, perf, source,
+                                           backend_of(t["image"], t.get("backend"))))
         items.append(view)
     return results, adj, items
 
@@ -414,7 +450,7 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
             f'<td class="title-cell">{inline(r["title"])}<small><code>{esc(target)}</code> · {esc(r["merged"])}</small></td>'
             f'<td>{verdict_chip(it.verdict) if it.cards or it.verdict != "PASS" else "<span class='muted nowrap'>no divergence</span>"}</td>'
             f'<td class="labels">{labels}</td><td>{caught if r["known"] else "–"}</td>'
-            f'<td class="num">{worst}</td><td class="num">{money(it.usd)}</td></tr>')
+            f'<td class="num">{worst}</td><td>{it.chips()}</td><td class="num">{money(it.usd)}</td></tr>')
 
     perf_sources = sorted({t.perf_source for it in items for t in it.targets if t.perf_source})
     corrections = results.get("corrections", [])
@@ -422,6 +458,7 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
         "† merged after Nemotron 3 Ultra's release (2026-06-04), so it cannot be in the model's training data.",
         "Perf column: worst head/base instruction-count ratio over input families where most inputs are valid. "
         "Above 1× means the 'faster' change runs more instructions.",
+        backend_note(items),
     ]
     if perf_sources:
         notes.append("Perf columns come from backtest " + ", ".join(f"<code>{esc(x)}</code>" for x in perf_sources)
@@ -453,7 +490,7 @@ def render_index(results: dict, adj: dict | None, items: list[ItemView], dev: st
   <h2>Every PR</h2>
   <div class="table-wrap"><table class="items">
   <thead><tr><th>PR</th><th>Change</th><th>Verdict</th><th>Classes</th><th>Known issue caught</th>
-  <th class="num">Perf worst</th><th class="num">Cost</th></tr></thead>
+  <th class="num">Perf worst</th><th>Backend</th><th class="num">Cost</th></tr></thead>
   <tbody>{"".join(rows)}</tbody></table></div>
   <ul class="notes">{"".join(f"<li>{n}</li>" for n in notes)}</ul>
 </section>
@@ -488,22 +525,44 @@ def render_runs_list(runs: list[dict]) -> str:
     for r in runs:
         cards = run_cards(r)
         v = verdict_of(cards)
+        backend, image = run_provenance(r)
         rows.append(f'<tr><td><a href="runs/{esc(r["run_id"])}.html"><code>{esc(r["run_id"])}</code></a></td>'
                     f'<td class="title-cell">{inline(r.get("title") or r["target"])}<small><code>{esc(r["target"])}</code></small></td>'
                     f'<td>{verdict_chip(v) if cards else "<span class=\'muted nowrap\'>no divergence</span>"}</td>'
-                    f'<td class="num">{len(cards)}</td><td class="num">{money(sum(r.get("usd_by_tier", {}).values()))}</td></tr>')
+                    f'<td class="num">{len(cards)}</td><td>{backend_chip(backend, image)}</td>'
+                    f'<td class="num">{money(sum(r.get("usd_by_tier", {}).values()))}</td></tr>')
     return (f'<section id="runs"><h2>Audit runs</h2><p class="section-lede">Single audits from <code>breakwater audit</code>, '
             'as shown in the demo.</p><div class="table-wrap"><table class="items"><thead><tr><th>Run</th><th>Change</th>'
-            f'<th>Verdict</th><th class="num">Classes</th><th class="num">Cost</th></tr></thead><tbody>{"".join(rows)}'
+            f'<th>Verdict</th><th class="num">Classes</th><th>Backend</th><th class="num">Cost</th></tr></thead><tbody>{"".join(rows)}'
             '</tbody></table></div></section>')
+
+
+def run_provenance(report: dict) -> tuple[str, str]:
+    """(backend, image) of an audit run: from the semantic report, else the perf report, else the receipt."""
+    sem = report.get("semantic") or {}
+    perf = report.get("perf") or {}
+    sandbox = report.get("sandbox") or {}
+    image = sem.get("image") or perf.get("image") or sandbox.get("image") or ""
+    return backend_of(image, sem.get("backend") or perf.get("backend") or sandbox.get("backend")), image
+
+
+def backend_note(items: list[ItemView]) -> str:
+    names = sorted({b for it in items for b in it.backends})
+    parts = {"contree": "Token Factory Sandboxes (a microVM branched from a kept image, cited by its UUID)",
+             "docker": "local Docker (an image cited by its content-addressed tag)"}
+    return ("Backend: where the untrusted code ran. " + "; ".join(parts.get(n, n) for n in names)
+            + ". Every image is content-addressed (repo at each commit + harness), so every card re-runs from the "
+            "image and seed 0.")
 
 
 # ---------------------------------------------------------------------------------------------------
 # PR page
 
 
-def render_cards(cards: list[Card], fn: str, repo: str, base: str, head: str, target: str) -> tuple[str, int]:
-    """One card per group of near-duplicate classes (classes.py). Returns (html, number of groups)."""
+def render_cards(cards: list[Card], fn: str, repo: str, base: str, head: str, target: str,
+                 backend: str = "docker", image: str = "") -> tuple[str, int]:
+    """One card per group of near-duplicate classes (classes.py). Returns (html, number of groups).
+    Every card names the backend and image it was found on."""
     from breakwater.classes import group_classes
 
     by_sig = {c.finding.signature: c for c in cards}
@@ -515,7 +574,8 @@ def render_cards(cards: list[Card], fn: str, repo: str, base: str, head: str, ta
         members = [by_sig[m] for m in g.members]
         known = list(dict.fromkeys(k for c in members for k in c.known))
         card = Card(primary.finding, primary.verdict, known, primary.arms, primary.test)
-        html.append(render_card(card, fn, repo, base, head, target, extra=render_duplicates(g, by_sig, fn)))
+        html.append(render_card(card, fn, repo, base, head, target, extra=render_duplicates(g, by_sig, fn),
+                                backend=backend, image=image))
     return "".join(html), len(groups)
 
 
@@ -547,7 +607,8 @@ def render_duplicates(g, by_sig: dict[str, Card], fn: str) -> str:
             f'<ul>{"".join(rows)}</ul></details>')
 
 
-def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: str, extra: str = "") -> str:
+def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: str, extra: str = "",
+                backend: str = "docker", image: str = "") -> str:
     f, v = card.finding, card.verdict
     # The base/head boxes already state the facts; keep only what they can't show (how the two
     # exception types relate).
@@ -575,7 +636,7 @@ def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: st
     repro = ""
     if single and f.probe != "P3":
         cmd = (f"uv run breakwater probe --repo {repo} --base {base[:12]} --head {head[:12]} "
-               f"--target {target} --input {json.dumps(f.args[0][0], ensure_ascii=False)}")
+               f"--target {target} --backend {backend} --input {json.dumps(f.args[0][0], ensure_ascii=False)}")
         repro = f'<details><summary>Reproduce</summary><pre><code>{esc(cmd)}</code></pre></details>'
     return f"""<article class="card {"card-" + (card.label or "none")}">
   <header><span class="probe">{esc(f.probe)}</span><h3>{esc(text["title"])}</h3>{known}</header>
@@ -585,6 +646,7 @@ def render_card(card: Card, fn: str, repo: str, base: str, head: str, target: st
   {f'<p class="facts">{esc(rel[0].upper() + rel[1:])}.</p>' if rel else ""}
   {adj}
   <p class="found">Found by: {esc(how)}{baseline}</p>
+  {provenance(backend, image) if image else ""}
   {render_test(card.test)}
   {repro}
   {extra}
@@ -665,7 +727,7 @@ def render_item(it: ItemView, repo: str, dev: str | None, depth: int = 1, home: 
     cards_html, n_groups = [], 0
     for t in it.targets:
         fn = t.target.split(":")[1].split("#")[0]
-        html, n = render_cards(t.cards, fn, it.repo, r["base"], r["head"], t.target)
+        html, n = render_cards(t.cards, fn, it.repo, r["base"], r["head"], t.target, t.backend, t.image)
         cards_html.append(html)
         n_groups += n
     counts = {k: sum(c.label == k for c in it.cards) for k in LABEL_ORDER}
@@ -689,7 +751,8 @@ def render_item(it: ItemView, repo: str, dev: str | None, depth: int = 1, home: 
                   f'<p><a class="button" href="../tests/test_{esc(re.sub(r"[^A-Za-z0-9]+", "_", it.slug))}.py" download>'
                   f'Download test_{esc(re.sub(r"[^A-Za-z0-9]+", "_", it.slug))}.py</a></p></section>') if verified else ""
     receipt = "".join(
-        f'<tr><td><code>{esc(t.target)}</code></td><td><code>{esc(t.image)}</code></td><td><code>{esc(t.run_id)}</code></td>'
+        f'<tr><td><code>{esc(t.target)}</code></td><td>{esc(BACKEND_TEXT.get(t.backend, t.backend))}</td>'
+        f'<td><code>{esc(t.image)}</code></td><td><code>{esc(t.run_id)}</code></td>'
         f'<td class="num">{money(t.usd)}</td><td class="num">{money(t.adj_usd)}</td></tr>' for t in it.targets)
     body = f"""
 <p class="crumbs"><a href="../index.html">{esc(home)}</a> / {esc(r["id"])}</p>
@@ -697,7 +760,7 @@ def render_item(it: ItemView, repo: str, dev: str | None, depth: int = 1, home: 
   <h1>{inline(r["title"])}</h1>
   <p class="meta"><a href="{gh_pr(r["pr"], it.repo)}">{esc(it.repo_name)}#{esc(r["pr"])}</a> · merged {esc(r["merged"])} ·
   base <a href="{gh_commit(r["base"], it.repo)}"><code>{esc(r["base"][:10])}</code></a> →
-  head <a href="{gh_commit(r["head"], it.repo)}"><code>{esc(r["head"][:10])}</code></a></p>
+  head <a href="{gh_commit(r["head"], it.repo)}"><code>{esc(r["head"][:10])}</code></a> · ran on {it.chips()}</p>
   <div class="verdict-box {it.verdict.lower()}">{verdict_chip(it.verdict)}<p>{esc(verdict_text)}</p></div>
   {late}
 </section>
@@ -707,10 +770,9 @@ def render_item(it: ItemView, repo: str, dev: str | None, depth: int = 1, home: 
 {"".join(render_perf(t) for t in it.targets)}
 <section>
   <h2>Receipt</h2>
-  <div class="table-wrap"><table class="receipt"><thead><tr><th>Target</th><th>Image</th><th>Run</th>
+  <div class="table-wrap"><table class="receipt"><thead><tr><th>Target</th><th>Backend</th><th>Image</th><th>Run</th>
   <th class="num">Audit</th><th class="num">Adjudication</th></tr></thead><tbody>{receipt}</tbody></table></div>
-  <p class="note">Nemotron cost on Nebius Token Factory. Images are content-addressed (repo at each commit + harness),
-  so every card above can be re-run from the image and seed 0. Raw data: <a href="../data/backtest/{esc(it.slug)}.json">audit</a>{
+  <p class="note">Nemotron cost on Nebius Token Factory. {backend_note([it])} Raw data: <a href="../data/backtest/{esc(it.slug)}.json">audit</a>{
     f', <a href="../data/adjudication/{esc(it.slug)}.json">adjudication</a>' if any(t.adj_usd for t in it.targets) else ""}.</p>
 </section>
 """
@@ -833,7 +895,7 @@ def render_corpus_index(name: str, results: dict, adj: dict | None, items: list[
             f'</small></td><td class="num">{esc(claim_of(r["title"]))}</td>'
             f'<td>{verdict_chip(it.verdict) if it.cards or it.verdict != "PASS" else "<span class=\'muted nowrap\'>no divergence</span>"}</td>'
             f'<td class="num">{claimed}</td><td class="title-cell num">{worst}</td>'
-            f'<td class="num">{verified or "–"}</td><td class="num">{money(it.usd)}</td></tr>')
+            f'<td class="num">{verified or "–"}</td><td>{it.chips()}</td><td class="num">{money(it.usd)}</td></tr>')
     usd = results["summary"]["usd"] + (adj or {}).get("summary", {}).get("usd", 0.0)
     stats = [
         (str(len(items)), "merged AI speedup PRs audited", "opened by the Codeflash bot, merged by maintainers"),
@@ -858,7 +920,7 @@ def render_corpus_index(name: str, results: dict, adj: dict | None, items: list[
   <h2>Every PR</h2>
   <div class="table-wrap"><table class="items">
   <thead><tr><th>PR</th><th>Change</th><th class="num">Claim</th><th>Verdict</th><th class="num">Claimed path</th>
-  <th class="num">Worst valid input family</th><th class="num">Tests</th><th class="num">Cost</th></tr></thead>
+  <th class="num">Worst valid input family</th><th class="num">Tests</th><th>Backend</th><th class="num">Cost</th></tr></thead>
   <tbody>{"".join(rows)}</tbody></table></div>
   <ul class="notes">
     <li>Claimed path: head/base instructions per call on the input family the PR optimised (below 1× is faster).
@@ -869,6 +931,7 @@ def render_corpus_index(name: str, results: dict, adj: dict | None, items: list[
     <li>Tests: verified regression tests (pass on base, fail on head). † merged after Nemotron 3 Ultra's release.</li>
     <li>Dependencies are resolved as of each PR's merge date; script repos run from source. Raw data:
     <a href="data/">data/</a>.</li>
+    <li>{backend_note(items)}</li>
   </ul>
 </section>
 """
@@ -901,6 +964,109 @@ def corpus_teaser(name: str, href: str, items: list[ItemView]) -> str:
             f'against: {changed} of {len(items)} change behaviour, and the instruction counts check each claim.</p>'
             f'<ul class="notes">{"".join(lines)}</ul><p><a class="button" href="{esc(href)}index.html">'
             f'See all {len(items)}</a></p></section>')
+
+
+# ---------------------------------------------------------------------------------------------------
+# Backend comparison: the same items re-run on another backend
+
+
+def compare_rows(main: list[ItemView], sub: list[ItemView]) -> list[dict]:
+    """One row per re-run item that exists in the main backtest: verdicts, known issues caught and the
+    worst valid perf ratio on each backend, with the images that reproduce them."""
+    by_id = {it.raw["id"]: it for it in main}
+    rows = []
+    for it in sub:
+        ref = by_id.get(it.raw["id"])
+        if not ref:
+            continue
+        a, b = ref.perf_worst.get("worst_valid_ratio"), it.perf_worst.get("worst_valid_ratio")
+        rows.append({"id": it.raw["id"], "main": ref, "sub": it, "same_verdict": ref.verdict == it.verdict,
+                     "same_known": ref.caught == it.caught, "worst": (a, b),
+                     "worst_delta": abs(a - b) / a if a and b else None})
+    return rows
+
+
+def _worst_cell(it: ItemView) -> str:
+    p = it.perf_worst
+    if not p.get("worst_valid_ratio"):
+        return "–"
+    return f'{p["worst_valid_ratio"]:.2f}×<small>{esc((p.get("worst_family") or "")[:50])}</small>'
+
+
+def render_compare_index(name: str, results: dict, adj: dict | None, main: list[ItemView], sub: list[ItemView],
+                         dev: str | None, *, depth: int) -> str:
+    rows = compare_rows(main, sub)
+    main_be = next((b for it in main for b in it.backends), "docker")
+    sub_be = next((b for it in sub for b in it.backends), "contree")
+    main_name, sub_name = BACKEND_TEXT.get(main_be, main_be), BACKEND_TEXT.get(sub_be, sub_be)
+    same_v = sum(r["same_verdict"] for r in rows)
+    same_k = sum(r["same_known"] for r in rows if r["main"].raw["known"])
+    with_known = sum(bool(r["main"].raw["known"]) for r in rows)
+    deltas = [r["worst_delta"] for r in rows if r["worst_delta"] is not None]
+    usd = results["summary"]["usd"] + (adj or {}).get("summary", {}).get("usd", 0.0)
+    trs = []
+    for r in rows:
+        a, b = r["main"], r["sub"]
+        same = ('<span class="chip ok sm">same</span>' if r["same_verdict"] else '<span class="chip bug sm">differs</span>')
+        known = (f'{", ".join(a.caught) or "none"} / {", ".join(b.caught) or "none"}' if a.raw["known"] else "–")
+        trs.append(
+            f'<tr><td><a href="pr/{b.slug}.html">{esc(b.raw["id"])}</a></td>'
+            f'<td class="title-cell">{inline(b.raw["title"])}<small><code>{esc(", ".join(t.target.split(":")[1] for t in b.targets))}'
+            f'</code></small></td><td>{verdict_chip(a.verdict)}</td><td>{verdict_chip(b.verdict)} {same}</td>'
+            f'<td>{known}</td><td class="num title-cell">{_worst_cell(a)}</td><td class="num title-cell">{_worst_cell(b)}</td>'
+            f'<td class="images"><code>{esc(", ".join(t.image for t in a.targets))}</code><br><code>{esc(", ".join(t.image for t in b.targets))}</code></td></tr>')
+    stats = [
+        (f"{same_v}/{len(rows)}", "same verdict on both backends", f"{main_name} vs {sub_name}"),
+        (f"{same_k}/{with_known}", "same known issues caught", "items with documented regressions"),
+        ((f"{max(deltas):.0%}" if deltas else "–"), "largest gap in worst perf ratio",
+         f"over {len(deltas)} items measured slower on both" if deltas else "no item measured slower on both"),
+        (money(usd), f"Nemotron cost of the {sub_name} run", "Token Factory, backtest + adjudication"),
+    ]
+    stat_html = "".join(f'<div class="stat"><div class="stat-num">{esc(n)}</div><div class="stat-label">{esc(label)}'
+                        f'</div><div class="stat-sub">{esc(s_)}</div></div>' for n, label, s_ in stats)
+    body = f"""
+<p class="crumbs"><a href="{"../" * depth}index.html">Breakwater</a> / {esc(name)}</p>
+<section class="hero">
+  <p class="eyebrow">Backend check · {esc(sub_name)}</p>
+  <h1>Same PRs, same probes, a <em>microVM</em> per run.</h1>
+  <p class="lede">{len(rows)} of the backtest's PRs were audited again with every untrusted run in {esc(sub_name)}: one
+  microVM branched from a kept image per probe batch, search and cachegrind measurement. The published backtest ran on
+  {esc(main_name)}. Verdicts should agree; instruction counts should agree to within a few percent (same instruction
+  stream, different CPUs). Each image below reproduces its numbers.</p>
+  <div class="stats">{stat_html}</div>
+</section>
+<section id="prs">
+  <h2>Item by item</h2>
+  <div class="table-wrap"><table class="items compare">
+  <thead><tr><th>PR</th><th>Change</th><th>{esc(BACKEND_SHORT.get(main_be, main_be))}</th><th>{esc(BACKEND_SHORT.get(sub_be, sub_be))}</th>
+  <th>Known caught ({esc(BACKEND_SHORT.get(main_be, main_be))} / {esc(BACKEND_SHORT.get(sub_be, sub_be))})</th>
+  <th class="num">Perf worst, {esc(BACKEND_SHORT.get(main_be, main_be))}</th><th class="num">Perf worst, {esc(BACKEND_SHORT.get(sub_be, sub_be))}</th>
+  <th>Images ({esc(BACKEND_SHORT.get(main_be, main_be))} / {esc(BACKEND_SHORT.get(sub_be, sub_be))})</th></tr></thead>
+  <tbody>{"".join(trs)}</tbody></table></div>
+  <ul class="notes">
+    <li>Verdict: behaviour (adjudicated classes) combined with performance, as on every PR page. Known caught: the
+    documented regressions each run's full pipeline found.</li>
+    <li>Perf worst: the highest head/base instruction ratio over input families where most inputs are valid. The
+    adversary plans families anew on each run, so the worst family can differ; archived families are shared between
+    runs and are what the ratios are compared on.</li>
+    <li>{backend_note(main + sub)}</li>
+  </ul>
+</section>
+"""
+    return page(f"Breakwater: {name}", body, depth=depth, dev=dev,
+                description=f"The same PRs audited on {sub_name}: verdicts and instruction counts compared")
+
+
+def compare_teaser(name: str, href: str, main: list[ItemView], sub: list[ItemView]) -> str:
+    rows = compare_rows(main, sub)
+    sub_be = next((b for it in sub for b in it.backends), "contree")
+    same_v = sum(r["same_verdict"] for r in rows)
+    deltas = [r["worst_delta"] for r in rows if r["worst_delta"] is not None]
+    gap = f"; worst perf ratios agree within {max(deltas):.0%}" if deltas else ""
+    return (f'<section id="{esc(name)}"><h2>Checked on {esc(BACKEND_TEXT.get(sub_be, sub_be))}: {same_v}/{len(rows)} verdicts agree</h2>'
+            f'<p class="section-lede">{len(rows)} of these PRs were audited again with every untrusted run in a Token '
+            f'Factory Sandboxes microVM{gap}. Each number cites the image UUID that reproduces it.</p>'
+            f'<p><a class="button" href="{esc(href)}index.html">See the comparison</a></p></section>')
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -950,7 +1116,7 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
     cards = run_cards(report)
     verdict = verdict_of(cards)
     fn = target.split(":")[1].split("#")[0]
-    image = sem.get("image") or (report.get("perf") or {}).get("image", "")
+    backend, image = run_provenance(report)
     title = report.get("title") or f"Audit of {target}"
     provider = report.get("provider", "tokenfactory")
     provider_name = "Nebius Token Factory" if provider == "tokenfactory" else provider
@@ -973,7 +1139,7 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
                 f'<ol class="attacks">{"".join(lis)}</ol></section>')
     counts = {k: sum(c.label == k for c in cards) for k in LABEL_ORDER}
     summary = ", ".join(f"{n} {LABEL_TEXT[k].lower()}" for k, n in counts.items() if n)
-    cards_html, n_groups = render_cards(cards, fn, repo, base, head, target)
+    cards_html, n_groups = render_cards(cards, fn, repo, base, head, target, backend, image)
     cards_section = (f'<section><h2>Counterexamples <small class="muted">· {groups_text(n_groups, len(cards))}: '
                      f'{esc(summary)}</small></h2><div class="cards">{cards_html}</div></section>') if cards else ""
     n_verified = sum(bool(c.test and c.test.get("verified")) for c in cards)
@@ -995,11 +1161,12 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
     body = f"""
 {crumbs}
 <section class="pr-head">
-  <p class="eyebrow">Breakwater audit · {esc(report.get("provider", "tokenfactory"))}</p>
+  <p class="eyebrow">Breakwater audit · {esc(report.get("provider", "tokenfactory"))} · {esc(BACKEND_TEXT.get(backend, backend))}</p>
   <h1>{inline(title)}</h1>
   <p class="meta"><a href="{esc(repo)}">{esc(repo.removeprefix("https://github.com/"))}</a> ·
   base <a href="{gh_commit(base, repo)}"><code>{esc(base[:10])}</code></a> →
-  head <a href="{gh_commit(head, repo)}"><code>{esc(head[:10])}</code></a> · target <code>{esc(target)}</code></p>
+  head <a href="{gh_commit(head, repo)}"><code>{esc(head[:10])}</code></a> · target <code>{esc(target)}</code> ·
+  ran on {backend_chip(backend, image)}</p>
   {verdict_box}
 </section>
 {plan}
@@ -1013,7 +1180,7 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
   <tbody>{tiers}<tr><td><strong>Total</strong></td><td class="num"><strong>{money(sum(usd.values()))}</strong></td></tr></tbody></table></div>
   <div class="receipt-facts"><p><span class="k">run</span><code>{esc(report["run_id"])}</code></p>
   <p><span class="k">image</span><code>{esc(image)}</code></p>
-  <p><span class="k">backend</span>{esc(sem.get("backend") or (report.get("perf") or {}).get("backend", ""))}</p>
+  <p><span class="k">backend</span>{esc(BACKEND_TEXT.get(backend, backend))} <span class="muted small">({esc(backend)})</span></p>
   {sandbox_fact(report.get("sandbox"))}
   <p class="muted small">{times}</p></div>
   </div>
@@ -1100,11 +1267,14 @@ def copy_assets(root: Path) -> None:
 
 @dataclass
 class Corpus:
-    """Another corpus published as a sub-site under <out>/<name>/ (e.g. the Codeflash speedups)."""
+    """Another corpus published as a sub-site under <out>/<name>/ (e.g. the Codeflash speedups).
+    `compare=True`: a re-run of items from the main backtest on another backend; its index is the
+    item-by-item comparison (verdicts, known issues caught, worst perf ratio, images)."""
     name: str
     backtest: Path
     adjudication: Path | None = None
     tests: Path | None = None
+    compare: bool = False
 
 
 def _provider(meta: dict | None) -> str | None:
@@ -1175,12 +1345,15 @@ def build(backtest: Path, adjudication: Path | None, out: Path, *, allow_dev: bo
     NAV_EXTRA[:] = [(c.name.capitalize(), f"{c.name}/index.html") for c, *_ in loaded] \
         + ([("Try it", "judge.html")] if judge else [])
     written = [out / "index.html"]
-    extras_html = "".join(corpus_teaser(c.name, f"{c.name}/", its) for c, _, _, its in loaded)
+    extras_html = "".join(compare_teaser(c.name, f"{c.name}/", items, its) if c.compare
+                          else corpus_teaser(c.name, f"{c.name}/", its) for c, _, _, its in loaded)
     (out / "index.html").write_text(render_index(results, adj, items, dev, run_reports, extras_html))
     for c, r_, a_, its in loaded:
         sub = out / c.name
         (sub / "pr").mkdir(parents=True)
-        (sub / "index.html").write_text(render_corpus_index(c.name.capitalize(), r_, a_, its, dev, depth=1))
+        (sub / "index.html").write_text(
+            render_compare_index(c.name.capitalize(), r_, a_, items, its, dev, depth=1) if c.compare
+            else render_corpus_index(c.name.capitalize(), r_, a_, its, dev, depth=1))
         written.append(sub / "index.html")
         for it in its:
             pth = sub / "pr" / f"{it.slug}.html"

@@ -187,7 +187,8 @@ def run_target(item: dict, tgt: dict, repo: str, backend: Backend, *, arms: tupl
     usd = sum(t["usd"] for t in ledger.summarize(run_id=run_id).values())
     full_rep = full.get("report")
     out = {
-        "target": tgt["callable"], "run_id": run_id, "image": image.ref, "usd": round(usd, 4), "harvested": len(lits),
+        "target": tgt["callable"], "run_id": run_id, "image": image.ref, "backend": backend.name, "usd": round(usd, 4),
+        "harvested": len(lits),
         "arms": {k: vars(v) for k, v in results.items()},
         "findings": [vars(f) for f in full_rep.findings] if full_rep else [],
         "perf": perf_summary,
@@ -226,7 +227,7 @@ def run(corpus_path: str, backend: Backend, *, only: list[str] | None, arms: tup
     provider = active_provider().value
     summary["provider"] = provider
     (out_dir / "results.json").write_text(json.dumps({"corpus": corpus_path, "arms": arms, "provider": provider,
-                                                       "items": results, "summary": summary},
+                                                       "backend": backend.name, "items": results, "summary": summary},
                                                       indent=2, ensure_ascii=False, default=str))
     (out_dir / "table.md").write_text(render(results, arms, summary))
     return summary
@@ -333,7 +334,8 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
                 rows.append({**vars(v), "known": [k["id"] for k in item["known"] if matches(v.signature, k["match"])],
                              "facts": adj.describe(f, mros)})
             usd = sum(x["usd"] for x in ledger.summarize(run_id=run_id).values())
-            targets.append({"target": t["target"], "image": image.ref, "run_id": run_id, "samples": res.samples,
+            targets.append({"target": t["target"], "image": image.ref, "backend": backend.name, "run_id": run_id,
+                            "samples": res.samples,
                             "usd": round(usd, 4), "verdicts": rows})
             log(f"{item['id']:>15s} {t['target'].split(':')[1]:22s} {res.counts()} ${usd:.3f}")
         res_item = {**{k: item[k] for k in ("id", "pr", "title", "merged", "after_ultra_release", "known")},
@@ -350,7 +352,8 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
     summary = score_adjudication(results)
     summary["provider"] = provider
     (out_dir / "adjudication.json").write_text(json.dumps({"source": str(src_dir), "provider": provider,
-                                                           "summary": summary, "items": results},
+                                                           "backend": backend.name, "summary": summary,
+                                                           "items": results},
                                                           indent=2, ensure_ascii=False))
     (out_dir / "adjudication.md").write_text(render_adjudication(results, summary))
     return summary
@@ -457,7 +460,8 @@ def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, o
             findings = [adversary.Finding(**f) for f in t["findings"]]
             tests = regress.for_findings(backend, image, t["target"], findings, item=slug,
                                          labels=labels.get((item["id"], t["target"])))
-            targets.append({"target": t["target"], "image": image.ref, "tests": [x.to_json() for x in tests]})
+            targets.append({"target": t["target"], "image": image.ref, "backend": backend.name,
+                            "tests": [x.to_json() for x in tests]})
             log(f"{item['id']:>15s} {t['target'].split(':')[1]:22s} {sum(x.verified for x in tests)}/{len(tests)} verified")
         res = {"id": item["id"], "pr": item["pr"], "targets": targets}
         (out_dir / f"{slug}.json").write_text(json.dumps(res, indent=2, ensure_ascii=False))

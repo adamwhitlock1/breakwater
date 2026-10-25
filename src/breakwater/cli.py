@@ -76,7 +76,8 @@ def sandbox_line(sandbox: dict) -> str:
     if sandbox.get("backend") == "contree":
         return (f"**Sandbox cost (free during beta):** ${sandbox.get('cost_usd') or 0:.4f} for {sandbox['runs']} "
                 f"Token Factory Sandboxes runs ({sandbox['cpu_s']:.1f} s CPU), image `{sandbox.get('image')}`")
-    return f"**Sandbox runs:** {sandbox['runs']} on local Docker ({sandbox['cpu_s']:.1f} s CPU; no cost)"
+    return (f"**Sandbox runs:** {sandbox['runs']} on local Docker ({sandbox['cpu_s']:.1f} s CPU; no cost), "
+            f"image `{sandbox.get('image')}`")
 
 
 def default_backend() -> str:
@@ -361,6 +362,13 @@ def adjudicate(args: argparse.Namespace) -> int:
     return 0
 
 
+# Default sub-sites, when their published artifacts exist: the Codeflash corpus, and the packaging items
+# re-run on Token Factory Sandboxes compared item by item with the Docker backtest.
+DEFAULT_CODEFLASH = "codeflash:artifacts/backtest/codeflash-v1:artifacts/adjudication/codeflash-v1:artifacts/regress/codeflash-v1"
+DEFAULT_SANDBOXES = ("sandboxes:artifacts/backtest/packaging-v4-sandboxes:artifacts/adjudication/packaging-v4-sandboxes"
+                     ":artifacts/regress/packaging-v4-sandboxes")
+
+
 def site(args: argparse.Namespace) -> int:
     from pathlib import Path
 
@@ -369,14 +377,15 @@ def site(args: argparse.Namespace) -> int:
     adj = Path(args.adjudication) if args.adjudication else None
     try:
         specs = args.extra if args.extra is not None else (
-            ["codeflash:artifacts/backtest/codeflash-v1:artifacts/adjudication/codeflash-v1:artifacts/regress/codeflash-v1"]
-            if Path("artifacts/backtest/codeflash-v1/results.json").exists() else [])
+            [DEFAULT_CODEFLASH] if Path(DEFAULT_CODEFLASH.split(":")[1], "results.json").exists() else [])
+        compares = args.compare if args.compare is not None else (
+            [DEFAULT_SANDBOXES] if Path(DEFAULT_SANDBOXES.split(":")[1], "results.json").exists() else [])
         extras = []
-        for spec in specs:
+        for spec, compare in [(x, False) for x in specs] + [(x, True) for x in compares]:
             name, bt_dir, *rest = spec.split(":")
             adj_dir, tests_dir = (rest + [None, None])[:2]
             extras.append(Corpus(name, Path(bt_dir), Path(adj_dir) if adj_dir and Path(adj_dir).exists() else None,
-                                 Path(tests_dir) if tests_dir and Path(tests_dir).exists() else None))
+                                 Path(tests_dir) if tests_dir and Path(tests_dir).exists() else None, compare=compare))
         pages = build(Path(args.backtest), adj, Path(args.out), allow_dev=args.allow_dev,
                       runs=[Path(r) for r in args.run], perf_from=Path(args.perf_from) if args.perf_from else None,
                       tests=Path(args.tests) if args.tests and Path(args.tests).exists() else None, extras=extras,
@@ -510,6 +519,9 @@ def main(argv: list[str] | None = None) -> int:
                    help="judge-box bundle (scripts/site/build_judge_bundle.py); '' to leave the page out")
     w.add_argument("--extra", action="append", default=None, metavar="NAME:BACKTEST[:ADJUDICATION[:TESTS]]",
                    help="another corpus as a sub-site (default: codeflash, if its results exist)")
+    w.add_argument("--compare", action="append", default=None, metavar="NAME:BACKTEST[:ADJUDICATION[:TESTS]]",
+                   help="items of --backtest re-run on another backend, as an item-by-item comparison sub-site "
+                        "(default: sandboxes, if artifacts/backtest/packaging-v4-sandboxes exists)")
     w.set_defaults(fn=site)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")

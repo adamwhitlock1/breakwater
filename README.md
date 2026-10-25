@@ -80,7 +80,7 @@ uv run breakwater regress   # backtest v3 -> artifacts/regress/packaging-v3/test
 Build the static report (overview + one page per PR: verdict, counterexample cards with labels and quoted evidence, perf ladder charts, receipts). It reads only committed JSON, makes no network requests, and refuses non-Token-Factory inputs unless `--allow-dev`:
 
 ```bash
-uv run breakwater site --run artifacts/demo/pr1082-61967cca   # writes site/; open site/index.html
+uv run breakwater site --run artifacts/demo/pr1082-61967cca --run artifacts/demo/pr1082-61967cca-sandboxes   # writes site/; open site/index.html
 ```
 
 The site includes a judge box (`judge.html`): type a version string and four real versions of pypa/packaging run it in your browser, with differences classified by the same code the probes use. Rebuild its bundle with `uv run python scripts/site/build_judge_bundle.py`.

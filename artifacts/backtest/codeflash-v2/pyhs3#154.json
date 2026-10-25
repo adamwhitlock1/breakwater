@@ -1,0 +1,164 @@
+{
+  "id": "pyhs3#154",
+  "pr": 154,
+  "title": "perf: Speed up function `parse_expression` by 785%",
+  "base": "6ed3734a99ae4d14758d3e6c9c79dfdfc28b3279",
+  "head": "483202e2a159a3e4e642b0d46a14a8b34600f72a",
+  "merged": "2026-01-26",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/scipp-atlas/pyhs3",
+  "install": {
+    "exclude_newer": "2026-01-27"
+  },
+  "targets": [
+    {
+      "target": "pyhs3.generic_parse:parse_expression",
+      "run_id": "bt-pyhs3#154-77bf88",
+      "image": "78fcee79-cf4a-4dca-bb7e-aefefb7d37d3",
+      "backend": "contree",
+      "usd": 0.129,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 32.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 25.5,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 144.0,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 20.3,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-pyhs3#154-77bf88",
+          "target": "pyhs3.generic_parse:parse_expression",
+          "image": "78fcee79-cf4a-4dca-bb7e-aefefb7d37d3",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "repeated identical expression",
+              "why": "The new code caches the result of `sympy_parser.parse_expr`. When the same expression string is parsed many times the cache turns an O(N) parse into an O(1) dict lookup, so the change is meant to speed up this workload.",
+              "size_meaning": "Number of repeated parses (capped at 8 because the harness only calls the target with ≤8 argument lists).",
+              "make_source": "def make(n):\n    \"\"\"Return up to 8 calls all parsing the same expression.\"\"\"\n    k = max(1, min(n, 8))\n    expr = \"sin(x)+cos(y)*tan(z)\"\n    return [[expr] for _ in range(k)]",
+              "example_args": [
+                [
+                  "sin(x)+cos(y)*tan(z)"
+                ],
+                [
+                  "sin(x)+cos(y)*tan(z)"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "The change adds an LRU cache (maxsize 2048) around the SymPy parser. When the same expression string is parsed many times, the cached version returns the previo",
+              "why": "The change adds an LRU cache (maxsize 2048) around the SymPy parser. When the same expression string is parsed many times, the cached version returns the previously computed SymPy object instantly, while the base version re‑parses every call.",
+              "size_meaning": "n = number of repetitions of the same expression",
+              "make_source": "def make(n):\n    # a simple but non‑trivial expression that exercises several transformations\n    expr = \"sin(x) + cos(y) * 2.5! + lambda z: z**2\"\n    return [[expr]] * n",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 0.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical expression string (cache hit)",
+              "why": "Head version caches the parsed SymPy expression with an LRU cache (maxsize=2048). When the same expression string is parsed many times the cache returns the previously built SymPy object, turning an O(parse) cost into an O(dict‑lookup) cost. Base version re‑parses every call.",
+              "size_meaning": "n controls how many calls are made (1‑8). Larger n → more cache hits.",
+              "make_source": "def make(n):\n    \"\"\"Return up to 8 identical argument lists; each list is a single expression string.\"\"\"\n    expr = \"sin(x)+cos(y)*tan(z)\"\n    count = min(max(n, 1), 8)\n    return [[expr] for _ in range(count)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "many distinct short expressions",
+              "why": "Each call receives a different short string (e.g. \"x0\", \"x1\", …). The cache is never hit, so the wrapper adds hashing‑and‑dict‑lookup overhead on top of the original parse cost.",
+              "size_meaning": "Number of distinct short expressions parsed (capped at 8).",
+              "make_source": "def make(n):\n    \"\"\"Return up to 8 calls each with a different short expression.\"\"\"\n    k = max(1, min(n, 8))\n    return [[f\"x{i}\"] for i in range(k)]",
+              "example_args": [
+                [
+                  "x0"
+                ],
+                [
+                  "x1"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Each call receives a brand‑new expression string. The head version must hash the string, perform a cache lookup (miss), then call the parser; the base version s",
+              "why": "Each call receives a brand‑new expression string. The head version must hash the string, perform a cache lookup (miss), then call the parser; the base version skips the cache entirely. For short strings the extra hash+dict work dominates the parse time, making the head slower.",
+              "size_meaning": "n = number of distinct expressions (each called once)",
+              "make_source": "def make(n):\n    # generate distinct short expressions like \"a1\", \"a2\", … using letters and digits\n    letters = string.ascii_lowercase\n    exprs = []\n    for i in range(n):\n        ch = letters[i % 26]\n        num = i // 26\n        exprs.append([f\"{ch}{num}\"])\n    return exprs",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Distinct expression on every call (cache miss)",
+              "why": "Each call receives a previously unseen string, so the LRU cache cannot help. Head still pays the cache‑lookup overhead (hashing the string, dict access) before delegating to SymPy, while base goes straight to the parser. For a workload that never repeats strings the extra indirection is pure overhead.",
+              "size_meaning": "n controls the length/complexity of each distinct expression (larger n → longer strings → more hashing work). Up to 8 calls are generated.",
+              "make_source": "def make(n):\n    \"\"\"Generate up to 8 distinct expressions; each grows with n.\"\"\"\n    out = []\n    for i in range(min(max(n, 1), 8)):\n        # a simple unique expression, padded to length ~n\n        base = f\"x{i}+{i}*y{i}\"\n        if n > 0:\n            base += \"+0\" * (n // 2)\n        out.append([base])\n    return out",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": 1.0,
+              "error": "unmeasured: instruction count not linear in repetitions (caching or state)"
+            }
+          ],
+          "findings": [],
+          "seconds": {
+            "plan": 11.21,
+            "screen": 1288.27,
+            "full": 0.0,
+            "total": 1299.48
+          }
+        }
+      }
+    }
+  ]
+}

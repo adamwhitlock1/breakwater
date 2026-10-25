@@ -364,7 +364,7 @@ def adjudicate(args: argparse.Namespace) -> int:
 
 # Default sub-sites, when their published artifacts exist: the Codeflash corpus, and the packaging items
 # re-run on Token Factory Sandboxes compared item by item with the Docker backtest.
-DEFAULT_CODEFLASH = "codeflash:artifacts/backtest/codeflash-v1:artifacts/adjudication/codeflash-v1:artifacts/regress/codeflash-v1"
+DEFAULT_CODEFLASH = "codeflash:artifacts/backtest/codeflash-v2:artifacts/adjudication/codeflash-v2:artifacts/regress/codeflash-v2"
 DEFAULT_SANDBOXES = ("sandboxes:artifacts/backtest/packaging-v4-sandboxes:artifacts/adjudication/packaging-v4-sandboxes"
                      ":artifacts/regress/packaging-v4-sandboxes")
 

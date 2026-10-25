@@ -1,0 +1,22 @@
+{
+  "id": "caddy-feeds#4",
+  "pr": 4,
+  "targets": [
+    {
+      "target": "ip:is_excluded",
+      "image": "1bafd31e-3df4-4239-8ac7-13dd73b31ec0",
+      "backend": "contree",
+      "tests": [
+        {
+          "signature": "P2|outcome|ok|exc:builtins.TypeError|nested",
+          "name": "test_caddy_feeds_4_p2_outcome_0",
+          "source": "def test_caddy_feeds_4_p2_outcome_0():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from ip import is_excluded\n    is_excluded([':'])  # base returns normally\n",
+          "base": "pass",
+          "head": "error:TypeError",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

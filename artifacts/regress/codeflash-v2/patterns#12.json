@@ -1,0 +1,22 @@
+{
+  "id": "patterns#12",
+  "pr": 12,
+  "targets": [
+    {
+      "target": "json2nginx:sanitize_pattern",
+      "image": "87c6903e-46fd-4cf5-a313-2b45b6b1248c",
+      "backend": "contree",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:builtins.AttributeError|exc:builtins.TypeError|nested",
+          "name": "test_patterns_12_p2_outcome_0",
+          "source": "def test_patterns_12_p2_outcome_0():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from json2nginx import sanitize_pattern\n    with pytest.raises(AttributeError) as excinfo:\n        sanitize_pattern([['pattern', '0']])\n    assert type(excinfo.value) is AttributeError  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "error:TypeError",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

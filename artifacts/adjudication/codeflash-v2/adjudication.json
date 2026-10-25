@@ -1,0 +1,300 @@
+{
+  "source": "artifacts/backtest/codeflash-v2",
+  "provider": "tokenfactory",
+  "backend": "contree",
+  "summary": {
+    "issues": [],
+    "issues_likely_bug": 0,
+    "issues_intended": 0,
+    "issues_with_intended_class": 0,
+    "known_classes": {
+      "likely-bug": 0,
+      "intended": 0,
+      "needs-human": 0
+    },
+    "other_classes": {
+      "likely-bug": 4,
+      "intended": 1,
+      "needs-human": 1
+    },
+    "usd": 0.0765,
+    "provider": "tokenfactory"
+  },
+  "items": [
+    {
+      "id": "Math-Interpreter#1",
+      "pr": 1,
+      "title": "⚡️ Speed up method `Lexer.generate_number` by 11%",
+      "merged": "2025-02-09",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "lexer:Lexer#generate_tokens",
+          "image": "6cbae808-5ef0-4683-8481-a6120ba99109",
+          "backend": "contree",
+          "run_id": "adj-Math-Interpreter#1-2dd010",
+          "samples": 3,
+          "usd": 0.0201,
+          "verdicts": [
+            {
+              "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The change replaces the ASCII‑digit check (`self.current_char in DIGITS`) with `str.isdigit()`, which now accepts Unicode digits such as '١'. The PR only claims a speed‑up and does not mention expanding the accepted digit set, so the new acceptance of non‑ASCII digits is an unintended regression.",
+              "evidence": [
+                "DIGITS = '0123456789'",
+                "-        while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+                "+        while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+                "while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+                "while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+                "⚡️ Speed up method `Lexer.generate_number` by 11%",
+                "- while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+                "+ while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):"
+              ],
+              "rejected": [
+                "PR title: ⚡️ Speed up method `Lexer.generate_number` by 11%"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [\"1١\"]: base raises builtins.Exception, head returns normally."
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.Exception|ok|long-digits+non-ascii",
+              "label": "needs-human",
+              "votes": {
+                "needs-human": 2,
+                "likely-bug": 1
+              },
+              "rationale": "The only difference for the very long all‑zero input is that the old version raises an Exception while the new version succeeds. The provided material does not explain why the old version fails (no test, doc, or changelog mentions this case), so we cannot decide whether the change is intentional or a bug.",
+              "evidence": [],
+              "rejected": [
+                "PR title: ⚡️ Speed up method `Lexer.generate_number` by 11%"
+              ],
+              "reason": "model abstained",
+              "known": [],
+              "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4305 chars): base raises builtins.Exception, head returns normally."
+            },
+            {
+              "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii+whitespace",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Same Unicode‑digit issue as C1: the old lexer rejects '١' because it is not in `DIGITS`, while the new lexer accepts it via `isdigit()`. The PR does not document expanding the digit repertoire, indicating an unintended behavior change.",
+              "evidence": [
+                "DIGITS = '0123456789'",
+                "-        while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+                "+        while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+                "while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+                "while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+                "⚡️ Speed up method `Lexer.generate_number` by 11%",
+                "- while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+                "+ while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):"
+              ],
+              "rejected": [
+                "PR title: ⚡️ Speed up method `Lexer.generate_number` by 11%"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [\"1١ \"]: base raises builtins.Exception, head returns normally."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "micropie#3",
+      "pr": 3,
+      "title": "⚡️ Speed up method `Server._parse_cookies` by 6%",
+      "merged": "2025-02-03",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "caddy-feeds#4",
+      "pr": 4,
+      "title": "⚡️ Speed up function `is_excluded` by 17,376%",
+      "merged": "2025-02-09",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "ip:is_excluded",
+          "image": "1bafd31e-3df4-4239-8ac7-13dd73b31ec0",
+          "backend": "contree",
+          "run_id": "adj-caddy-feeds#4-cb26dd",
+          "samples": 3,
+          "usd": 0.0185,
+          "verdicts": [
+            {
+              "signature": "P2|outcome|ok|exc:builtins.TypeError|nested",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "Base version gracefully handles invalid IPs by catching ValueError and returning True; the new @lru_cache decorator introduces a TypeError for the same input, changing documented behavior without any test, doc, or changelog update.",
+              "evidence": [
+                "        return True  # Treat invalid IPs as excluded",
+                "+@lru_cache(maxsize=1024)",
+                "⚡️ Speed up function `is_excluded` by 17,376%",
+                "except ValueError:",
+                "return True  # Treat invalid IPs as excluded",
+                "def is_excluded(ip_address: str) -> bool:"
+              ],
+              "rejected": [
+                "PR title: ⚡️ Speed up function `is_excluded` by 17,376%",
+                "PR title: ⚡️ Speed up function `is_excluded` by 17,376%"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [[\":\"]]: base returns normally, head raises builtins.TypeError."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patterns#9",
+      "pr": 9,
+      "title": "⚡️ Speed up function `validate_regex` by 9,172%",
+      "merged": "2025-02-09",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "patterns#12",
+      "pr": 12,
+      "title": "⚡️ Speed up function `sanitize_pattern` by 11,547%",
+      "merged": "2025-02-09",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "json2nginx:sanitize_pattern",
+          "image": "87c6903e-46fd-4cf5-a313-2b45b6b1248c",
+          "backend": "contree",
+          "run_id": "adj-patterns#12-81b9f9",
+          "samples": 3,
+          "usd": 0.0158,
+          "verdicts": [
+            {
+              "signature": "P2|outcome|exc:builtins.AttributeError|exc:builtins.TypeError|nested",
+              "label": "likely-bug",
+              "votes": {
+                "likely-bug": 3
+              },
+              "rationale": "The PR is presented as a pure performance refactor (caching) with no intended behavior change. The new exception type (TypeError) differs from the old (AttributeError) even though the core logic (calling re.escape) is unchanged, indicating an unintended regression.",
+              "evidence": [
+                "⚡️ Speed up function `sanitize_pattern` by 11,547%",
+                "    return _sanitize_pattern(pattern)",
+                "if pattern.startswith('@rx '):",
+                "None: this PR changes no tests, docs or changelog."
+              ],
+              "rejected": [
+                "def sanitize_pattern(pattern):    # head version (wrapper for caching)",
+                "if any(keyword in pattern for keyword in [@pmFromFile, !@eq, !@within, @lt]):",
+                "def sanitize_pattern(pattern):    return _sanitize_pattern(pattern)"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [[[\"pattern\", \"0\"]]]: base raises builtins.AttributeError, head raises builtins.TypeError. (neither exception type subclasses the other.)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rendercv#17",
+      "pr": 17,
+      "title": "⚡️ Speed up function `validate_typst_dimension` by 59%",
+      "merged": "2026-08-10",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "rendercv#18",
+      "pr": 18,
+      "title": "⚡️ Speed up function `validate_date_field` by 47%",
+      "merged": "2026-08-10",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": [
+        {
+          "target": "rendercv.data.models.computers:get_date_object",
+          "image": "54410864-aefc-4bb1-bbeb-5b5c15c9eda6",
+          "backend": "contree",
+          "run_id": "adj-rendercv#18-40e6cf",
+          "samples": 3,
+          "usd": 0.0221,
+          "verdicts": [
+            {
+              "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested",
+              "label": "intended",
+              "votes": {
+                "intended": 3
+              },
+              "rationale": "The refactored `get_date_object` now explicitly raises `ValueError` with a clear message for invalid inputs, matching the function’s documented contract, whereas the previous implementation raised an unexpected `TypeError`. The change was a deliberate performance refactor (regex replaced by manual checks) and the new exception type aligns with the library’s own error handling.",
+              "evidence": [
+                "        message = (            ",
+                "            raise ValueError(message)",
+                "    elif len(date) == 4 and date.isdigit():",
+                "        message = (",
+                "            'This is not a valid date! Please use either YYYY-MM-DD, YYYY-MM, or'"
+              ],
+              "rejected": [
+                "            ' YYYY format.' ) ; raise ValueError(message)",
+                "    else:"
+              ],
+              "reason": "",
+              "known": [],
+              "facts": "Outcome differs. Input [[\"!!!!\"]]: base raises builtins.TypeError, head raises builtins.ValueError. (neither exception type subclasses the other.)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rendercv#19",
+      "pr": 19,
+      "title": "⚡️ Speed up function `validate_start_and_end_date_fields` by 34%",
+      "merged": "2026-08-10",
+      "after_ultra_release": true,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "json_repair#113",
+      "pr": 113,
+      "title": "⚡️ Speed up method `ObjectComparer.is_same_object` by 109%",
+      "merged": "2025-05-16",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    },
+    {
+      "id": "pyhs3#154",
+      "pr": 154,
+      "title": "perf: Speed up function `parse_expression` by 785%",
+      "merged": "2026-01-26",
+      "after_ultra_release": false,
+      "known": [],
+      "provider": "tokenfactory",
+      "targets": []
+    }
+  ]
+}

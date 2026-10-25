@@ -1,0 +1,895 @@
+{
+  "id": "Math-Interpreter#1",
+  "pr": 1,
+  "title": "⚡️ Speed up method `Lexer.generate_number` by 11%",
+  "base": "c7c1b7e931e873f6d919522b50911ee3571b2e1e",
+  "head": "04c05ed37563f0158b9148535c69390e3464dafd",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/hoopinwhoopin/Math-Interpreter",
+  "install": {
+    "mode": "src",
+    "subdir": "",
+    "deps": [],
+    "exclude_newer": "2025-02-10"
+  },
+  "targets": [
+    {
+      "target": "lexer:Lexer#generate_tokens",
+      "run_id": "bt-Math-Interpreter#1-1d8136",
+      "image": "6cbae808-5ef0-4683-8481-a6120ba99109",
+      "backend": "contree",
+      "usd": 0.0456,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.7,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|exc:builtins.Exception|ok|long-digits+non-ascii",
+            "P2|outcome|exc:builtins.Exception|ok|non-ascii",
+            "P2|outcome|exc:builtins.Exception|ok|non-ascii+whitespace"
+          ],
+          "known": [],
+          "seconds": 45.0,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P2|outcome|exc:builtins.Exception|ok|non-ascii"
+          ],
+          "known": [],
+          "seconds": 4.8,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "1١"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.Exception"
+          },
+          "head": {
+            "status": "ok",
+            "obs": {
+              "value": [
+                "NUMBER11.0"
+              ]
+            }
+          },
+          "found_by": [
+            "seed",
+            "mutation:equivalents",
+            "mutation:separators",
+            "mutation:signs"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|long-digits+non-ascii",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000١"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.Exception"
+          },
+          "head": {
+            "status": "ok",
+            "obs": {
+              "value": [
+                "NUMBERinf"
+              ]
+            }
+          },
+          "found_by": [
+            "mutation:huge-number"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii+whitespace",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "1١ "
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.Exception"
+          },
+          "head": {
+            "status": "ok",
+            "obs": {
+              "value": [
+                "NUMBER11.0"
+              ]
+            }
+          },
+          "found_by": [
+            "mutation:whitespace-inner",
+            "mutation:whitespace-outer"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "R1",
+            "family": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many sh",
+            "verdict": "slower",
+            "ladder": [
+              0.9763257852045161,
+              1.010942405039847,
+              1.0433034274148216,
+              1.0527257417148235,
+              1.0549324662912727,
+              1.051966573846875,
+              1.0507427821552848
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "R2",
+            "family": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allo",
+            "verdict": "slower",
+            "ladder": [
+              0.9764166975793878,
+              1.0107375575993678,
+              1.042012520049912,
+              1.0510971844516417,
+              1.0532212409412909,
+              1.050326452184568,
+              1.0491498485921533
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "F5",
+            "family": "Many one‑digit numbers separated by operators",
+            "verdict": "slower",
+            "ladder": [
+              0.9761670122449891,
+              1.0103584762292424,
+              1.0418301658705715,
+              1.0510654639526884,
+              1.0532090642238103,
+              1.0503245612811982,
+              1.0491491530412056
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "R3",
+            "family": "A sequence of n single‑digit numbers separated by ‘+’ (e.g., \"1+2+3+…\").",
+            "verdict": "slower",
+            "ladder": [
+              0.9761670122449891,
+              1.0103584762292424,
+              1.0418301658705715,
+              1.0510654639526884,
+              1.0532090642238103,
+              1.0503245612811982,
+              1.0491491530412056
+            ],
+            "origin": "archive"
+          }
+        ],
+        "worst_valid_ratio": 1.0549324662912727,
+        "worst_family": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many sh",
+        "speedup_ratio_small": 0.8766084890590644,
+        "report": {
+          "run_id": "bt-Math-Interpreter#1-1d8136",
+          "target": "lexer:Lexer#generate_tokens",
+          "image": "6cbae808-5ef0-4683-8481-a6120ba99109",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "single very long numeric literal",
+              "why": "The head version builds the number using a list + append + join (O(n)) while the base version concatenates strings in a loop (O(n²)). For long numbers the head should be dramatically faster.",
+              "size_meaning": "n = number of digit characters in the literal",
+              "make_source": "def make(n):\n    # one token: a long integer like \"111...1\" (n digits)\n    text = '1' * n\n    return [[text]]",
+              "example_args": [
+                [
+                  "1111111111"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.922662306826316,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Long integer literals (many digits)",
+              "why": "Base used repeated string concatenation `number_str += ch` inside the digit loop, which is O(L²) for a number of length L. Head switched to `list.append` + final `''.join`, giving O(L) time. The speedup grows with the number of digits.",
+              "size_meaning": "Number of digits in the integer literal",
+              "make_source": "def make(n):\n    # n digits, e.g. n=1000 -> '111...1'\n    s = '1' * max(1, n)\n    return [[s]]",
+              "example_args": [
+                [
+                  1
+                ],
+                [
+                  11
+                ],
+                [
+                  1111111111
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.922662306826316,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Long numeric literals",
+              "why": "The new version builds the number text in a list and joins once, which is asymptotically faster than repeated string concatenation for long numbers.",
+              "size_meaning": "n = number of digits in the literal",
+              "make_source": "def make(n):\n    # single very long integer literal, e.g. \"111...1\" (n digits)\n    return [[\"1\" * n]]",
+              "example_args": [
+                [
+                  "1"
+                ],
+                [
+                  "11"
+                ],
+                [
+                  "111"
+                ],
+                [
+                  "1111"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.922662306826316,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "many tiny numbers (single digit) separated by operators/whitespace",
+              "why": "Each call to generate_number creates a new list and later joins it. For a one‑character number the list allocation + join overhead outweighs the cheap string concatenation the base version does, so the head can be slower when the input consists of a huge quantity of one‑digit numbers.",
+              "size_meaning": "n = how many single‑digit numbers appear in the expression",
+              "make_source": "def make(n):\n    # pattern: \"1+2+3+...\"  (n numbers, n‑1 plus signs)\n    parts = []\n    for i in range(n):\n        parts.append(str((i % 9) + 1))   # digits 1‑9\n        if i != n-1:\n            parts.append('+')\n    text = ''.join(parts)\n    return [[text]]",
+              "example_args": [
+                [
+                  "1+2+3+4+5"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0416193654965378,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Many one‑digit numbers separated by operators",
+              "why": "For each one‑digit number the head creates a list, appends one character, then calls `''.join`. The allocation + join overhead dominates the trivial concatenation the base does (`number_str += ch`). When the input contains O(n) such numbers the extra per‑number work makes the head slower.",
+              "size_meaning": "Count of single‑digit numbers (each followed by a '+')",
+              "make_source": "def make(n):\n    # produce '1+2+3+...+' with n numbers\n    parts = []\n    for i in range(1, n+1):\n        parts.append(str(i % 10))\n        if i != n:\n            parts.append('+')\n    s = ''.join(parts)\n    return [[s]]",
+              "example_args": [
+                [
+                  1
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0418301658705715,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Many single‑digit numbers separated by operators",
+              "why": "For each one‑digit number the new code creates a list, appends one character and then calls `''.join`. The allocation/join overhead dominates the tiny work, while the old version just did `s += ch` which is cheap for length‑1 strings.",
+              "size_meaning": "n = how many numbers (≈ 2 n characters in the source)",
+              "make_source": "def make(n):\n    # produce \"1+2+3+...\" with n numbers\n    parts = []\n    for i in range(n):\n        parts.append(str((i % 9) + 1))   # digit 1‑9\n        if i != n - 1:\n            parts.append('+')\n    return [[''.join(parts)]]",
+              "example_args": [
+                [
+                  "1"
+                ],
+                [
+                  "1+2"
+                ],
+                [
+                  "1+2+3"
+                ],
+                [
+                  "1+2+3+4"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0416193654965378,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many sh",
+              "why": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many short numbers that typical expressions contain (e.g., \"1+2+3+…\").",
+              "size_meaning": "Number of single‑digit numbers (each separated by a '+') – total input length ≈ 2·n.",
+              "make_source": "def make(n):\n    # n copies of the digit '1' separated by '+'\n    s = '+'.join(['1'] * n)\n    return [[s]]",
+              "example_args": [
+                [
+                  1
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 1.0433034274148216,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allo",
+              "why": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allocation overhead dominates, making the new code slower than the old simple `+=` on a one‑character string.",
+              "size_meaning": "Count of single‑digit numbers separated by '+' operators.",
+              "make_source": "def make(n):\n    # Build \"1+2+3+…\" with n numbers (the last number has no trailing '+').\n    parts = []\n    for i in range(n):\n        parts.append(str(i % 10))\n        if i != n - 1:\n            parts.append('+')\n    s = ''.join(parts)\n    return [[s]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.042012520049912,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "A sequence of n single‑digit numbers separated by ‘+’ (e.g., \"1+2+3+…\").",
+              "why": "Each digit causes a separate call to generate_number that processes only one character. The head version now allocates a list, appends one character, and calls ''.join, which adds allocation overhead compared to the base version's trivial one‑character string concatenation. With many such calls the extra per‑call cost dominates.",
+              "size_meaning": "Number of single‑digit numbers (≈ number of tokens).",
+              "make_source": "def make(n):\n    # build \"1+2+3+...\" up to n numbers\n    parts = []\n    for i in range(1, n+1):\n        parts.append(str(i % 10))\n        if i != n:\n            parts.append('+')\n    s = ''.join(parts)\n    return [[s]]",
+              "example_args": [
+                [
+                  "1+2+3+4+5"
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 1.0418301658705715,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Digits vary but remain single-digit",
+              "why": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many short numbers that typical expressions contain (e.g., \"1+2+3+…\").",
+              "size_meaning": "Number of single‑digit numbers (each separated by a '+') – total input length ≈ 2·n.",
+              "make_source": "def make(n):\n    digits = [str(random.randint(0, 9)) for _ in range(n)]\n    s = '+'.join(digits)\n    return [[s]]",
+              "example_args": [
+                [
+                  1
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 1.0413330251689885,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1.1",
+              "kind": "suspected_slowdown",
+              "family": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. Overhead from list and join dominates",
+              "why": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many short numbers that typical expressions contain (e.g., \"1+2+3+…\").",
+              "size_meaning": "Number of single‑digit numbers (each separated by a '+') – total input length ≈ 2·n.",
+              "make_source": "def make(n):\n    return [[\"+\".join([str(i % 10)] * n))]",
+              "example_args": [
+                [
+                  1
+                ]
+              ],
+              "origin": "expand:R1",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: closing parenthesis ')' does not match opening parenthesis '[' (line 3)"
+            },
+            {
+              "id": "R1.2",
+              "kind": "suspected_slowdown",
+              "family": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. Overhead from list and join dominates",
+              "why": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many short numbers that typical expressions contain (e.g., \"1+2+3+…\").",
+              "size_meaning": "Number of single‑digit numbers (each separated by a '+') – total input length ≈ 2·n.",
+              "make_source": "def make(n):\n    s = '-'.join(['5'] * n)\n    return [[s]]",
+              "example_args": [
+                [
+                  1
+                ]
+              ],
+              "origin": "expand:R1",
+              "screen_ratio": 1.0407913207425334,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1.3",
+              "kind": "suspected_slowdown",
+              "family": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. Overhead from list and join dominates",
+              "why": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many short numbers that typical expressions contain (e.g., \"1+2+3+…\").",
+              "size_meaning": "Number of single‑digit numbers (each separated by a '+') – total input length ≈ 2·n.",
+              "make_source": "def make(n):\n    return [[('0+' * n).strip('+')]}]}, {",
+              "example_args": [
+                [
+                  1
+                ]
+              ],
+              "origin": "expand:R1",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: closing parenthesis '}' does not match opening parenthesis '[' (line 3)"
+            },
+            {
+              "id": "R2.1",
+              "kind": "suspected_slowdown",
+              "family": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allocation overhead dominates, making the new code slower than the old simple `+=` on a one‑character string.",
+              "why": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allocation overhead dominates, making the new code slower than the old simple `+=` on a one‑character string.",
+              "size_meaning": "Count of single‑digit numbers separated by '+' operators.",
+              "make_source": "\ndef make(n):\n    \\\"\\\"\\\"Generate expression of alternating digits and addition signs starting with digit:\\\n    Result pattern: \"0+1+2+...+(n-1)\"\n    Value comes from repeating cycle of characters [\"0\", \"+\", \"1\", \"+\", ...]\n    Takes first 2*n-1 elements.\n    \\\"\\\"\\\"\n    cyc = ['0', '+']\n    seq = []\n    for i in range(n):\n        seq.append(str(i))\n        if i < n - 1:\n            seq.append('+')\n    expr = ''.join(seq)\n    return [[expr]]",
+              "example_args": [],
+              "origin": "expand:R2",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: unexpected character after line continuation character (line 4)"
+            },
+            {
+              "id": "R2.2",
+              "kind": "suspected_slowdown",
+              "family": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allocation overhead dominates, making the new code slower than the old simple `+=` on a one‑character string.",
+              "why": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allocation overhead dominates, making the new code slower than the old simple `+=` on a one‑character string.",
+              "size_meaning": "Count of single‑digit numbers separated by '+' operators.",
+              "make_source": "import itertools as _\n\ndef make(n):\n    token_str = ''.join(_.chain.from_iterable((str(d), '+') for d in range(n))[:-1])\n    return [[token_str]]",
+              "example_args": [],
+              "origin": "expand:R2",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: imports are not allowed"
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many sh",
+              "why": "Each call to generate_number now creates a list and calls ''.join for a one‑character number. The overhead of list allocation and join dominates for the many short numbers that typical expressions contain (e.g., \"1+2+3+…\").",
+              "origin": "archive",
+              "screen_ratio": 1.0433034274148216,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 29990.435,
+                  "head_ir": 29280.435,
+                  "input_chars": 7.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9763257852045161,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 52440.4825,
+                  "head_ir": 53014.3075,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.010942405039847,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 188466.3175,
+                  "head_ir": 196627.555,
+                  "input_chars": 35.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0433034274148216,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 732337.73,
+                  "head_ir": 770950.78,
+                  "input_chars": 131.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0527257417148235,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 2918962.3815789474,
+                  "head_ir": 3079308.1842105263,
+                  "input_chars": 515.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0549324662912727,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 12251477.944444444,
+                  "head_ir": 12888145.277777778,
+                  "input_chars": 2051.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.051966573846875,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 50492176.25,
+                  "head_ir": 53054289.75,
+                  "input_chars": 8195.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0507427821552848,
+                  "judged": true
+                }
+              ],
+              "slope_base": 1.0442702061172198,
+              "slope_head": 1.0525507574653248,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.0549324662912727,
+              "worst_search": null
+            },
+            {
+              "family_id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allo",
+              "why": "Each call to `generate_number` now creates a Python list, appends a single character, and then joins it. For a huge sequence of tiny numbers the per‑number allocation overhead dominates, making the new code slower than the old simple `+=` on a one‑character string.",
+              "origin": "archive",
+              "screen_ratio": 1.042012520049912,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 29936.435,
+                  "head_ir": 29230.435,
+                  "input_chars": 7.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9764166975793878,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 52416.4825,
+                  "head_ir": 52979.3075,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0107375575993678,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 188830.3175,
+                  "head_ir": 196763.555,
+                  "input_chars": 35.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.042012520049912,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 734209.73,
+                  "head_ir": 771725.78,
+                  "input_chars": 131.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0510971844516417,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 2926910.3815789474,
+                  "head_ir": 3082684.1842105263,
+                  "input_chars": 515.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0532212409412909,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 12283685.944444444,
+                  "head_ir": 12901880.277777778,
+                  "input_chars": 2051.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.050326452184568,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 50621468.25,
+                  "head_ir": 53109505.75,
+                  "input_chars": 8195.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0491498485921533,
+                  "judged": true
+                }
+              ],
+              "slope_base": 1.044813311565244,
+              "slope_head": 1.052876717052794,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.0532212409412909,
+              "worst_search": null
+            },
+            {
+              "family_id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Many one‑digit numbers separated by operators",
+              "why": "For each one‑digit number the head creates a list, appends one character, then calls `''.join`. The allocation + join overhead dominates the trivial concatenation the base does (`number_str += ch`). When the input contains O(n) such numbers the extra per‑number work makes the head slower.",
+              "origin": "plan",
+              "screen_ratio": 1.0418301658705715,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 30000.435,
+                  "head_ir": 29285.435,
+                  "input_chars": 7.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9761670122449891,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 52500.4825,
+                  "head_ir": 53044.3075,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0103584762292424,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 188936.3175,
+                  "head_ir": 196839.555,
+                  "input_chars": 35.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0418301658705715,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 734293.73,
+                  "head_ir": 771790.78,
+                  "input_chars": 131.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0510654639526884,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 2927016.3815789474,
+                  "head_ir": 3082760.1842105263,
+                  "input_chars": 515.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0532090642238103,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 12283769.944444444,
+                  "head_ir": 12901945.277777778,
+                  "input_chars": 2051.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0503245612811982,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 50621574.25,
+                  "head_ir": 53109581.75,
+                  "input_chars": 8195.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0491491530412056,
+                  "judged": true
+                }
+              ],
+              "slope_base": 1.0445353876550403,
+              "slope_head": 1.0526473395483273,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.0532090642238103,
+              "worst_search": null
+            },
+            {
+              "family_id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "A sequence of n single‑digit numbers separated by ‘+’ (e.g., \"1+2+3+…\").",
+              "why": "Each digit causes a separate call to generate_number that processes only one character. The head version now allocates a list, appends one character, and calls ''.join, which adds allocation overhead compared to the base version's trivial one‑character string concatenation. With many such calls the extra per‑call cost dominates.",
+              "origin": "archive",
+              "screen_ratio": 1.0418301658705715,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 30000.435,
+                  "head_ir": 29285.435,
+                  "input_chars": 7.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9761670122449891,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 52500.4825,
+                  "head_ir": 53044.3075,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0103584762292424,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 188936.3175,
+                  "head_ir": 196839.555,
+                  "input_chars": 35.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0418301658705715,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 734293.73,
+                  "head_ir": 771790.78,
+                  "input_chars": 131.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0510654639526884,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 2927016.3815789474,
+                  "head_ir": 3082760.1842105263,
+                  "input_chars": 515.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0532090642238103,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 12283769.944444444,
+                  "head_ir": 12901945.277777778,
+                  "input_chars": 2051.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0503245612811982,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 50621574.25,
+                  "head_ir": 53109581.75,
+                  "input_chars": 8195.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0491491530412056,
+                  "judged": true
+                }
+              ],
+              "slope_base": 1.0445353876550403,
+              "slope_head": 1.0526473395483273,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.0532090642238103,
+              "worst_search": null
+            },
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "single very long numeric literal",
+              "why": "The head version builds the number using a list + append + join (O(n)) while the base version concatenates strings in a loop (O(n²)). For long numbers the head should be dramatically faster.",
+              "origin": "plan",
+              "screen_ratio": 0.922662306826316,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 20648.045,
+                  "head_ir": 19302.045,
+                  "input_chars": 6.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9348122304072856,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 23948.045,
+                  "head_ir": 22232.045,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9283448815968067,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 45075.045,
+                  "head_ir": 41589.045,
+                  "input_chars": 20.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.922662306826316,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 127077.045,
+                  "head_ir": 115942.045,
+                  "input_chars": 68.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9123759920605645,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 447152.92763157893,
+                  "head_ir": 403614.92763157893,
+                  "input_chars": 260.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9026328638155041,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 1730205.394736842,
+                  "head_ir": 1516712.7368421052,
+                  "input_chars": 1028.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.8766084890590644,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 6935094.75,
+                  "head_ir": 6125963.625,
+                  "input_chars": 4100.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.8833280360012384,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.8962148392989655,
+              "slope_head": 0.8866521489110624,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.9348122304072856,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 9.98,
+            "screen": 172.36,
+            "full": 205.48,
+            "total": 387.82
+          }
+        }
+      }
+    }
+  ]
+}

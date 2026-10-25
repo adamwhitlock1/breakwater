@@ -137,3 +137,24 @@ Ten merged Codeflash-bot speedup PRs in seven repos (`corpus/codeflash.json`; se
 - No behaviour change found in json_repair #113, rendercv #17 and #19, patterns #9 and #12, micropie #3 or pyhs3 #154.
 
 The no-LLM baselines (plain Hypothesis; mutations of the project's test strings) found nothing on this corpus. Most of these repos have no tests next to the changed function to harvest, so the Nemotron plan and search did all the finding.
+
+## Codeflash corpus on Token Factory Sandboxes (v2, 2026-10-24)
+
+The same ten items re-run with every untrusted run in a Token Factory Sandboxes microVM (`--backend contree`): `artifacts/backtest/codeflash-v2/`, `artifacts/adjudication/codeflash-v2/`, `artifacts/regress/codeflash-v2/`. Token Factory inference throughout. Cost: **$0.88** (backtest $0.81, adjudication $0.08) plus $0.04 on an aborted first attempt (two workers raced to clone the rendercv repo; fixed, the run restarted before any item finished). Wall time 45 minutes with 3 items in parallel; 6 transient Sandboxes API errors (3 HTTP timeouts, 3 transport errors), every one recovered by the backend's retry. **This is the run the site shows**; v1 (Docker) stays committed as the cross-check. Per item (`scripts/backtest/compare_backends.py codeflash-v1 codeflash-v2`):
+
+| Item | Docker (v1) | Sandboxes (v2) | Same? |
+|---|---|---|---|
+| Math-Interpreter #1 | BLOCK; 3 classes, 3 likely-bug; 3 tests | BLOCK; the same 3 classes, 2 likely-bug + 1 needs-human (the 4,305-digit input abstained 1–2); 3 tests | verdict ✓ |
+| micropie #3 | REVIEW; worst 1.34× (cookies surrounded by whitespace) | REVIEW; worst 1.60× (many empty segments; a newly planned family) | verdict ✓ |
+| caddy-feeds #4 | BLOCK; 1 likely-bug; 1 test | BLOCK; the same class, likely-bug 3/3; 1 test | ✓ |
+| patterns #9 | PASS | PASS | ✓ |
+| patterns #12 | PASS, no divergence | **BLOCK**: a new wrong-type-input class (a nested list raises `TypeError` from the `lru_cache` where base raised `AttributeError`), likely-bug 3/3, test verified | ✗ (new finding) |
+| rendercv #17 | PASS | PASS | ✓ |
+| rendercv #18 | BLOCK; 2 likely-bug classes (wrong-type input: `TypeError` → `ValueError` / `AttributeError`); 2 tests | **PASS**: 1 class (the `TypeError` → `ValueError` one), labelled intended 3/3 ("the new exception type aligns with the library's own error handling"); the `AttributeError` near-duplicate was not found | ✗ (adjudicator and search variation) |
+| rendercv #19 | PASS | PASS | ✓ |
+| json_repair #113 | BLOCK; complexity regression up to 393× | BLOCK; the same four complexity-regression families, up to 363× | verdict ✓ |
+| pyhs3 #154 | PASS; perf unmeasured (caching) | PASS; perf unmeasured | ✓ |
+
+- **8/10 same verdict.** Neither difference is a backend effect: both are the adversary sampling a different plan (patterns #12's class comes from a new Ultra attack; rendercv #18's missing near-duplicate too) and the adjudicator voting differently on the same kind of evidence (rendercv #18: likely-bug 2/3 on Docker, intended 3/3 on Sandboxes, for a `TypeError` → `ValueError` change on non-string input). The headline becomes **4 of 10 change behaviour** (3 adjudicated likely-bug, 1 intended), 1 of 10 reverses on valid input, 5 of 5 generated tests verified.
+- **Ir across backends.** Docker on the development Mac is arm64; the Sandboxes microVM is x86_64 (AMD EPYC 9654, Python 3.12.13, valgrind 3.24.0), so cachegrind counts different instruction streams. The eight families measured in full on both backends agree in verdict and shape: Math-Interpreter's three families 0.0% apart, rendercv #18's `present` family 0.2%, json_repair's four complexity ladders 7.1–7.6% lower on x86_64 (393× → 363×, 172× → 160×, 4.03× → 3.73×, 3.66× → 3.39×). See `decisions.md` 2026-10-24.
+- Every number on the Codeflash pages now cites a Sandboxes image UUID (receipt and cards); the images are in the table `compare_backends.py` prints.

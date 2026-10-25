@@ -1,0 +1,40 @@
+{
+  "id": "Math-Interpreter#1",
+  "pr": 1,
+  "targets": [
+    {
+      "target": "lexer:Lexer#generate_tokens",
+      "image": "6cbae808-5ef0-4683-8481-a6120ba99109",
+      "backend": "contree",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii",
+          "name": "test_math_interpreter_1_p2_outcome_0",
+          "source": "def test_math_interpreter_1_p2_outcome_0():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from lexer import Lexer\n    with pytest.raises(Exception) as excinfo:\n        result = Lexer('1١').generate_tokens()\n        if hasattr(result, '__next__'):  # generators run when iterated\n            list(result)\n    assert type(excinfo.value) is Exception  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|long-digits+non-ascii",
+          "name": "test_math_interpreter_1_p2_outcome_1",
+          "source": "def test_math_interpreter_1_p2_outcome_1():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: needs-human).\"\"\"\n    import pytest\n    from lexer import Lexer\n    with pytest.raises(Exception) as excinfo:\n        result = Lexer('1' + '0' * 4299 + '١').generate_tokens()\n        if hasattr(result, '__next__'):  # generators run when iterated\n            list(result)\n    assert type(excinfo.value) is Exception  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii+whitespace",
+          "name": "test_math_interpreter_1_p2_outcome_2",
+          "source": "def test_math_interpreter_1_p2_outcome_2():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from lexer import Lexer\n    with pytest.raises(Exception) as excinfo:\n        result = Lexer('1١ ').generate_tokens()\n        if hasattr(result, '__next__'):  # generators run when iterated\n            list(result)\n    assert type(excinfo.value) is Exception  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

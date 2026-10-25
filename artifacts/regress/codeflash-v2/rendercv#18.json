@@ -1,0 +1,22 @@
+{
+  "id": "rendercv#18",
+  "pr": 18,
+  "targets": [
+    {
+      "target": "rendercv.data.models.computers:get_date_object",
+      "image": "54410864-aefc-4bb1-bbeb-5b5c15c9eda6",
+      "backend": "contree",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested",
+          "name": "test_rendercv_18_p2_outcome_0",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        }
+      ]
+    }
+  ]
+}

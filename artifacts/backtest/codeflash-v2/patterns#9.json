@@ -1,0 +1,255 @@
+{
+  "id": "patterns#9",
+  "pr": 9,
+  "title": "⚡️ Speed up function `validate_regex` by 9,172%",
+  "base": "1a98411808332cac22183dfc4182a74759d0cca4",
+  "head": "1a4a2d4e42342721e2e46f479864e8741042ebf6",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/fabriziosalmi/patterns",
+  "install": {
+    "mode": "src",
+    "subdir": "",
+    "deps": [],
+    "exclude_newer": "2025-02-10"
+  },
+  "targets": [
+    {
+      "target": "json2haproxy:validate_regex",
+      "run_id": "bt-patterns#9-728c64",
+      "image": "bcc79688-d7fb-4ce5-921c-c5f853d78731",
+      "backend": "contree",
+      "usd": 0.0309,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.0,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 5.5,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 23.8,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.2,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.2277454522428054,
+        "report": {
+          "run_id": "bt-patterns#9-728c64",
+          "target": "json2haproxy:validate_regex",
+          "image": "bcc79688-d7fb-4ce5-921c-c5f853d78731",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "repeated identical valid regex",
+              "why": "The new @lru_cache stores the result of re.compile for each distinct pattern. When the same pattern is validated many times (common in rule sets that reuse signatures), the cache avoids recompilation and yields the intended speed‑up.",
+              "size_meaning": "Number of repeated validations (capped at 8 because the generator may return at most 8 argument lists).",
+              "make_source": "def make(n):\n    pattern = r\"a.*b\"\n    # Return up to 8 identical calls; cost grows with n (more repetitions).\n    return [[pattern] for _ in range(min(n, 8))]",
+              "example_args": [
+                [
+                  "a.*b"
+                ],
+                [
+                  "a.*b"
+                ],
+                [
+                  "a.*b"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.23065953278424117,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical regex patterns (duplicates). The cache returns the compiled‑result on the 2nd…Nth call, so total time grows only with the first compilation.",
+              "why": "The added @lru_cache stores the boolean result for each distinct pattern string. When the same pattern appears many times (common in OWASP rule sets where a rule is referenced repeatedly), the head version avoids re‑compiling the regex on every call, while the base version recompiles each time.",
+              "size_meaning": "n = length of the pattern string (number of characters). The generator produces up to 8 calls, all with the same pattern of length n, so total work scales with n.",
+              "make_source": "def make(n):\n    # a simple but non‑trivial pattern that compiles quickly\n    pat = 'a' * n + '.*b'\n    # return 8 identical calls – the cost grows with n because the pattern is longer\n    return [[pat]] * 8",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.2277454522428054,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "validate_regex called many times with the identical pattern – the cache should turn the second and later compilations into cheap dictionary look‑ups.",
+              "why": "The @lru_cache decorator stores the result of the first compilation; subsequent calls with the same string avoid re‑compiling the regex.",
+              "size_meaning": "n = how many times the same pattern is validated (1‑8). Larger n gives more cache hits.",
+              "make_source": "def make(n):\n    # a simple but non‑trivial pattern that compiles successfully\n    pat = r'(?i)foo(bar|baz){2,5}'\n    k = min(max(1, n), 8)\n    return [[pat] for _ in range(k)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.22833910485472247,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "many distinct valid regexes",
+              "why": "Each distinct pattern incurs a cache miss, a dict lookup, and a re.compile call. With many unique patterns the cache grows, increasing memory pressure and hash‑table overhead without any reuse benefit.",
+              "size_meaning": "Number of distinct patterns (capped at 8).",
+              "make_source": "def make(n):\n    # Produce up to 8 different simple valid regexes.\n    return [[f\"a{i}b\"] for i in range(min(n, 8))]",
+              "example_args": [
+                [
+                  "a0b"
+                ],
+                [
+                  "a1b"
+                ],
+                [
+                  "a2b"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.22615529869614667,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct, large patterns. Each call hashes a long string and performs a dict lookup before the inevitable re.compile, adding constant‑time overhead that the base version does not have.",
+              "why": "The cache must compute the hash of the pattern string and look it up in the LRU dictionary. For a pattern of length n this hashing is O(n). When every call receives a brand‑new pattern, the cache never hits, so the head version does the hash+lookup *plus* the regex compilation, whereas the base version only does the compilation.",
+              "size_meaning": "n = length of each distinct pattern. The generator creates 8 unique patterns, each of length proportional to n, so total work grows with n.",
+              "make_source": "def make(n):\n    # produce 8 different long patterns, e.g. varying a repeated character\n    base = 'x' * n\n    patterns = [base[:i] + '.' * (n - i) + 'z' for i in range(8)]\n    return [[p] for p in patterns]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.22569346082947428,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "validate_regex receives a different pattern on every call – the cache is never hit, so the wrapper adds dictionary‑lookup and bookkeeping overhead on top of the compilation cost.",
+              "why": "With an unlimited‑size LRU cache each distinct pattern is stored after the first miss. The extra function‑call wrapper and dict insertion make each call a little slower than the bare version.",
+              "size_meaning": "n = number of distinct patterns validated (1‑8). More distinct patterns → more cache misses.",
+              "make_source": "def make(n):\n    k = min(max(1, n), 8)\n    # generate short, distinct, valid regexes\n    patterns = []\n    for i in range(k):\n        # e.g. 'a{1}', 'ab{2}', 'abc{3}', ...\n        pat = ''.join(chr(ord('a') + j) for j in range(i + 1)) + '{' + str(i + 1) + '}'\n        patterns.append([pat])\n    return patterns",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.22664317195510447,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical regex patterns (duplicates). The cache returns the compiled‑result on the 2nd…Nth call, so total time grows only with the first compilation.",
+              "why": "The added @lru_cache stores the boolean result for each distinct pattern string. When the same pattern appears many times (common in OWASP rule sets where a rule is referenced repeatedly), the head version avoids re‑compiling the regex on every call, while the base version recompiles each time.",
+              "origin": "plan",
+              "screen_ratio": 0.2277454522428054,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 3953.8834375,
+                  "head_ir": 916.3834375,
+                  "input_chars": 9.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.23176794460066832,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 3953.2587890625,
+                  "head_ir": 915.7587890625,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.23164655741641155,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 3957.891875,
+                  "head_ir": 901.391875,
+                  "input_chars": 23.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.2277454522428054,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 3942.455882352941,
+                  "head_ir": 904.9558823529412,
+                  "input_chars": 71.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.2295411564156412,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 3969.7986111111113,
+                  "head_ir": 932.2986111111111,
+                  "input_chars": 263.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.23484783548003937,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 4058.75,
+                  "head_ir": 1021.25,
+                  "input_chars": 1031.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.2516168771173391,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 4434.75,
+                  "head_ir": 1378.25,
+                  "input_chars": 4103.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.3107841479226563,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.01448696535713944,
+              "slope_head": 0.053613716648372396,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.3107841479226563,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 9.69,
+            "screen": 89.25,
+            "full": 74.69,
+            "total": 173.64
+          }
+        }
+      }
+    }
+  ]
+}

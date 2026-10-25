@@ -1,0 +1,43 @@
+{
+  "id": "patterns#12",
+  "pr": 12,
+  "title": "⚡️ Speed up function `sanitize_pattern` by 11,547%",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "json2nginx:sanitize_pattern",
+      "image": "87c6903e-46fd-4cf5-a313-2b45b6b1248c",
+      "backend": "contree",
+      "run_id": "adj-patterns#12-81b9f9",
+      "samples": 3,
+      "usd": 0.0158,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.AttributeError|exc:builtins.TypeError|nested",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The PR is presented as a pure performance refactor (caching) with no intended behavior change. The new exception type (TypeError) differs from the old (AttributeError) even though the core logic (calling re.escape) is unchanged, indicating an unintended regression.",
+          "evidence": [
+            "⚡️ Speed up function `sanitize_pattern` by 11,547%",
+            "    return _sanitize_pattern(pattern)",
+            "if pattern.startswith('@rx '):",
+            "None: this PR changes no tests, docs or changelog."
+          ],
+          "rejected": [
+            "def sanitize_pattern(pattern):    # head version (wrapper for caching)",
+            "if any(keyword in pattern for keyword in [@pmFromFile, !@eq, !@within, @lt]):",
+            "def sanitize_pattern(pattern):    return _sanitize_pattern(pattern)"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[[\"pattern\", \"0\"]]]: base raises builtins.AttributeError, head raises builtins.TypeError. (neither exception type subclasses the other.)"
+        }
+      ]
+    }
+  ]
+}

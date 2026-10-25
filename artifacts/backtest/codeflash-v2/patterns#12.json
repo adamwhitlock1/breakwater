@@ -1,0 +1,306 @@
+{
+  "id": "patterns#12",
+  "pr": 12,
+  "title": "⚡️ Speed up function `sanitize_pattern` by 11,547%",
+  "base": "1a4a2d4e42342721e2e46f479864e8741042ebf6",
+  "head": "fb284892f1cd90ee55fd99a8383f537fef1d520e",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/fabriziosalmi/patterns",
+  "install": {
+    "mode": "src",
+    "subdir": "",
+    "deps": [],
+    "exclude_newer": "2025-02-10"
+  },
+  "targets": [
+    {
+      "target": "json2nginx:sanitize_pattern",
+      "run_id": "bt-patterns#12-0dc7f0",
+      "image": "87c6903e-46fd-4cf5-a313-2b45b6b1248c",
+      "backend": "contree",
+      "usd": 0.051,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.6,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.1,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|exc:builtins.AttributeError|exc:builtins.TypeError|nested"
+          ],
+          "known": [],
+          "seconds": 23.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.5,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|exc:builtins.AttributeError|exc:builtins.TypeError|nested",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              [
+                [
+                  "pattern",
+                  "0"
+                ]
+              ]
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "found_by": [
+            "A1/s4",
+            "A1/s3",
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.0575368320817423,
+        "report": {
+          "run_id": "bt-patterns#12-0dc7f0",
+          "target": "json2nginx:sanitize_pattern",
+          "image": "87c6903e-46fd-4cf5-a313-2b45b6b1248c",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "The new code adds LRU caches on both regex compilation and the whole sanitisation routine. When the same pattern string is seen many times the cache hits avoid ",
+              "why": "The new code adds LRU caches on both regex compilation and the whole sanitisation routine. When the same pattern string is seen many times the cache hits avoid re‑compilation and re‑sanitising, which is the optimisation the author intended.",
+              "size_meaning": "n = number of calls to sanitize_pattern (each call receives the identical pattern). Cost grows linearly with n because the function is invoked n times, but after the first call the cache eliminates the expensive work.",
+              "make_source": "def make(n):\n    # a single realistic OWASP pattern that passes all checks\n    pat = r\"@rx \\\\d+\"\n    # return n argument‑lists, each a one‑element list for the positional call\n    return [[pat] for _ in range(n)]",
+              "example_args": [
+                [
+                  "@rx \\d+"
+                ],
+                [
+                  "@rx \\d+"
+                ],
+                [
+                  "@rx \\d+"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.09461483475371836,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical pattern strings – cache hits after the first call.",
+              "why": "The change adds lru_cache to _sanitize_pattern and _compile_pattern. When the same pattern appears many times, the first call pays the full sanitisation cost and subsequent calls are served from the cache, giving a net speed‑up.",
+              "size_meaning": "Number of repetitions (n). Cost grows linearly with n, but the marginal cost per call drops after the first.",
+              "make_source": "def make(n):\n    # a simple pattern that passes all checks\n    pat = \"simplePattern\"\n    return [[pat] for _ in range(n)]",
+              "example_args": [
+                [
+                  "simplePattern"
+                ],
+                [
+                  "simplePattern"
+                ],
+                [
+                  "simplePattern"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.05824795356595517,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical pattern (cache hit)",
+              "why": "The new version caches the result of _sanitize_pattern with lru_cache. When the same pattern is processed many times the cached result is returned instantly, while the old version re‑executes the whole validation and escaping logic each call.",
+              "size_meaning": "Number of repetitions (n) – the benchmark will call the target n times with the same argument.",
+              "make_source": "def make(n):\n    # Return a list with a single argument list; the benchmark will invoke the target n times.\n    pattern = \"foo\"\n    return [[pattern]] * min(n, 8)",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.11111301545452745,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "When every input pattern is distinct the LRU caches never hit. Each call now pays the overhead of two cache look‑ups (one in `_sanitize_pattern`, one in `_compi",
+              "why": "When every input pattern is distinct the LRU caches never hit. Each call now pays the overhead of two cache look‑ups (one in `_sanitize_pattern`, one in `_compile_pattern`) plus the function‑call wrapper, which is slower than the original straight‑line code that compiled the regex once and returned.",
+              "size_meaning": "n = number of distinct patterns supplied. Cost grows with n because each pattern incurs a cache miss and the extra Python‑level indirection.",
+              "make_source": "def make(n):\n    # generate n different harmless patterns that are valid regexes\n    return [[f\"literal_pat_{i}\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "literal_pat_0"
+                ],
+                [
+                  "literal_pat_1"
+                ],
+                [
+                  "literal_pat_2"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.061962936557114115,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct pattern strings – each call misses the cache.",
+              "why": "With a cold cache (or >128 distinct patterns) every call incurs the cache‑lookup overhead (hashing the key, dict lookup) plus the function‑call wrapper before doing the real work. The original code performed the work directly with no extra indirection.",
+              "size_meaning": "Number of distinct patterns (n). Cost grows with n because each call is a cache miss.",
+              "make_source": "def make(n):\n    # generate n different patterns that are all valid regexes\n    return [[f\"pat{i}\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "pat0"
+                ],
+                [
+                  "pat1"
+                ],
+                [
+                  "pat2"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.08740356073978935,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct patterns exceeding cache capacity",
+              "why": "Each unique pattern incurs a cache miss, insertion, and possible LRU eviction once the 128‑entry cache fills. The old version simply processes each pattern once with no dictionary overhead. For workloads with >128 different patterns the extra bookkeeping makes the new version slower.",
+              "size_meaning": "Number of distinct patterns (n) – each pattern is different, causing a miss.",
+              "make_source": "def make(n):\n    # Produce up to 8 distinct patterns of growing length to keep work proportional to n.\n    # Each pattern is unique, so the cache cannot reuse results.\n    patterns = [f\"pattern_{i}_\" + \"x\" * (i % 5 + 1) for i in range(min(n, 8))]\n    return [[p] for p in patterns]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.06449275297591466,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical pattern strings – cache hits after the first call.",
+              "why": "The change adds lru_cache to _sanitize_pattern and _compile_pattern. When the same pattern appears many times, the first call pays the full sanitisation cost and subsequent calls are served from the cache, giving a net speed‑up.",
+              "origin": "plan",
+              "screen_ratio": 0.05824795356595517,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 28146.22,
+                  "head_ir": 1920.185,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.068221771875584,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 28010.48,
+                  "head_ir": 1761.43375,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.06288481132776018,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 27891.50480769231,
+                  "head_ir": 1624.623076923077,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.05824795356595517,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 27837.484375,
+                  "head_ir": 1601.6806640625,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0575368320817423,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 27837.484375,
+                  "head_ir": 1601.6806640625,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0575368320817423,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 27837.484375,
+                  "head_ir": 1601.6806640625,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0575368320817423,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 27837.484375,
+                  "head_ir": 1601.6806640625,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0575368320817423,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.068221771875584,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 11.55,
+            "screen": 85.6,
+            "full": 70.91,
+            "total": 168.06
+          }
+        }
+      }
+    }
+  ]
+}

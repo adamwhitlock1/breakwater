@@ -35,6 +35,11 @@ inputs:
       Nebius project ID (pass a secret or variable). With it, untrusted code runs in Token Factory
       Sandboxes microVMs; without it, in a local Docker container on the runner.
     required: false
+  source-repo:
+    description: >-
+      Public "owner/name" to clone and install base and head from, instead of this repository (for a
+      private mirror of a public project; both commits must exist there). Default: this repository.
+    required: false
   github-token:
     description: Token for the PR comment and the merge-base lookup (needs pull-requests write).
     default: ${{ github.token }}
@@ -106,7 +111,7 @@ runs:
         NEBIUS_PROJECT_ID: ${{ inputs.nebius-project-id }}
         BACKEND: ${{ steps.check.outputs.backend }}
         BREAKWATER_PROVIDER: tokenfactory
-        REPO: ${{ github.repository }}
+        REPO: ${{ inputs.source-repo || github.repository }}
         TITLE: ${{ github.event.pull_request.title }}
         HEAD: ${{ github.event.pull_request.head.sha }}
         BASE: ${{ steps.setup.outputs.merge_base }}

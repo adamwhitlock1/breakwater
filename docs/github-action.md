@@ -45,6 +45,7 @@ Audit several targets with a `strategy.matrix` over `target`. Each target gets i
 | `comment` | `true` | Post or update the PR comment. The job summary is always written. |
 | `nebius-api-key` | — | Nebius Token Factory key. Without it the action skips with a notice. |
 | `nebius-project-id` | — | Nebius project ID. With it, every untrusted run (probes, strategies, generators, cachegrind) happens in a Token Factory Sandboxes microVM and the images are built there. Without it, a local Docker container on the runner (GitHub-hosted Ubuntu runners have Docker). |
+| `source-repo` | this repository | Public `owner/name` to install base and head from, for a private mirror of a public project. Both commits must exist there. |
 | `github-token` | `github.token` | Used for the comment and the merge-base lookup. |
 
 Outputs: `verdict` (BLOCK, REVIEW, PASS or SKIPPED), `backend` (`contree` or `docker`) and `report-dir`.
@@ -61,7 +62,7 @@ Cost: about $0.10–0.30 per target per run on Token Factory with the default se
 
 ## Limits (v1)
 
-- **Public target repositories.** Base and head are installed inside the harness image with `pip install git+https://github.com/<repo>@<sha>`, without credentials.
+- **Public target repositories.** Base and head are installed inside the harness image with `pip install git+https://github.com/<repo>@<sha>`, without credentials. A private mirror of a public project works with `source-repo` when its PR's merge base and head commits are upstream commits.
 - **Only `pull_request`, not `pull_request_target`.** Installing the head commit runs its packaging code during the image build. Under `pull_request_target` that would happen while secrets are available, which is how forks steal them.
 - **One provider: Token Factory.** The OpenRouter development provider isn't exposed.
 - **Python 3.12 packages, with targets whose arguments are JSON values** (strings, numbers, lists, dicts).

@@ -277,7 +277,8 @@ def test_compare_sub_site_puts_the_backends_side_by_side(tmp_path):
     assert abs(rows[0]["worst_delta"] - (2.51 - 2.44) / 2.44) < 1e-9
     build(main, None, tmp_path / "out", extras=[Corpus("sandboxes", sub, compare=True)])
     index = (tmp_path / "out" / "sandboxes" / "index.html").read_text()
-    assert "1/1" in index and "same verdict on both backends" in index and "3%" in index
+    assert rows[0]["families"][0]["family"] == "f" and abs(rows[0]["families"][0]["gap"] - 0.07 / 2.44) < 1e-9
+    assert "1/1" in index and "same verdict on both backends" in index and "3%" in index  # the shared family's gap
     assert "bw-pair:abc" in index and "dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49" in index  # both images, every row
     assert (tmp_path / "out" / "sandboxes" / "pr" / "1.html").exists()
     root = (tmp_path / "out" / "index.html").read_text()

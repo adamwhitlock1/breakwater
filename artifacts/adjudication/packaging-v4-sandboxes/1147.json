@@ -1,0 +1,52 @@
+{
+  "id": "#1147",
+  "pr": 1147,
+  "title": "perf: add __slots__ to Marker",
+  "merged": "2026-04-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "marker-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "image": "583e9e77-230e-4727-b18e-e799efeb03f4",
+      "backend": "contree",
+      "run_id": "adj-1147-5b83df",
+      "samples": 3,
+      "usd": 0.0108,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "label": "likely-bug",
+          "votes": {
+            "needs-human": 1,
+            "likely-bug": 2
+          },
+          "rationale": "Adding __slots__ changes the pickling format; objects pickled by the base version (which had a __dict__) cannot be unpickled by the head version (which expects slot storage), causing an AttributeError. The PR introduces the slots without any compatibility handling, and the change is described only as a performance tweak.",
+          "evidence": [
+            "__slots__ = ( '_markers', )",
+            "perf: add __slots__ to Marker"
+          ],
+          "rejected": [
+            "PR title: perf: add __slots__ to Marker",
+            "+    __slots__ = (u'_markers',)"
+          ],
+          "reason": "",
+          "known": [
+            "marker-pickle"
+          ],
+          "facts": "An object built by base from [\"\\\"b\\\" > \\\"a\\\"\"], pickled, then unpickled by head fails to load: builtins.AttributeError."
+        }
+      ]
+    }
+  ]
+}

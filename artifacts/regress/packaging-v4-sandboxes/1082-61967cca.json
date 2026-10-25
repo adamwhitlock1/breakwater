@@ -1,0 +1,67 @@
+{
+  "id": "1082@61967cca",
+  "pr": 1082,
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "62d98fe8-9c1e-42e6-b250-ab6f630d8680",
+      "backend": "contree",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii",
+          "name": "test_1082_61967cca_p2_outcome_0",
+          "source": "def test_1082_61967cca_p2_outcome_0():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.version import InvalidVersion, Version\n    with pytest.raises(InvalidVersion) as excinfo:\n        Version('٠')\n    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "name": "test_1082_61967cca_p2_outcome_1",
+          "source": "def test_1082_61967cca_p2_outcome_1():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.version import Version\n    with pytest.raises(TypeError) as excinfo:\n        Version(['..0'])\n    assert type(excinfo.value) is TypeError  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "error:AttributeError",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace",
+          "name": "test_1082_61967cca_p2_outcome_2",
+          "source": "def test_1082_61967cca_p2_outcome_2():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.version import InvalidVersion, Version\n    with pytest.raises(InvalidVersion) as excinfo:\n        Version('1 .2')\n    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii+whitespace",
+          "name": "test_1082_61967cca_p2_outcome_3",
+          "source": "def test_1082_61967cca_p2_outcome_3():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import pytest\n    from packaging.version import InvalidVersion, Version\n    with pytest.raises(InvalidVersion) as excinfo:\n        Version('١ .2')\n    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|long-digits+whitespace",
+          "name": "test_1082_61967cca_p2_outcome_4",
+          "source": "def test_1082_61967cca_p2_outcome_4():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: needs-human).\"\"\"\n    import pytest\n    from packaging.version import InvalidVersion, Version\n    with pytest.raises(InvalidVersion) as excinfo:\n        Version('1' + '0' * 4299 + ' ' + '.' + '2')\n    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+          "name": "test_1082_61967cca_p2_outcome_5",
+          "source": "def test_1082_61967cca_p2_outcome_5():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: needs-human).\"\"\"\n    import pytest\n    from packaging.version import Version\n    with pytest.raises(ValueError) as excinfo:\n        Version('1' + '0' * 4300 + '.' + '0' + '.' + '1')\n    assert type(excinfo.value) is ValueError  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

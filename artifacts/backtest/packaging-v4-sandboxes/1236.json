@@ -1,0 +1,991 @@
+{
+  "id": "#1236",
+  "pr": 1236,
+  "title": "perf: simply work done in parse_tag a bit",
+  "base": "e6cd4be75370b9730d70c7397ca2f873dae18f54",
+  "head": "1529771b80cf6a327afdf33a8a0e7a96ac3f428f",
+  "merged": "2026-06-09",
+  "after_ultra_release": true,
+  "known": [],
+  "targets": [
+    {
+      "target": "packaging.tags:parse_tag",
+      "run_id": "bt-1236-b3de52",
+      "image": "5c5765e3-5a87-48f2-8b21-497e56c1292b",
+      "backend": "contree",
+      "usd": 0.0714,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 7.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 5.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii+whitespace",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace"
+          ],
+          "known": [],
+          "seconds": 40.9,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain"
+          ],
+          "known": [],
+          "seconds": 4.2,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              ""
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A1/s2",
+            "A3/s2",
+            "A3/s4",
+            "seed"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "-"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A1/s2",
+            "A1/s3",
+            "A2/s2",
+            "A3/s2",
+            "A4/s3",
+            "seed",
+            "tests",
+            "mutation:separators",
+            "mutation:case",
+            "mutation:signs",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "- "
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A1/s2",
+            "A2/s2",
+            "A4/s3",
+            "tests",
+            "mutation:whitespace-inner",
+            "mutation:case",
+            "mutation:signs"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii+whitespace",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "- "
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A2/s2",
+            "batch"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "\u001b-"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "A4/s3",
+            "mutation:edges"
+          ]
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "-ç"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.tags.InvalidTag"
+          },
+          "found_by": [
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "F3.1",
+            "family": "single_hyphen",
+            "verdict": "slower",
+            "ladder": [
+              1.090384638381001,
+              1.0878418864227672,
+              1.0887168741577717,
+              1.0888562920517704,
+              1.0888562920517704,
+              1.0888562920517704,
+              1.0888562920517704
+            ],
+            "origin": "expand:F3"
+          },
+          {
+            "id": "F2",
+            "family": "simple tag with one interpreter, one abi and one platform",
+            "verdict": "slower",
+            "ladder": [
+              1.090114912053873,
+              1.089480912841672,
+              1.0884373238869656,
+              1.0905181422935197,
+              1.0905181422935197,
+              1.0905181422935197,
+              1.0905181422935197
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F3",
+            "family": "tiny_valid",
+            "verdict": "slower",
+            "ladder": [
+              1.090114912053873,
+              1.089480912841672,
+              1.0884373238869656,
+              1.0905181422935197,
+              1.0905181422935197,
+              1.0905181422935197,
+              1.0905181422935197
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F2.1",
+            "family": "simple tag with one interpreter, one abi and one platform",
+            "verdict": "slower",
+            "ladder": [
+              1.0894345323913226,
+              1.0878363202016303,
+              1.087748109949276,
+              1.0888526756730574,
+              1.0888526756730574,
+              1.0888526756730574,
+              1.0888526756730574
+            ],
+            "origin": "expand:F2"
+          }
+        ],
+        "worst_valid_ratio": 1.0905181422935197,
+        "worst_family": "simple tag with one interpreter, one abi and one platform",
+        "speedup_ratio_small": 1.0878418864227672,
+        "report": {
+          "run_id": "bt-1236-b3de52",
+          "target": "packaging.tags:parse_tag",
+          "image": "5c5765e3-5a87-48f2-8b21-497e56c1292b",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "invalid tag with many dash-separated components",
+              "why": "The new implementation splits every component on '.' during the initial list‑comprehension (`component.split('.') for component in tag.split('-')`). The old implementation only splits the three expected components (interpreter, abi, platform) because it unpacks `tag.split('-')` into three variables first; if there are more than three components the unpack fails before any per‑component `split('.')` work is done. Therefore, for malformed tags containing many `-` separators the new code does O(n) extra splits while the old code does O(1).",
+              "size_meaning": "Number of dash‑separated components in the tag string.",
+              "make_source": "def make(n):\n    # Produce a tag with n components, each a simple non‑empty string.\n    # This is an invalid tag (PEP 425 requires exactly three components).\n    tag = '-'.join(['x'] * n)\n    return [[tag]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 3.0410716088717367,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "simple tag with one interpreter, one abi and one platform",
+              "why": "The new implementation builds a temporary list of the three split components and then unpacks it, while the old code re‑uses the three strings directly. For a minimal tag the extra list allocation and tuple unpacking dominate the work, making the new version slightly slower.",
+              "size_meaning": "Number of tags parsed in a single call to the benchmark (each tag is the same minimal tag).",
+              "make_source": "\ndef make(n):\n    # Return a list of n argument‑lists for parse_tag, each containing the same minimal tag.\n    # The total work grows linearly with n.\n    tag = \"py3-none-any\"\n    return [[tag] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3-none-any",
+                  "py3-none-any"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0884373238869656,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "tiny_valid",
+              "why": "The refactor removes repeated ``split('.')`` calls and builds the result with a single comprehension. For very small tags (no ``.`` separators) the overhead of the list‑comprehension, the temporary ``component_parts`` list and the generator expression dominates, making the new version slightly slower.",
+              "size_meaning": "Number of tags to parse (each call parses one tiny tag).",
+              "make_source": "def make(n):\n    # each argument list is a single call: parse_tag(tag, validate_order=False)\n    return [[\"py3-none-any\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3-none-any"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0884373238869656,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "tag with an empty ABI component (invalid input)",
+              "why": "The new code splits *all three* components up front (`component_parts = [c.split('.') for c in tag.split('-')]`). The old version stops after detecting the empty component in the first split of the ABI string, so it never splits the platform component. For this malformed tag the new version does extra work.",
+              "size_meaning": "Number of malformed tags parsed (each identical).",
+              "make_source": "def make(n):\n    # Tag with an empty ABI component: \"py3--any\"\n    tag = \"py3--any\"\n    return [[tag] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3--any"
+                ],
+                [
+                  "py3--any",
+                  "py3--any"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.1789118217927432,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "many_dots_validate_false",
+              "why": "When ``validate_order=False`` the old code only split each component once for the empty‑component check, then iterated over the already‑split strings. The new code always creates the ``component_parts`` list (three new lists) before the product loops, adding allocation overhead that grows with the number of dot‑separated sub‑components.",
+              "size_meaning": "Number of dot‑separated items in each component (interpreter, abi, platform).",
+              "make_source": "def make(n):\n    # Build a tag like \"py.py...-abi.abi...-plat.plat...\" with n items per component\n    part = \".\".join([\"py\"] * n)\n    abi = \".\".join([\"abi\"] * n)\n    plat = \".\".join([\"plat\"] * n)\n    tag = f\"{part}-{abi}-{plat}\"\n    return [[tag, False] for _ in range(1)]  # single call, cost grows with n",
+              "example_args": [
+                [
+                  "py.py-abi.abi-plat.plat",
+                  false
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.99652558809181,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "compressed tag set with many dot‑separated interpreters (the optimisation target)",
+              "why": "The change was introduced to avoid re‑splitting each component several times. When a component contains many dot‑separated values (e.g. dozens of interpreters), the old version performs three extra splits per component, while the new version splits once and re‑uses the lists, giving a clear speed‑up.",
+              "size_meaning": "Number of interpreters encoded in the tag (n interpreters → n dot‑separated parts).",
+              "make_source": "def make(n):\n    # Build a tag like \"py3.py4.py5...-none-any\" with n interpreters.\n    # Minimum n = 1 gives a valid tag.\n    interpreters = \".\".join(f\"py{i}\" for i in range(3, 3 + n))\n    tag = f\"{interpreters}-none-any\"\n    return [[tag]]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3.py4-none-any"
+                ],
+                [
+                  "py3.py4.py5.py6-none-any"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.8619924257843969,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "excess-dashes-with-suffix",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "size_meaning": "N = number of dash‑separated components in the malformed tag.",
+              "make_source": "# Variant using excess dashes followed by an extra suffix after all components\ndef make(n):\n    # Creates tags like 'x-x-...-x-extra' where there are n+1 components\n    # ensuring at least four parts (more than expected three); splitting all\n    # components triggers O(N) work before validation fails due to wrong count.\n    tag = '-'.join(['x'] * n + ['extra'])\n    return [[tag]]",
+              "example_args": [
+                [
+                  10
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 3.116586411794659,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "invalid",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "size_meaning": "N = number of dash‑separated components in the malformed tag.",
+              "make_source": "\ndef make(n):\n    # Produce a single malformed tag with n dash‑separated components.\n    # Each component is a non‑empty string so the emptiness check passes,\n    # but the tag is invalid because it does not have exactly three components.\n    tag = '-'.join(['x'] * n)\n    return [[tag]]",
+              "example_args": [
+                [
+                  10
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 3.0410716088717367,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "Invalid tags containing many hyphens (more than the expected two). The new implementation splits all hyphen-separated components by '.' before attempting to unpack three parts, doing extra work before the unpacking error; the old version failed fast on the unpack.",
+              "why": "Extra list comprehension and per-component dot-splits are performed before the ValueError from unpacking.",
+              "size_meaning": "n controls the number of extra hyphen-separated components; work grows O(n).",
+              "make_source": "def make(n):\n    # Create a tag with n+2 components separated by hyphens\n    components = ['comp'] * (n + 2)\n    tag = '-'.join(components)\n    return [[tag]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 2.6155867236893897,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "excess-dashes-with-nonempty-mid-empty-trailing",
+              "why": "The new implementation splits the whole tag on '-' into a list of all components first, then iterates over every component to validate emptiness and order. For a malformed tag containing many '-' separators (far more than the three expected components), the head version does O(N) work before raising, whereas the base version fails fast during the three‑way unpacking.",
+              "size_meaning": "N = number of dash‑separated components in the malformed tag.",
+              "make_source": "# Variant mixing empty and non-empty parts to stress emptiness checks after split\ndef make(n):\n    # Builds a tag starting with an empty component, then n non-empty 'x',\n    # ending with another empty component via trailing dash;\n    # this forces the new implementation to check emptiness on all n+2 parts\n    # before realizing the structure is invalid (not exactly three non-empty).\n    tag = '-'.join([''] + ['x'] * n + [''])\n    return [[tag]]",
+              "example_args": [
+                [
+                  10
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 2.698930699518522,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2.1",
+              "kind": "suspected_slowdown",
+              "family": "simple tag with one interpreter, one abi and one platform",
+              "why": "The new implementation builds a temporary list of the three split components and then unpacks it, while the old code re‑uses the three strings directly. For a minimal tag the extra list allocation and tuple unpacking dominate the work, making the new version slightly slower.",
+              "size_meaning": "Number of tags parsed in a single call to the benchmark (each tag is the same minimal tag).",
+              "make_source": "# Variant: two interpreters\n\ndef make(n):\n    \n    # Generate tags with repeated interpreter part:\n    # e.g., py27py3-none-any still parses as valid because packaging allows multiple markers?\n    # Actually we will generate 'cp311-cp311-linux_x86_64' style - but keep similar structure.\n    # Instead, use valid tags with duplicated interpreter segment via cp311cp311? Not standard.\n    # We'll instead vary the ABI part by repeating '-none' to make longer string but still valid.\n    # However ABI 'none' is literal; repeating may break validity.\n    # Change approach: use different valid tags but same pattern.\n    # Use 'py3-none-any' vs 'py3-none-win32' etc.\n    # But to keep family similar, we will just change the platform part.\n    tag = \"py3-none-win32\"\n    return [[tag] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3-none-any",
+                  "py3-none-any"
+                ]
+              ],
+              "origin": "expand:F2",
+              "screen_ratio": 1.087748109949276,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2.2",
+              "kind": "suspected_slowdown",
+              "family": "simple tag with one interpreter, one abi and one platform",
+              "why": "The new implementation builds a temporary list of the three split components and then unpacks it, while the old code re‑uses the three strings directly. For a minimal tag the extra list allocation and tuple unpacking dominate the work, making the new version slightly slower.",
+              "size_meaning": "Number of tags parsed in a single call to the benchmark (each tag is the same minimal tag).",
+              "make_source": "# Variant: optional components present\n\ndef make(n):\n    \n    # Some tags omit parts, e.g., 'py3-none' (missing platform) or 'py3-any'\n    # Use tag with missing platform: still valid per spec? Actually platform is required.\n    # According to PEP 425, tag is <interpreter>-<abi>-<platform>, all required.\n    # So instead use tag with extra dash? Not valid.\n    # Use 'py3-none-any' vs 'py3--none-any'? Invalid.\n    # Therefore vary the abi to be something else like 'none' vs 'cu118'\n    tag = \"py3-cu118-linux_x86_64\"\n    return [[tag] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3-none-any",
+                  "py3-none-any"
+                ]
+              ],
+              "origin": "expand:F2",
+              "screen_ratio": 1.0866209663748185,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2.3",
+              "kind": "suspected_slowdown",
+              "family": "simple tag with one interpreter, one abi and one platform",
+              "why": "The new implementation builds a temporary list of the three split components and then unpacks it, while the old code re‑uses the three strings directly. For a minimal tag the extra list allocation and tuple unpacking dominate the work, making the new version slightly slower.",
+              "size_meaning": "Number of tags parsed in a single call to the benchmark (each tag is the same minimal tag).",
+              "make_source": "# Variant: platform with underscore vs dash\n\ndef make(n):\n    \n    # Platform part can have underscores or dashes; both are valid.\n    # Use platform with many underscores to increase string length without changing semantics much.\n    tag = \"py3-none-linux_x86_64\"\n    return [[tag] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3-none-any",
+                  "py3-none-any"
+                ]
+              ],
+              "origin": "expand:F2",
+              "screen_ratio": 1.0854770338540154,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3.1",
+              "kind": "claimed_speedup",
+              "family": "single_hyphen",
+              "why": "The refactor removes repeated ``split('.')`` calls and builds the result with a single comprehension. For very small tags (no ``.`` separators) the overhead of the list‑comprehension, the temporary ``component_parts`` list and the generator expression dominates, making the new version slightly slower.",
+              "size_meaning": "Number of tags to parse (each call parses one tiny tag).",
+              "make_source": "def make(n):\n    return [[\"py3-linux-x86_64\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3-none-any"
+                ]
+              ],
+              "origin": "expand:F3",
+              "screen_ratio": 1.0887168741577717,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3.2",
+              "kind": "claimed_speedup",
+              "family": "double_hyphen",
+              "why": "The refactor removes repeated ``split('.')`` calls and builds the result with a single comprehension. For very small tags (no ``.`` separators) the overhead of the list‑comprehension, the temporary ``component_parts`` list and the generator expression dominates, making the new version slightly slower.",
+              "size_meaning": "Number of tags to parse (each call parses one tiny tag).",
+              "make_source": "def make(n):\n    return [[\"cpython-39--linux-x86_64\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3-none-any"
+                ]
+              ],
+              "origin": "expand:F3",
+              "screen_ratio": 1.8072758746661406,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F3.3",
+              "kind": "claimed_speedup",
+              "family": "long_platform_without_dots",
+              "why": "The refactor removes repeated ``split('.')`` calls and builds the result with a single comprehension. For very small tags (no ``.`` separators) the overhead of the list‑comprehension, the temporary ``component_parts`` list and the generator expression dominates, making the new version slightly slower.",
+              "size_meaning": "Number of tags to parse (each call parses one tiny tag).",
+              "make_source": "def make(n):\n    return [[\"py3-none-android-arm64-v8a\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "py3-none-any"
+                ],
+                [
+                  "py3-none-any"
+                ]
+              ],
+              "origin": "expand:F3",
+              "screen_ratio": 1.8208435675595913,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F3.1",
+              "kind": "claimed_speedup",
+              "family": "single_hyphen",
+              "why": "The refactor removes repeated ``split('.')`` calls and builds the result with a single comprehension. For very small tags (no ``.`` separators) the overhead of the list‑comprehension, the temporary ``component_parts`` list and the generator expression dominates, making the new version slightly slower.",
+              "origin": "expand:F3",
+              "screen_ratio": 1.0887168741577717,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 18397.54,
+                  "head_ir": 20060.395,
+                  "input_chars": 20.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.090384638381001,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 18217.284375,
+                  "head_ir": 19817.525,
+                  "input_chars": 20.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0878418864227672,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 18068.715959821428,
+                  "head_ir": 19671.715959821428,
+                  "input_chars": 20.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0887168741577717,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 18043.003348214286,
+                  "head_ir": 19646.237723214286,
+                  "input_chars": 20.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0888562920517704,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 18043.003348214286,
+                  "head_ir": 19646.237723214286,
+                  "input_chars": 20.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0888562920517704,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 18043.003348214286,
+                  "head_ir": 19646.237723214286,
+                  "input_chars": 20.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0888562920517704,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 18043.003348214286,
+                  "head_ir": 19646.237723214286,
+                  "input_chars": 20.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0888562920517704,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [
+                {
+                  "args": [
+                    [
+                      "py3-none-any",
+                      "py3-none-any",
+                      "py3-none-any"
+                    ]
+                  ],
+                  "cpu_ratio": 1.011,
+                  "base_ir": 8612.24,
+                  "head_ir": 8740.95,
+                  "ir_ratio": 1.014945008499531,
+                  "outcome": "exc:builtins.AttributeError"
+                },
+                {
+                  "args": [
+                    [
+                      "py3-none-any",
+                      "py3-none-any",
+                      "py3-none-any",
+                      "py3-none-any"
+                    ]
+                  ],
+                  "cpu_ratio": 1.004,
+                  "base_ir": 8612.24,
+                  "head_ir": 8725.95,
+                  "ir_ratio": 1.0132033013478492,
+                  "outcome": "exc:builtins.AttributeError"
+                }
+              ],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.090384638381001,
+              "worst_search": {
+                "args": [
+                  [
+                    "py3-none-any",
+                    "py3-none-any",
+                    "py3-none-any"
+                  ]
+                ],
+                "cpu_ratio": 1.011,
+                "base_ir": 8612.24,
+                "head_ir": 8740.95,
+                "ir_ratio": 1.014945008499531,
+                "outcome": "exc:builtins.AttributeError"
+              }
+            },
+            {
+              "family_id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "simple tag with one interpreter, one abi and one platform",
+              "why": "The new implementation builds a temporary list of the three split components and then unpacks it, while the old code re‑uses the three strings directly. For a minimal tag the extra list allocation and tuple unpacking dominate the work, making the new version slightly slower.",
+              "origin": "plan",
+              "screen_ratio": 1.0884373238869656,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 18330.54,
+                  "head_ir": 19982.395,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.090114912053873,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 18118.284375,
+                  "head_ir": 19739.525,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.089480912841672,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 18001.44927536232,
+                  "head_ir": 19593.44927536232,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0884373238869656,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 17943.744025735294,
+                  "head_ir": 19567.978400735294,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0905181422935197,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 17943.744025735294,
+                  "head_ir": 19567.978400735294,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0905181422935197,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 17943.744025735294,
+                  "head_ir": 19567.978400735294,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0905181422935197,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 17943.744025735294,
+                  "head_ir": 19567.978400735294,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0905181422935197,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.0905181422935197,
+              "worst_search": null
+            },
+            {
+              "family_id": "F3",
+              "kind": "claimed_speedup",
+              "family": "tiny_valid",
+              "why": "The refactor removes repeated ``split('.')`` calls and builds the result with a single comprehension. For very small tags (no ``.`` separators) the overhead of the list‑comprehension, the temporary ``component_parts`` list and the generator expression dominates, making the new version slightly slower.",
+              "origin": "plan",
+              "screen_ratio": 1.0884373238869656,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 18330.54,
+                  "head_ir": 19982.395,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.090114912053873,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 18118.284375,
+                  "head_ir": 19739.525,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.089480912841672,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 18001.44927536232,
+                  "head_ir": 19593.44927536232,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0884373238869656,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 17943.744025735294,
+                  "head_ir": 19567.978400735294,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0905181422935197,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 17943.744025735294,
+                  "head_ir": 19567.978400735294,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0905181422935197,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 17943.744025735294,
+                  "head_ir": 19567.978400735294,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0905181422935197,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 17943.744025735294,
+                  "head_ir": 19567.978400735294,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0905181422935197,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [
+                {
+                  "args": [
+                    [
+                      "py3-none-any"
+                    ]
+                  ],
+                  "cpu_ratio": 0.998,
+                  "base_ir": 8612.24,
+                  "head_ir": 8740.95,
+                  "ir_ratio": 1.014945008499531,
+                  "outcome": "exc:builtins.AttributeError"
+                }
+              ],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.0905181422935197,
+              "worst_search": {
+                "args": [
+                  [
+                    "py3-none-any"
+                  ]
+                ],
+                "cpu_ratio": 0.998,
+                "base_ir": 8612.24,
+                "head_ir": 8740.95,
+                "ir_ratio": 1.014945008499531,
+                "outcome": "exc:builtins.AttributeError"
+              }
+            },
+            {
+              "family_id": "F2.1",
+              "kind": "suspected_slowdown",
+              "family": "simple tag with one interpreter, one abi and one platform",
+              "why": "The new implementation builds a temporary list of the three split components and then unpacks it, while the old code re‑uses the three strings directly. For a minimal tag the extra list allocation and tuple unpacking dominate the work, making the new version slightly slower.",
+              "origin": "expand:F2",
+              "screen_ratio": 1.087748109949276,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 18380.54,
+                  "head_ir": 20024.395,
+                  "input_chars": 18.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0894345323913226,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 18184.284375,
+                  "head_ir": 19781.525,
+                  "input_chars": 18.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0878363202016303,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 18051.670866935485,
+                  "head_ir": 19635.670866935485,
+                  "input_chars": 18.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.087748109949276,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 18009.973958333332,
+                  "head_ir": 19610.208333333332,
+                  "input_chars": 18.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0888526756730574,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 18009.973958333332,
+                  "head_ir": 19610.208333333332,
+                  "input_chars": 18.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0888526756730574,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 18009.973958333332,
+                  "head_ir": 19610.208333333332,
+                  "input_chars": 18.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0888526756730574,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 18009.973958333332,
+                  "head_ir": 19610.208333333332,
+                  "input_chars": 18.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0888526756730574,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.0894345323913226,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 14.8,
+            "screen": 235.72,
+            "full": 156.0,
+            "total": 406.53
+          }
+        }
+      }
+    }
+  ]
+}

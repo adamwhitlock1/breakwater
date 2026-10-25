@@ -982,8 +982,24 @@ def compare_rows(main: list[ItemView], sub: list[ItemView]) -> list[dict]:
         a, b = ref.perf_worst.get("worst_valid_ratio"), it.perf_worst.get("worst_valid_ratio")
         rows.append({"id": it.raw["id"], "main": ref, "sub": it, "same_verdict": ref.verdict == it.verdict,
                      "same_known": ref.caught == it.caught, "worst": (a, b),
-                     "worst_delta": abs(a - b) / a if a and b else None})
+                     "worst_delta": abs(a - b) / a if a and b else None, "families": shared_families(ref, it)})
     return rows
+
+
+def _families(it: ItemView) -> dict[str, dict]:
+    return {f["family"]: f for t in it.targets for f in ((t.perf or {}).get("report") or {}).get("findings", [])}
+
+
+def shared_families(a: ItemView, b: ItemView) -> list[dict]:
+    """Perf families both runs measured in full. The same family text means the same seeded generator,
+    so the inputs are identical and the two Ir ratios are directly comparable."""
+    fa, fb = _families(a), _families(b)
+    out = []
+    for name in sorted(set(fa) & set(fb)):
+        x, y = fa[name].get("worst_ratio"), fb[name].get("worst_ratio")
+        if x and y:
+            out.append({"family": name, "a": x, "b": y, "gap": abs(x - y) / x, "verdicts": (fa[name]["verdict"], fb[name]["verdict"])})
+    return out
 
 
 def _worst_cell(it: ItemView) -> str:
@@ -1002,7 +1018,7 @@ def render_compare_index(name: str, results: dict, adj: dict | None, main: list[
     same_v = sum(r["same_verdict"] for r in rows)
     same_k = sum(r["same_known"] for r in rows if r["main"].raw["known"])
     with_known = sum(bool(r["main"].raw["known"]) for r in rows)
-    deltas = [r["worst_delta"] for r in rows if r["worst_delta"] is not None]
+    shared = [f for r in rows for f in r["families"]]
     usd = results["summary"]["usd"] + (adj or {}).get("summary", {}).get("usd", 0.0)
     trs = []
     for r in rows:
@@ -1018,8 +1034,8 @@ def render_compare_index(name: str, results: dict, adj: dict | None, main: list[
     stats = [
         (f"{same_v}/{len(rows)}", "same verdict on both backends", f"{main_name} vs {sub_name}"),
         (f"{same_k}/{with_known}", "same known issues caught", "items with documented regressions"),
-        ((f"{max(deltas):.0%}" if deltas else "–"), "largest gap in worst perf ratio",
-         f"over {len(deltas)} items measured slower on both" if deltas else "no item measured slower on both"),
+        ((f"{max(f['gap'] for f in shared):.0%}" if shared else "–"), "largest Ir ratio gap on a shared family",
+         f"{len(shared)} families measured on both with identical inputs" if shared else "no family measured on both"),
         (money(usd), f"Nemotron cost of the {sub_name} run", "Token Factory, backtest + adjudication"),
     ]
     stat_html = "".join(f'<div class="stat"><div class="stat-num">{esc(n)}</div><div class="stat-label">{esc(label)}'
@@ -1049,6 +1065,7 @@ def render_compare_index(name: str, results: dict, adj: dict | None, main: list[
     <li>Perf worst: the highest head/base instruction ratio over input families where most inputs are valid. The
     adversary plans families anew on each run, so the worst family can differ; archived families are shared between
     runs and are what the ratios are compared on.</li>
+    {shared_note(shared)}
     <li>{backend_note(main + sub)}</li>
   </ul>
 </section>
@@ -1057,12 +1074,21 @@ def render_compare_index(name: str, results: dict, adj: dict | None, main: list[
                 description=f"The same PRs audited on {sub_name}: verdicts and instruction counts compared")
 
 
+def shared_note(shared: list[dict]) -> str:
+    if not shared:
+        return ""
+    items = "; ".join(f"{esc(f['family'][:40])}: {f['a']:.2f}× vs {f['b']:.2f}× ({f['gap']:.0%})" for f in shared)
+    return (f"<li>Shared families, head/base Ir: {items}. The two backends run different CPU architectures, so cachegrind "
+            "counts different instruction streams; within one backend Ir repeats to the instruction.</li>")
+
+
 def compare_teaser(name: str, href: str, main: list[ItemView], sub: list[ItemView]) -> str:
     rows = compare_rows(main, sub)
     sub_be = next((b for it in sub for b in it.backends), "contree")
     same_v = sum(r["same_verdict"] for r in rows)
-    deltas = [r["worst_delta"] for r in rows if r["worst_delta"] is not None]
-    gap = f"; worst perf ratios agree within {max(deltas):.0%}" if deltas else ""
+    shared = [f for r in rows for f in r["families"]]
+    gap = (f"; the {len(shared)} perf families measured on both agree in verdict, with Ir ratios up to "
+           f"{max(f['gap'] for f in shared):.0%} apart") if shared else ""
     return (f'<section id="{esc(name)}"><h2>Checked on {esc(BACKEND_TEXT.get(sub_be, sub_be))}: {same_v}/{len(rows)} verdicts agree</h2>'
             f'<p class="section-lede">{len(rows)} of these PRs were audited again with every untrusted run in a Token '
             f'Factory Sandboxes microVM{gap}. Each number cites the image UUID that reproduces it.</p>'

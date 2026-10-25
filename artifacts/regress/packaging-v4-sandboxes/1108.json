@@ -1,0 +1,112 @@
+{
+  "id": "#1108",
+  "pr": 1108,
+  "targets": [
+    {
+      "target": "packaging.specifiers:SpecifierSet",
+      "image": "052dfee2-22cb-4d9b-b081-e27b77a69db0",
+      "backend": "contree",
+      "tests": [
+        {
+          "signature": "P1|len|differs|plain",
+          "name": "test_1108_p1_len_0",
+          "source": "def test_1108_p1_len_0():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.specifiers import SpecifierSet\n    assert len(SpecifierSet('>=1.0,>=1.0.0')) == 1\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|len|differs|whitespace",
+          "name": "test_1108_p1_len_1",
+          "source": "def test_1108_p1_len_1():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.specifiers import SpecifierSet\n    assert len(SpecifierSet('>= 1.0,>=1.0.0')) == 1\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|len|differs|non-ascii+whitespace",
+          "name": "test_1108_p1_len_2",
+          "source": "def test_1108_p1_len_2():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.specifiers import SpecifierSet\n    assert len(SpecifierSet('\\xa0>=1.0,>=1.0.0\\xa0')) == 1\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|str|differs|plain",
+          "name": "test_1108_p1_str_3",
+          "source": "def test_1108_p1_str_3():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.specifiers import SpecifierSet\n    assert str(SpecifierSet('>=1.0,>=1.0.0')) == '>=1.0'\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|str|differs|whitespace",
+          "name": "test_1108_p1_str_4",
+          "source": "def test_1108_p1_str_4():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.specifiers import SpecifierSet\n    assert str(SpecifierSet('>= 1.0,>=1.0.0')) == '>=1.0'\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|str|differs|non-ascii+whitespace",
+          "name": "test_1108_p1_str_5",
+          "source": "def test_1108_p1_str_5():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.specifiers import SpecifierSet\n    assert str(SpecifierSet('\\xa0>=1.0,>=1.0.0\\xa0')) == '>=1.0'\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.AssertionError|ok|long-digits",
+          "name": "test_1108_p2_outcome_6",
+          "source": "def test_1108_p2_outcome_6():\n    \"\"\"Breakwater P2: base behaviour pinned (found by differential testing; label: needs-human).\"\"\"\n    import pytest\n    from packaging.specifiers import SpecifierSet\n    with pytest.raises(AssertionError) as excinfo:\n        SpecifierSet('>=10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0,>=1.0.0')\n    assert type(excinfo.value) is AssertionError  # exact type: a subclass would be a behaviour change\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|eq|True|False",
+          "name": "test_1108_p3_eq_7",
+          "source": "def test_1108_p3_eq_7():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.specifiers import SpecifierSet\n    a = SpecifierSet('>=1.0,>=1.0.0')\n    b = SpecifierSet('>=1.0.0,>=1.0.0')\n    assert (a == b) is True\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|hash_eq|True|False",
+          "name": "test_1108_p3_hash_eq_8",
+          "source": "def test_1108_p3_hash_eq_8():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.specifiers import SpecifierSet\n    a = SpecifierSet('>=1.0,>=1.0.0')\n    b = SpecifierSet('>=1.0.0,>=1.0.0')\n    assert (hash(a) == hash(b)) is True\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P4|base->head eq-fresh|True|False",
+          "name": "test_1108_p4_base_head_eq_fresh_9",
+          "source": "def test_1108_p4_base_head_eq_fresh_9():\n    \"\"\"Breakwater P4: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import base64\n    import pickle\n\n    from packaging.specifiers import SpecifierSet\n    # pickled by the base version (lazy caches warmed first)\n    old = pickle.loads(base64.b64decode('gASVDwEAAAAAAACMFHBhY2thZ2luZy5zcGVjaWZpZXJzlIwMU3BlY2lmaWVyU2V0lJOUKYGUTn2UKIwMX3ByZXJlbGVhc2VzlE6MBl9zcGVjc5QoaACMCVNwZWNpZmllcpSTlCmBlE59lChoBU6MBV9zcGVjlIwCPj2UjAMxLjCUhpSMDV9zcGVjX3ZlcnNpb26UaA2MEXBhY2thZ2luZy52ZXJzaW9ulIwHVmVyc2lvbpSTlCmBlE59lCiMBF9kZXaUTowGX2Vwb2NolEsAjApfa2V5X2NhY2hllE6MBl9sb2NhbJROjAVfcG9zdJROjARfcHJllE6MCF9yZWxlYXNllEsBSwCGlHWGlGKGlHWGlGKRlHWGlGIu'))\n    assert old == SpecifierSet('>=1.0,>=1.0.0')\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P4|base->head eq-fresh|True|<exc:builtins.AttributeError>",
+          "name": "test_1108_p4_base_head_eq_fresh_10",
+          "source": "def test_1108_p4_base_head_eq_fresh_10():\n    \"\"\"Breakwater P4: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    import base64\n    import pickle\n\n    from packaging.specifiers import SpecifierSet\n    # pickled by the base version (lazy caches warmed first)\n    old = pickle.loads(base64.b64decode('gASVUAAAAAAAAACMFHBhY2thZ2luZy5zcGVjaWZpZXJzlIwMU3BlY2lmaWVyU2V0lJOUKYGUTn2UKIwMX3ByZXJlbGVhc2VzlE6MBl9zcGVjc5QokZR1hpRiLg=='))\n    assert old == SpecifierSet('')\n",
+          "base": "pass",
+          "head": "error:AttributeError",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

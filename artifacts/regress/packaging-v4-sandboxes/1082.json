@@ -1,0 +1,22 @@
+{
+  "id": "#1082",
+  "pr": 1082,
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "cdd80561-4ef0-4ca1-b645-b13306e326c6",
+      "backend": "contree",
+      "tests": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+          "name": "test_1082_p2_outcome_0",
+          "source": "",
+          "base": "not run",
+          "head": "not run",
+          "skipped": "adjudicated intended: no test pins the old behaviour",
+          "verified": false
+        }
+      ]
+    }
+  ]
+}

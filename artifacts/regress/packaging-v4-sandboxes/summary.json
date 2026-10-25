@@ -1,0 +1,12 @@
+{
+  "source": "artifacts/backtest/packaging-v4-sandboxes",
+  "summary": {
+    "classes": 40,
+    "generated": 39,
+    "verified": 39,
+    "unverified": [],
+    "skipped": {
+      "adjudicated intended": 1
+    }
+  }
+}

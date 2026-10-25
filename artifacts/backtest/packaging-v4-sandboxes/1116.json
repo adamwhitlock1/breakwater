@@ -1,0 +1,342 @@
+{
+  "id": "#1116",
+  "pr": 1116,
+  "title": "perf: Overhaul `_cmpkey` to remove use of custom objects",
+  "base": "baa9ea8c7fa773fc4039d090bc7ec6452b860ec6",
+  "head": "f2bbd4f578644865bc5cb2534768e46563ee7f66",
+  "merged": "2026-03-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "old-pickles-fail-to-load",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1163,
+      "status": "verified"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1116-7a94ad",
+      "image": "e7fbcc0c-cc99-4f27-9713-ec040778674e",
+      "backend": "contree",
+      "usd": 0.229,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.8,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.ModuleNotFoundError"
+          ],
+          "known": [
+            "old-pickles-fail-to-load"
+          ],
+          "seconds": 6.7,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.ModuleNotFoundError"
+          ],
+          "known": [
+            "old-pickles-fail-to-load"
+          ],
+          "seconds": 138.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.ModuleNotFoundError",
+          "probe": "P4",
+          "detail": "base->head load",
+          "args": [
+            [
+              "0"
+            ]
+          ],
+          "base": "loads",
+          "head": {
+            "status": "exc",
+            "exc": "builtins.ModuleNotFoundError"
+          },
+          "found_by": [
+            "tests",
+            "mutation:whitespace-outer",
+            "mutation:huge-number",
+            "mutation:equivalents",
+            "mutation:case",
+            "mutation:edges",
+            "mutation:separators"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9886829023701252,
+        "report": {
+          "run_id": "bt-1116-7a94ad",
+          "target": "packaging.version:Version",
+          "image": "e7fbcc0c-cc99-4f27-9713-ec040778674e",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Complex version strings with epoch, pre, post, dev, and local segments that require full regex parsing (non-simple) and are compared repeatedly. The new regex uses possessive quantifiers (Python 3.11+) to avoid backtracking, and the new _cmpkey uses integer ranks for faster tuple comparison.",
+              "why": "The regex change reduces parsing time for valid complex versions. The _cmpkey change replaces Infinity sentinel objects with plain integers, speeding up key construction (once) and especially repeated comparisons due to simpler tuple comparison.",
+              "size_meaning": "n controls the length of the release segment and the number of local parts, increasing work in both regex matching and _cmpkey local iteration.",
+              "make_source": "\ndef make(n):\n    # n >= 1\n    release = '.'.join(str(i) for i in range(1, n + 2))\n    local = '.'.join(f'loc{i}' for i in range(n))\n    # Version with epoch, pre, post, dev, local\n    version = f'1!{release}a1.post1.dev1+{local}'\n    return [[version]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9886829023701252,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "simple-versions",
+              "why": "The change adds a fast‑path in __init__ for strings that contain only digits and dots (no epoch, pre, post, dev or local). Those versions bypass the regex entirely and are parsed by a simple split/map. This is the family the change is meant to speed up.",
+              "size_meaning": "n = number of release segments (length of the version string grows roughly linearly with n).",
+              "make_source": "\ndef make(n):\n    # produce n versions with 1..n release segments, e.g. '1', '1.2', '1.2.3', …\n    # each version string length ~ 2*n\n    return [[\".\".join(str(i) for i in range(1, k+1))] for k in range(1, n+1)]",
+              "example_args": [
+                [
+                  "1"
+                ],
+                [
+                  "1.2"
+                ],
+                [
+                  "1.2.3"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0001409260673728,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "single_comparison_complex_local",
+              "why": "The new implementation caches the comparison key on first use, adding attribute checks and a tuple allocation for the local segment even when only a single comparison is performed. For a one‑off comparison of two versions that both carry a multi‑part local version, this extra bookkeeping makes the head version slower than the base which computes the key directly in the property.",
+              "size_meaning": "number of dot‑separated parts in the local segment (the generator builds two versions whose local part grows with n).",
+              "make_source": "def make(n):\n    # n >= 1\n    # Build a local segment with n alphanumeric parts, e.g. 'a.b.c...'\n    parts = [f'part{i}' for i in range(n)]\n    local = '.'.join(parts)\n    v1 = f'1.0.0+{local}'\n    v2 = f'2.0.0+{local}'\n    # Return two argument lists; the benchmark will typically construct both and compare once.\n    return [[v1], [v2]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9754952369349003,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Pre-release versions without local, post, or dev segments. The new _cmpkey performs a dictionary lookup for the pre-release letter and builds a 6‑int suffix tuple plus an outer 3‑tuple, while the old _cmpkey merely referenced the existing pre‑release tuple and used singleton sentinels for the other fields, resulting in fewer allocations and no dict lookup. This overhead appears on the first hash/comparison (when _key_cache is built).",
+              "why": "Old _cmpkey: returns (epoch, trimmed, pre_tuple, NegativeInfinity, Infinity, NegativeInfinity) – one tuple, no dict lookup. New _cmpkey: does dict lookup, builds suffix (6 ints), then outer 3‑tuple – two new tuples and a dict lookup.",
+              "size_meaning": "n controls the number of release segments; the release‑trailing‑zero loop runs O(n) in both versions, but the new version adds a constant overhead per key computation.",
+              "make_source": "def make(n):\n    release = '.'.join(str(i) for i in range(1, n + 2))\n    return [[f'{release}a1']]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9967313553828581,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "complex-versions",
+              "why": "Versions that contain pre‑release, post‑release, dev‑release and a local segment do not hit the simple‑version fast‑path. The new comparison methods (__lt__, __le__, __gt__, __eq__, __ne__) contain extra isinstance checks, cache‑initialisation logic and a fallback to the base class. For a *single* comparison between two cold Version objects this extra branching makes the head version slower than the old version, which performed a straight tuple comparison via the _key property.",
+              "size_meaning": "n = number of release segments; each version also carries a fixed pre/post/dev/local suffix, so work grows with the length of the release tuple.",
+              "make_source": "\ndef make(n):\n    # each version: many release parts + all optional suffixes + a local part\n    base = \".\".join(str(i) for i in range(1, n+1))\n    version = f\"{base}a1.post2.dev3+local{ n }\"\n    return [[version] for _ in range(1, n+1)]",
+              "example_args": [
+                [
+                  "1a1.post2.dev3+local1"
+                ],
+                [
+                  "1.2a1.post2.dev3+local2"
+                ],
+                [
+                  "1.2.3a1.post2.dev3+local3"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0043296444692686,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "single_comparison_pre_release",
+              "why": "Versions with a pre‑release segment (a/b/rc) force the new code to build the 6‑int suffix tuple and then cache it, while the old code created the same tuple on‑the‑fly via the _key property. The extra caching logic (attribute access, None checks, assignment) adds overhead for a single comparison.",
+              "size_meaning": "pre‑release number (the generator creates two versions whose pre‑release number grows with n).",
+              "make_source": "def make(n):\n    # n >= 0\n    pre_num = n\n    v1 = f'1.0.0a{pre_num}'\n    v2 = f'1.0.0b{pre_num}'\n    return [[v1], [v2]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9945892337312607,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Each numeric chunk is an ascending sequence starting at '0'",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "\ndef make(n):\n    chunks = []\n    start_ord = ord('0')\n    for i in range(n):\n        s = ''\n        cur = start_ord\n        while len(s) < i:\n            s += chr(cur)\n            cur += 1\n            if cur > ord('9'):\n                cur = ord('0')\n        chunks.append(s)\n    version = '.'.join(chunks) + 'rc1'\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9943711940372575,
+              "valid_fraction": 0.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.",
+              "why": "Even though the version is invalid, the extra disjoint check runs; the regex then fails. This is the single allowed invalid family.",
+              "size_meaning": "Number of dotted segments before the malformed tail.",
+              "make_source": "def make(n):\n    # \"1.\" repeated n times then an alphabetic tail – not a valid PEP‑440 version\n    version = \"1.\" * n + \"x\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9939093215684842,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"",
+              "why": "The indicator set is disjoint, so the fast path is entered. The code then executes `tuple(map(int, version.strip().split('.')))`, which raises `ValueError` on the bad segment; the exception is caught and re‑raised as `InvalidVersion`. Exception handling is considerably slower than the original regex‑only failure path.",
+              "size_meaning": "n = number of leading numeric segments before the bad segment; larger n makes the split and the failed `int` conversion traverse more items before the exception.",
+              "make_source": "def make(n):\n    # build \"1.1.1....1.x\" with n numeric parts then a non‑numeric \"x\"\n    good = \".\".join(\"1\" for _ in range(n))\n    version = f\"{good}.x\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9939093215684842,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Leading zeros in first segment",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    # Leading zero padding increases base length without changing value\n    segs = ['0' * (i*2) + '5' for i in range(1, n+1)]\n    full_base = \".\".join(segs)\n    suffixes = ['-dev']\n    outs = []\n    for s in suffixes:\n        v = full_base + s\n        outs.append([v])\n    return outs",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 0.9990354546950774,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Complex version strings with epoch, pre, post, dev, and local segments that require full regex parsing (non-simple) and are compared repeatedly. The new regex uses possessive quantifiers (Python 3.11+) to avoid backtracking, and the new _cmpkey uses integer ranks for faster tuple comparison.",
+              "why": "The regex change reduces parsing time for valid complex versions. The _cmpkey change replaces Infinity sentinel objects with plain integers, speeding up key construction (once) and especially repeated comparisons due to simpler tuple comparison.",
+              "origin": "plan",
+              "screen_ratio": 0.9886829023701252,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 54951.0025,
+                  "head_ir": 55121.94,
+                  "input_chars": 34.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0031107257779328,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 66293.8525,
+                  "head_ir": 66146.8525,
+                  "input_chars": 48.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9977825998270352,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 139369.26296296297,
+                  "head_ir": 137792.00740740742,
+                  "input_chars": 146.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9886829023701252,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 432323.95588235295,
+                  "head_ir": 430830.95588235295,
+                  "input_chars": 578.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9965465712004026,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 1648653.2857142857,
+                  "head_ir": 1649050.2857142857,
+                  "input_chars": 2620.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.000240802601396,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 6412531.5,
+                  "head_ir": 6367733.25,
+                  "input_chars": 11118.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9930139524460816,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 27173684.5,
+                  "head_ir": 27232351.25,
+                  "input_chars": 51054.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0021589545576715,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.8521570895173876,
+              "slope_head": 0.8523217742147515,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0031107257779328,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 94.24,
+            "screen": 110.07,
+            "full": 54.57,
+            "total": 258.88
+          }
+        }
+      }
+    }
+  ]
+}

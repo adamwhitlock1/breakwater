@@ -158,3 +158,19 @@ The same ten items re-run with every untrusted run in a Token Factory Sandboxes 
 - **8/10 same verdict.** Neither difference is a backend effect: both are the adversary sampling a different plan (patterns #12's class comes from a new Ultra attack; rendercv #18's missing near-duplicate too) and the adjudicator voting differently on the same kind of evidence (rendercv #18: likely-bug 2/3 on Docker, intended 3/3 on Sandboxes, for a `TypeError` → `ValueError` change on non-string input). The headline becomes **4 of 10 change behaviour** (3 adjudicated likely-bug, 1 intended), 1 of 10 reverses on valid input, 5 of 5 generated tests verified.
 - **Ir across backends.** Docker on the development Mac is arm64; the Sandboxes microVM is x86_64 (AMD EPYC 9654, Python 3.12.13, valgrind 3.24.0), so cachegrind counts different instruction streams. The eight families measured in full on both backends agree in verdict and shape: Math-Interpreter's three families 0.0% apart, rendercv #18's `present` family 0.2%, json_repair's four complexity ladders 7.1–7.6% lower on x86_64 (393× → 363×, 172× → 160×, 4.03× → 3.73×, 3.66× → 3.39×). See `decisions.md` 2026-10-24.
 - Every number on the Codeflash pages now cites a Sandboxes image UUID (receipt and cards); the images are in the table `compare_backends.py` prints.
+
+## Packaging subset on Token Factory Sandboxes (v4, 2026-10-24)
+
+The eight items with known issues or measured slowdowns (#1030, #1064, #1082, 1082@61967cca, #1108, #1116, #1147, #1236) re-run with `--backend contree --perf`: `artifacts/backtest/packaging-v4-sandboxes/`, `artifacts/adjudication/packaging-v4-sandboxes/`, `artifacts/regress/packaging-v4-sandboxes/`. Token Factory inference; 23 minutes; no API retries needed. Cost **$1.12** (backtest $0.77, adjudication $0.35). The full 29-item Docker backtest (v3, perf from v2) stays the published backtest; the site shows this run as an item-by-item comparison (`site/sandboxes/`), and every page and card now says which backend and image produced it.
+
+| Arm | Verified (9), Docker v3 → Sandboxes v4 | Candidates (1 in this subset) |
+|---|---|---|
+| hypothesis | 2 → 2 | 0 |
+| mutations | 7 → 7 | 1 → 1 |
+| llm-plan | 6 → 5 (v2 had 5) | 1 → 0 |
+| **breakwater** | 9 → **9** | 1 → 1 |
+
+- **Same recall, same classes where found.** 5/8 items have the same verdict; the three that differ are adjudicator votes (#1064 likely-bug 2/3 here vs intended 3/3 on Docker, where the docstring makes intended the right label; #1236 needs-human on all six classes vs intended 4/4) and one search miss (#1082's nested-input class). None is a backend effect. The per-item table is in `roadmap-final-sprint.md`, G2'.
+- **Adjudication:** 8 of 10 found known issues labelled likely-bug (v3: 8 of 10). Miss: #1082's oversized-int exception, intended on the merged PR (needs-human on the intermediate commit). Cost $0.35.
+- **Regression tests:** 39 of 39 generated tests verified in the sandbox (pass on base, fail on head); 1 class skipped as intended.
+- **Ir across architectures:** #1064's archived family 1.10× → 1.08× (2.2%), #1030's 2.28× → 2.46× (7.9%) and its complexity regression 4.52× → 6.50× (44%; identical inputs, the regex-bound head simply costs more instructions on x86_64 and the base fewer). Same verdict on every shared family. See `decisions.md` 2026-10-24.

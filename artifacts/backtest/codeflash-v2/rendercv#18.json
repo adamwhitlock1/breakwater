@@ -1,0 +1,761 @@
+{
+  "id": "rendercv#18",
+  "pr": 18,
+  "title": "⚡️ Speed up function `validate_date_field` by 47%",
+  "base": "9ec5e7bd90913bce5b157e34b11a6e797fe57164",
+  "head": "d5f419015d7370b104f2e7620819df1ec0ff64ee",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "repo": "https://github.com/IanHollow/rendercv",
+  "install": {
+    "exclude_newer": "2026-08-11"
+  },
+  "targets": [
+    {
+      "target": "rendercv.data.models.computers:get_date_object",
+      "run_id": "bt-rendercv#18-9197ee",
+      "image": "54410864-aefc-4bb1-bbeb-5b5c15c9eda6",
+      "backend": "contree",
+      "usd": 0.0622,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 13.4,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.8,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested"
+          ],
+          "known": [],
+          "seconds": 49.8,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.6,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              [
+                "!!!!"
+              ]
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "found_by": [
+            "A1/s2",
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "F6",
+            "family": "The literal string \"present\"",
+            "verdict": "slower",
+            "ladder": [
+              1.104327506134762,
+              1.105942425781514,
+              1.1108399529368673,
+              1.1072494580227126,
+              1.1072290345741593,
+              1.1072326692748182,
+              1.1072253381090982
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "R1",
+            "family": "present_string",
+            "verdict": "slower",
+            "ladder": [
+              1.104421315125742,
+              1.1059736266928542,
+              1.1108652617335306,
+              1.1072605156683655,
+              1.1072856408346339,
+              1.1072401786405646,
+              1.107228833732626
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "F5",
+            "family": "present-string",
+            "verdict": "slower",
+            "ladder": [
+              1.1044004825607783,
+              1.105945986490329,
+              1.1108008733275014,
+              1.1072326259298082,
+              1.1072217723380606,
+              1.1072474141036113,
+              1.107249062828535
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F4",
+            "family": "present_literal",
+            "verdict": "slower",
+            "ladder": [
+              1.104441735280664,
+              1.105953159371775,
+              1.1108723236337363,
+              1.1072444303641191,
+              1.1072623530942078,
+              1.1072200320019574,
+              1.107253803899394
+            ],
+            "origin": "plan"
+          }
+        ],
+        "worst_valid_ratio": 1.1108723236337363,
+        "worst_family": "present_literal",
+        "speedup_ratio_small": 0.6407489010615026,
+        "report": {
+          "run_id": "bt-rendercv#18-9197ee",
+          "target": "rendercv.data.models.computers:get_date_object",
+          "image": "54410864-aefc-4bb1-bbeb-5b5c15c9eda6",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "valid_iso_dates",
+              "why": "The rewrite removes compiled regular‑expression objects and replaces them with cheap length / character checks. For well‑formed ISO dates (YYYY‑MM‑DD, YYYY‑MM, YYYY) the new code avoids the regex engine entirely, so the change is intended to accelerate this family.",
+              "size_meaning": "n = number of distinct valid dates",
+              "make_source": "def make(n):\n    # produce n distinct valid YYYY‑MM‑DD dates, e.g. 2000‑01‑01, 2001‑01‑01 …\n    return [[f\"{2000+i:04d}-01-01\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "2000-01-01"
+                ],
+                [
+                  "2001-01-01"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6424007259085833,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "valid-full-date",
+              "why": "The change removes regex matching for the common YYYY‑MM‑DD path; the old version runs three compiled‑regex fullmatches before hitting the YYYY‑MM‑DD branch, while the new version uses cheap length / index checks.",
+              "size_meaning": "n different full‑date strings (year varies, month/day fixed)",
+              "make_source": "\ndef make(n):\n    # generate n distinct valid YYYY-MM-DD strings, e.g. 2000-01-01, 2001-01-01, …\n    years = (f\"{2000+i:04d}-01-01\" for i in range(n))\n    return [[y] for y in itertools.islice(years, n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.6423101166340122,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "ISO full dates (YYYY-MM-DD)",
+              "why": "The new code uses simple length and character checks instead of three pre‑compiled regex fullmatches. For well‑formed ISO dates the fast path is a single `len` test and two index checks, which is cheaper than the regex engine.",
+              "size_meaning": "Number of dates supplied; each call processes one date.",
+              "make_source": "def make(n):\n    # generate n distinct valid YYYY‑MM‑DD dates\n    base = 2000\n    dates = []\n    for i in range(n):\n        year = base + (i % 100)\n        month = (i % 12) + 1\n        day = (i % 28) + 1\n        dates.append([f\"{year:04d}-{month:02d}-{day:02d}\"])\n    return dates",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.6422891505593947,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "present_literal",
+              "why": "In the original version the literal string \"present\" was tested *before* any regex match, so it returned immediately. The new version first checks the length‑10, length‑7 and length‑4 patterns, then finally tests `date == \"present\"`. Each call therefore performs three cheap length/index checks that the old code skipped.",
+              "size_meaning": "n = number of repetitions of the literal \"present\"",
+              "make_source": "def make(n):\n    return [[\"present\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "present"
+                ],
+                [
+                  "present"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.1108182414181655,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "present-string",
+              "why": "In the new code the literal \"present\" is tested *after* the three length‑/index‑checks (len==10, len==7, len==4). The old version checked `date == \"present\"` immediately after the integer case, so the new version does extra Python work for every \"present\" input.",
+              "size_meaning": "n repetitions of the literal \"present\" (cost grows linearly with n calls)",
+              "make_source": "\ndef make(n):\n    return [[\"present\"] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.110830555322604,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "The literal string \"present\"",
+              "why": "In the original version the `date == \"present\"` test was performed *before* any regex work, so it returned immediately. The new version first evaluates three `len`/index checks and a full `str.isdigit()` scan (7 characters) before reaching the equality test, adding overhead for this valid input.",
+              "size_meaning": "Number of repetitions; each call processes the same literal.",
+              "make_source": "def make(n):\n    return [[\"present\"] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.1108862711908818,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "present_string",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "size_meaning": "Number of calls (each call receives the same \"present\" argument).",
+              "make_source": "def make(n):\n    # Return n calls each with the string \"present\"\n    return [[\"present\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "present"
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 1.1108526167919468,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6.1",
+              "kind": "suspected_slowdown",
+              "family": "Literal 'past'",
+              "why": "In the original version the `date == \"present\"` test was performed *before* any regex work, so it returned immediately. The new version first evaluates three `len`/index checks and a full `str.isdigit()` scan (7 characters) before reaching the equality test, adding overhead for this valid input.",
+              "size_meaning": "Number of repetitions; each call processes the same literal.",
+              "make_source": "def make(n):\n    return [[\"2024-05-01\"] for _ in range(n)]",
+              "example_args": [],
+              "origin": "expand:F6",
+              "screen_ratio": 0.6422466760725388,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6.2",
+              "kind": "suspected_slowdown",
+              "family": "Future date",
+              "why": "In the original version the `date == \"present\"` test was performed *before* any regex work, so it returned immediately. The new version first evaluates three `len`/index checks and a full `str.isdigit()` scan (7 characters) before reaching the equality test, adding overhead for this valid input.",
+              "size_meaning": "Number of repetitions; each call processes the same literal.",
+              "make_source": "def make(n):\n    return [[\"2099-12-31\"] for _ in range(n)]",
+              "example_args": [],
+              "origin": "expand:F6",
+              "screen_ratio": 0.6422836019224843,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6.3",
+              "kind": "suspected_slowdown",
+              "family": "Mid-range year",
+              "why": "In the original version the `date == \"present\"` test was performed *before* any regex work, so it returned immediately. The new version first evaluates three `len`/index checks and a full `str.isdigit()` scan (7 characters) before reaching the equality test, adding overhead for this valid input.",
+              "size_meaning": "Number of repetitions; each call processes the same literal.",
+              "make_source": "def make(n):\n    return [[\"2050-06-15\"] for _ in range(n)]}]}, null]}], ",
+              "example_args": [],
+              "origin": "expand:F6",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: unmatched '}' (line 3)"
+            },
+            {
+              "id": "R1.1",
+              "kind": "suspected_slowdown",
+              "family": "empty",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "size_meaning": "Number of calls (each call receives the same \"present\" argument).",
+              "make_source": "def make(n):\n    \"\"\"Return n calls with empty string.\"\"\"\n    return [[\"\"] for _ in range(n)]}, {",
+              "example_args": [
+                [
+                  "present"
+                ]
+              ],
+              "origin": "expand:R1",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: unmatched '}' (line 4)"
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "The literal string \"present\"",
+              "why": "In the original version the `date == \"present\"` test was performed *before* any regex work, so it returned immediately. The new version first evaluates three `len`/index checks and a full `str.isdigit()` scan (7 characters) before reaching the equality test, adding overhead for this valid input.",
+              "origin": "plan",
+              "screen_ratio": 1.1108862711908818,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 12242.7325,
+                  "head_ir": 13519.98625,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.104327506134762,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 12065.621875,
+                  "head_ir": 13343.883125,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.105942425781514,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 11951.477213541666,
+                  "head_ir": 13276.178385416666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1108399529368673,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 11909.63671875,
+                  "head_ir": 13186.938802083334,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072494580227126,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 11909.795247395834,
+                  "head_ir": 13186.87109375,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072290345741593,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 11909.859049479166,
+                  "head_ir": 13186.985026041666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072326692748182,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 11909.9052734375,
+                  "head_ir": 13186.948893229166,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072253381090982,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.1108399529368673,
+              "worst_search": null
+            },
+            {
+              "family_id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "present_string",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "origin": "archive",
+              "screen_ratio": 1.1108526167919468,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 12242.87875,
+                  "head_ir": 13521.29625,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.104421315125742,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 12065.51375,
+                  "head_ir": 13344.14,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1059736266928542,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 11951.315104166666,
+                  "head_ir": 13276.30078125,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1108652617335306,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 11909.7685546875,
+                  "head_ir": 13187.216471354166,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072605156683655,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 11909.525065104166,
+                  "head_ir": 13187.24609375,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072856408346339,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 11909.753580729166,
+                  "head_ir": 13186.957682291666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072401786405646,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 11909.896484375,
+                  "head_ir": 13186.980794270834,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.107228833732626,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.1108652617335306,
+              "worst_search": null
+            },
+            {
+              "family_id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "present-string",
+              "why": "In the new code the literal \"present\" is tested *after* the three length‑/index‑checks (len==10, len==7, len==4). The old version checked `date == \"present\"` immediately after the integer case, so the new version does extra Python work for every \"present\" input.",
+              "origin": "plan",
+              "screen_ratio": 1.110830555322604,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 12241.98125,
+                  "head_ir": 13520.05,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1044004825607783,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 12065.523125,
+                  "head_ir": 13343.816875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.105945986490329,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 11951.564778645834,
+                  "head_ir": 13275.80859375,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1108008733275014,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 11909.781901041666,
+                  "head_ir": 13186.899088541666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072326259298082,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 11909.89453125,
+                  "head_ir": 13186.89453125,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072217723380606,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 11909.617838541666,
+                  "head_ir": 13186.8935546875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072474141036113,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 11909.729166666666,
+                  "head_ir": 13187.036458333334,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.107249062828535,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.1108008733275014,
+              "worst_search": null
+            },
+            {
+              "family_id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "present_literal",
+              "why": "In the original version the literal string \"present\" was tested *before* any regex match, so it returned immediately. The new version first checks the length‑10, length‑7 and length‑4 patterns, then finally tests `date == \"present\"`. Each call therefore performs three cheap length/index checks that the old code skipped.",
+              "origin": "plan",
+              "screen_ratio": 1.1108182414181655,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 12242.4,
+                  "head_ir": 13521.0175,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.104441735280664,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 12065.620625,
+                  "head_ir": 13344.01125,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.105953159371775,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 11951.082356770834,
+                  "head_ir": 13276.126627604166,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1108723236337363,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 11909.800455729166,
+                  "head_ir": 13187.060221354166,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072444303641191,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 11909.543294270834,
+                  "head_ir": 13186.988932291666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072623530942078,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 11909.875325520834,
+                  "head_ir": 13186.8525390625,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1072200320019574,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 11909.63671875,
+                  "head_ir": 13186.990559895834,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.107253803899394,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.1108723236337363,
+              "worst_search": null
+            },
+            {
+              "family_id": "F3",
+              "kind": "claimed_speedup",
+              "family": "ISO full dates (YYYY-MM-DD)",
+              "why": "The new code uses simple length and character checks instead of three pre‑compiled regex fullmatches. For well‑formed ISO dates the fast path is a single `len` test and two index checks, which is cheaper than the regex engine.",
+              "origin": "plan",
+              "screen_ratio": 0.6422891505593947,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 6356.20125,
+                  "head_ir": 4199.215,
+                  "input_chars": 14.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6606485280811397,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 6190.17375,
+                  "head_ir": 4033.408125,
+                  "input_chars": 14.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6515823768274679,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 6030.602163461538,
+                  "head_ir": 3873.422275641026,
+                  "input_chars": 14.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6422944460023374,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 6004.7874177631575,
+                  "head_ir": 3848.1792763157896,
+                  "input_chars": 14.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6408518751108885,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 6004.90625,
+                  "head_ir": 3847.6916118421054,
+                  "input_chars": 14.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6407579821653511,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 6005.108963815789,
+                  "head_ir": 3847.8129111842104,
+                  "input_chars": 14.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6407565515246235,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 6004.785361842105,
+                  "head_ir": 3847.5596217105262,
+                  "input_chars": 14.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6407489010615026,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [
+                {
+                  "args": [
+                    "4237594594"
+                  ],
+                  "cpu_ratio": 0.593,
+                  "base_ir": 11526.0625,
+                  "head_ir": 6665.0725,
+                  "ir_ratio": 0.57826100630636,
+                  "outcome": "exc:builtins.ValueError"
+                },
+                {
+                  "args": [
+                    "1045093214"
+                  ],
+                  "cpu_ratio": 0.593,
+                  "base_ir": 11526.6425,
+                  "head_ir": 6666.6775,
+                  "ir_ratio": 0.5783711518770536,
+                  "outcome": "exc:builtins.ValueError"
+                }
+              ],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.6606485280811397,
+              "worst_search": {
+                "args": [
+                  "1045093214"
+                ],
+                "cpu_ratio": 0.593,
+                "base_ir": 11526.6425,
+                "head_ir": 6666.6775,
+                "ir_ratio": 0.5783711518770536,
+                "outcome": "exc:builtins.ValueError"
+              }
+            }
+          ],
+          "seconds": {
+            "plan": 12.73,
+            "screen": 497.28,
+            "full": 752.98,
+            "total": 1262.98
+          }
+        }
+      }
+    }
+  ]
+}

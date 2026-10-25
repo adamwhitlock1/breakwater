@@ -8,9 +8,10 @@ Every line: {"seq": n, "t": seconds since start, "kind": "...", ...}. Kinds:
   run           repo, base, head, target, title, provider, run_id
   phase         name (plan, generate, search, batch, adjudicate, perf-plan, perf-screen,
                 perf-expand, perf-full, report)
+  image         backend, image (PairImage.ref: Docker tag or Sandboxes image UUID), tag
   llm-start     tier, purpose, requests (in flight until that many llm events; the page shows "thinking")
   llm           tier, model, purpose, tokens_in/out, reasoning_tokens, usd, latency_ms, ok
-  sandbox       state (start|end), in_flight, runs, cpu_s, exit_code, ms
+  sandbox       state (start|end), in_flight, runs, cpu_s, usd (Sandboxes cost so far), exit_code, ms
   plan          attacks: [{id, assumption, why_it_breaks, input_family, examples}]
   strategies    jobs: [{id, attack, valid, error, source}]
   strategy      id, examples, findings, error
@@ -80,6 +81,7 @@ class ObservedBackend:
         self._lock = threading.Lock()
         self.in_flight = self.runs = 0
         self.cpu_s = 0.0
+        self.cost_usd = 0.0  # Sandboxes report a per-run cost (free during beta); Docker has none
 
     def __getattr__(self, item: str) -> Any:
         return getattr(self.inner, item)
@@ -96,8 +98,14 @@ class ObservedBackend:
         finally:
             with self._lock:
                 self.in_flight -= 1
-                cpu = getattr(getattr(res, "resources", None), "user_cpu_s", None) or 0.0
-                self.cpu_s += cpu
+                resources = getattr(res, "resources", None)
+                self.cpu_s += getattr(resources, "user_cpu_s", None) or 0.0
+                self.cost_usd += getattr(resources, "cost_usd", None) or 0.0
                 self.events("sandbox", state="end", in_flight=self.in_flight, runs=self.runs,
-                            cpu_s=round(self.cpu_s, 2), exit_code=getattr(res, "exit_code", None),
-                            ms=getattr(res, "duration_ms", None))
+                            cpu_s=round(self.cpu_s, 2), usd=round(self.cost_usd, 6),
+                            exit_code=getattr(res, "exit_code", None), ms=getattr(res, "duration_ms", None))
+
+    def summary(self, image: str | None = None) -> dict:
+        """What the receipt shows: backend, runs, CPU and Sandboxes cost (None on Docker)."""
+        return {"backend": self.name, "image": image, "runs": self.runs, "cpu_s": round(self.cpu_s, 2),
+                "cost_usd": round(self.cost_usd, 6) if self.name == "contree" else None}

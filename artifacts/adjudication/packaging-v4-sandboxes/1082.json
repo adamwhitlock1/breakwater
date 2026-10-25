@@ -1,0 +1,56 @@
+{
+  "id": "#1082",
+  "pr": 1082,
+  "title": "perf: Add fast path for parsing simple versions (digits and dots only)",
+  "merged": "2026-02-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "oversized-int-exception",
+      "match": {
+        "probe": "P2",
+        "traits": "long-digits"
+      },
+      "fixed_by": 1155,
+      "status": "verified"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "cdd80561-4ef0-4ca1-b645-b13306e326c6",
+      "backend": "contree",
+      "run_id": "adj-1082-0ac210",
+      "samples": 3,
+      "usd": 0.0181,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "The PR adds a fast‑path for versions that contain only digits and dots. In that path it explicitly catches a `ValueError` from `int()` conversion and re‑raises it as `packaging.version.InvalidVersion`. This makes the exception type more specific and matches the library’s own error hierarchy, so the new behavior is deliberate.",
+          "evidence": [
+            "if _SIMPLE_VERSION_INDICATORS.issuperset(version):",
+            "                self._release = tuple(map(int, version.split('.')))",
+            "        if _SIMPLE_VERSION_INDICATORS.issuperset(version):",
+            "            except ValueError:        raise InvalidVersion(f'Invalid version: {version!r}') from None"
+          ],
+          "rejected": [
+            "            try:",
+            "            try:",
+            "                self._release = tuple(map(int, version.split('.')))  # fast path parse  # noqa: E501  # pragma: no cover  # ... (truncated for brevity)  # Actually quoting exact lines:  # except ValueError:  #     raise InvalidVersion(f'Invalid version: {version!r}') from None",
+            "            try:"
+          ],
+          "reason": "",
+          "known": [
+            "oversized-int-exception"
+          ],
+          "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4309 chars): base raises builtins.ValueError, head raises packaging.version.InvalidVersion. (packaging.version.InvalidVersion is a subclass of builtins.ValueError.)"
+        }
+      ]
+    }
+  ]
+}

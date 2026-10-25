@@ -123,7 +123,8 @@ def run_target(item: dict, tgt: dict, repo: str, backend: Backend, *, arms: tupl
     target = Target(tgt["callable"], tuple(tgt["observe"]))
     arg_kinds = tgt.get("arg_kinds", ["str"])
     ctx = gather(repo, item["base"], item["head"], tgt["callable"])
-    image = build_pair(req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install")))
+    image = build_pair(req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install")),
+                       backend=backend)
     results: dict[str, ArmResult] = {}
 
     def timed(name: str, fn) -> None:
@@ -186,7 +187,8 @@ def run_target(item: dict, tgt: dict, repo: str, backend: Backend, *, arms: tupl
     usd = sum(t["usd"] for t in ledger.summarize(run_id=run_id).values())
     full_rep = full.get("report")
     out = {
-        "target": tgt["callable"], "run_id": run_id, "image": image.ref, "usd": round(usd, 4), "harvested": len(lits),
+        "target": tgt["callable"], "run_id": run_id, "image": image.ref, "backend": backend.name, "usd": round(usd, 4),
+        "harvested": len(lits),
         "arms": {k: vars(v) for k, v in results.items()},
         "findings": [vars(f) for f in full_rep.findings] if full_rep else [],
         "perf": perf_summary,
@@ -225,7 +227,7 @@ def run(corpus_path: str, backend: Backend, *, only: list[str] | None, arms: tup
     provider = active_provider().value
     summary["provider"] = provider
     (out_dir / "results.json").write_text(json.dumps({"corpus": corpus_path, "arms": arms, "provider": provider,
-                                                       "items": results, "summary": summary},
+                                                       "backend": backend.name, "items": results, "summary": summary},
                                                       indent=2, ensure_ascii=False, default=str))
     (out_dir / "table.md").write_text(render(results, arms, summary))
     return summary
@@ -300,7 +302,7 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
     Facts are re-derived in the sandbox from the recorded image (exception relations); the model
     sees the PR as a reviewer would at merge time, never the known-issue list."""
     from breakwater import adjudicate as adj
-    from breakwater.images import PairImage, _exists
+    from breakwater.images import PairImage, image_exists
     from breakwater.repo import intent_diff
 
     meta = json.loads((src_dir / "results.json").read_text())
@@ -321,7 +323,8 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
             repo = item.get("repo", corpus_repo)
             ctx = gather(repo, item["base"], item["head"], t["target"])
             base_req, head_req = req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install"))
-            image = PairImage(t["image"], base_req, head_req) if _exists(t["image"]) else build_pair(base_req, head_req)
+            image = (PairImage(t["image"], base_req, head_req) if image_exists(t["image"], backend)
+                     else build_pair(base_req, head_req, backend=backend))
             mros = adj.exception_facts(backend, image, findings)
             res = adj.adjudicate(llm, ctx, findings, title=item["title"],
                                  intent=intent_diff(repo, item["base"], item["head"]), mros=mros)
@@ -331,7 +334,8 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
                 rows.append({**vars(v), "known": [k["id"] for k in item["known"] if matches(v.signature, k["match"])],
                              "facts": adj.describe(f, mros)})
             usd = sum(x["usd"] for x in ledger.summarize(run_id=run_id).values())
-            targets.append({"target": t["target"], "image": image.ref, "run_id": run_id, "samples": res.samples,
+            targets.append({"target": t["target"], "image": image.ref, "backend": backend.name, "run_id": run_id,
+                            "samples": res.samples,
                             "usd": round(usd, 4), "verdicts": rows})
             log(f"{item['id']:>15s} {t['target'].split(':')[1]:22s} {res.counts()} ${usd:.3f}")
         res_item = {**{k: item[k] for k in ("id", "pr", "title", "merged", "after_ultra_release", "known")},
@@ -348,7 +352,8 @@ def adjudicate_run(src_dir: Path, backend: Backend, *, only: list[str] | None, o
     summary = score_adjudication(results)
     summary["provider"] = provider
     (out_dir / "adjudication.json").write_text(json.dumps({"source": str(src_dir), "provider": provider,
-                                                           "summary": summary, "items": results},
+                                                           "backend": backend.name, "summary": summary,
+                                                           "items": results},
                                                           indent=2, ensure_ascii=False))
     (out_dir / "adjudication.md").write_text(render_adjudication(results, summary))
     return summary
@@ -430,7 +435,7 @@ def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, o
     """One pytest per finding class of the breakwater arm, verified in the sandbox (passes on base,
     fails on head). No model calls. Writes <item>.json and test_<item>.py (verified tests only)."""
     from breakwater import regress
-    from breakwater.images import PairImage, _exists
+    from breakwater.images import PairImage, image_exists
 
     meta = json.loads((src_dir / "results.json").read_text())
     corpus_repo = json.loads(Path(meta["corpus"]).read_text()).get("repo")
@@ -450,11 +455,13 @@ def regress_run(src_dir: Path, adjudication: Path | None, backend: Backend, *, o
                 continue
             repo = item.get("repo", corpus_repo)
             base_req, head_req = req_for(repo, item["base"], item.get("install")), req_for(repo, item["head"], item.get("install"))
-            image = PairImage(t["image"], base_req, head_req) if _exists(t["image"]) else build_pair(base_req, head_req)
+            image = (PairImage(t["image"], base_req, head_req) if image_exists(t["image"], backend)
+                     else build_pair(base_req, head_req, backend=backend))
             findings = [adversary.Finding(**f) for f in t["findings"]]
             tests = regress.for_findings(backend, image, t["target"], findings, item=slug,
                                          labels=labels.get((item["id"], t["target"])))
-            targets.append({"target": t["target"], "image": image.ref, "tests": [x.to_json() for x in tests]})
+            targets.append({"target": t["target"], "image": image.ref, "backend": backend.name,
+                            "tests": [x.to_json() for x in tests]})
             log(f"{item['id']:>15s} {t['target'].split(':')[1]:22s} {sum(x.verified for x in tests)}/{len(tests)} verified")
         res = {"id": item["id"], "pr": item["pr"], "targets": targets}
         (out_dir / f"{slug}.json").write_text(json.dumps(res, indent=2, ensure_ascii=False))

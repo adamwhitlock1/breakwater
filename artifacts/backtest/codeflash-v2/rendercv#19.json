@@ -1,0 +1,280 @@
+{
+  "id": "rendercv#19",
+  "pr": 19,
+  "title": "⚡️ Speed up function `validate_start_and_end_date_fields` by 34%",
+  "base": "7f7abe4ebf939e25ebac92b9d1d43f226e80b373",
+  "head": "9ec5e7bd90913bce5b157e34b11a6e797fe57164",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "repo": "https://github.com/IanHollow/rendercv",
+  "install": {
+    "exclude_newer": "2026-08-11"
+  },
+  "targets": [
+    {
+      "target": "rendercv.data.models.computers:get_date_object",
+      "run_id": "bt-rendercv#19-592e6c",
+      "image": "5d1921f3-ef7b-4ff5-9028-f41aa6b1263d",
+      "backend": "contree",
+      "usd": 0.1345,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 13.3,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 60.4,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.4595458046346701,
+        "report": {
+          "run_id": "bt-rendercv#19-592e6c",
+          "target": "rendercv.data.models.computers:get_date_object",
+          "image": "5d1921f3-ef7b-4ff5-9028-f41aa6b1263d",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "present-strings",
+              "why": "The new version checks for the literal string \"present\" before any regex matching, turning a three‑regex‑miss path into a single cheap equality test.",
+              "size_meaning": "Number of calls (each call passes the same \"present\" value).",
+              "make_source": "def make(n):\n    return [[\"present\"] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.46382724575039547,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Well‑formed YYYY‑MM‑DD dates (e.g. \"2023-07-15\")",
+              "why": "The new code uses pre‑compiled regex objects (_YMD_PATTERN, _YM_PATTERN, _Y_PATTERN) instead of compiling the patterns on every call with `re.fullmatch`. This removes the per‑call compilation overhead and makes the fast path noticeably quicker.",
+              "size_meaning": "Number of generated date strings; each string is a separate call to `get_date_object`.",
+              "make_source": "\ndef make(n):\n    # generate n distinct YYYY-MM-DD strings\n    base_year = 2000\n    return [[f\"{base_year + i:04d}-01-01\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "2023-01-01"
+                ],
+                [
+                  "2024-02-02"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6830554884651924,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "Valid full dates (YYYY‑MM‑DD) – the new pre‑compiled regex should be faster than the old inline patterns.",
+              "why": "The head version compiles the three patterns once at import time and checks them with the fast `fullmatch` method, while the base version recompiles the same patterns on every call. For a batch of valid YMD strings the head path avoids repeated compilation overhead.",
+              "size_meaning": "n = number of calls (1‑8). Cost grows linearly with n because each call parses a date.",
+              "make_source": "def make(n):\n    \"\"\"Return up to 8 calls with distinct valid YMD dates.\"\"\"\n    n = max(1, min(n, 8))\n    return [[f\"{2000 + i}-01-01\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "2000-01-01"
+                ],
+                [
+                  "2001-01-01"
+                ],
+                [
+                  "2002-01-01"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6972501248675455,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "year-only-strings",
+              "why": "In the old code a \"YYYY\" string matched the fourth condition (re.fullmatch(r\"\\\\d{4}\", date)). The new code evaluates three extra cheap branches (int, \"present\", YMD, YM) before reaching the compiled YYYY pattern, adding constant overhead per call.",
+              "size_meaning": "Number of distinct year strings processed.",
+              "make_source": "def make(n):\n    base = 2000\n    return [[str(base + i)] for i in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.5295285807468356,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "claimed_speedup",
+              "family": "Well‑formed YYYY‑MM dates (e.g. \"2023-07\")",
+              "why": "Same reason as the YYYY‑MM‑DD case – the compiled `_YM_PATTERN` avoids per‑call regex compilation.",
+              "size_meaning": "Number of generated YYYY‑MM strings.",
+              "make_source": "def make(n):\n    base_year = 2000\n    return [[f\"{base_year + i:04d}-01\"] for i in range(n)]",
+              "example_args": [
+                [
+                  "2023-01"
+                ],
+                [
+                  "2024-02"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.598387389341889,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "Invalid long strings – both versions must try all three regexes before raising ValueError, so the head version does not gain any advantage and pays the same three full‑match scans.",
+              "why": "The change only reorders the checks and pre‑compiles the patterns. For inputs that match none of the patterns (e.g. a long run of ‘x’ characters) the function still executes three `fullmatch` calls on a string of length n. The extra early `date == \"present\"` equality test is O(1) and does not offset the three scans.",
+              "size_meaning": "n = length of the bogus string. Cost grows with n because each regex scans the whole string.",
+              "make_source": "def make(n):\n    \"\"\"Return a single call with an invalid string of length n.\"\"\"\n    n = max(1, n)\n    return [[\"x\" * n]]",
+              "example_args": [
+                [
+                  "xxxxxxxx"
+                ],
+                [
+                  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5542066228255721,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "present_string",
+              "why": "The new version checks three length‑based branches before testing `date == \"present\"`. The old version tested the literal string first, so the \"present\" case now does extra work.",
+              "size_meaning": "Number of calls (each call receives the same \"present\" argument).",
+              "make_source": "def make(n):\n    # Return n calls each with the string \"present\"\n    return [[\"present\"] for _ in range(n)]",
+              "example_args": [
+                [
+                  "present"
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 0.46383058998638066,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F1",
+              "kind": "claimed_speedup",
+              "family": "present-strings",
+              "why": "The new version checks for the literal string \"present\" before any regex matching, turning a three‑regex‑miss path into a single cheap equality test.",
+              "origin": "plan",
+              "screen_ratio": 0.46382724575039547,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 26247.85375,
+                  "head_ir": 12242.20625,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.46640789630275964,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 26071.800625,
+                  "head_ir": 12065.9,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4627950394968165,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 25852.288736979168,
+                  "head_ir": 11991.164388020834,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4638337638117374,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 25916.229817708332,
+                  "head_ir": 11909.9990234375,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4595575478073397,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 25916.156575520832,
+                  "head_ir": 11909.768229166666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.45954994115200193,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 25916.212565104168,
+                  "head_ir": 11909.699869791666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.45954631062981466,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 25916.2666015625,
+                  "head_ir": 11909.711588541666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.4595458046346701,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.46640789630275964,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 10.45,
+            "screen": 326.18,
+            "full": 249.2,
+            "total": 585.84
+          }
+        }
+      }
+    }
+  ]
+}

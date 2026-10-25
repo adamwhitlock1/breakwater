@@ -1,0 +1,12 @@
+{
+  "source": "artifacts/backtest/codeflash-v2",
+  "summary": {
+    "classes": 6,
+    "generated": 5,
+    "verified": 5,
+    "unverified": [],
+    "skipped": {
+      "adjudicated intended": 1
+    }
+  }
+}

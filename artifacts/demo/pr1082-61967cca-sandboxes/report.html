@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>perf: fast path for simple versions (intermediate commit 61967cca) · Breakwater audit</title>
+<meta name="description" content="Breakwater audit of packaging.version:Version: BLOCK">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="https://github.com/adamwhitlock1/breakwater"><span class="mark" aria-hidden="true"></span>Breakwater</a>
+  <nav><a href="https://github.com/adamwhitlock1/breakwater">Code</a></nav>
+</header>
+<main>
+
+
+<section class="pr-head">
+  <p class="eyebrow">Breakwater audit · tokenfactory</p>
+  <h1>perf: fast path for simple versions (intermediate commit 61967cca)</h1>
+  <p class="meta"><a href="https://github.com/pypa/packaging">pypa/packaging</a> ·
+  base <a href="https://github.com/pypa/packaging/commit/59f183fe90da"><code>59f183fe90</code></a> →
+  head <a href="https://github.com/pypa/packaging/commit/61967cca278d"><code>61967cca27</code></a> · target <code>packaging.version:Version</code></p>
+  <div class="verdict-box block"><span class="verdict block">BLOCK</span><p>At least one behaviour change looks like an unintended regression.</p></div>
+</section>
+<section><h2>Ultra's plan <small class="muted">· 5 attacks</small></h2><p class="section-lede">Nemotron 3 Ultra read the diff and named the assumptions the change makes. Nothing here is trusted: each attack only counts through the counterexamples below.</p><ol class="attacks"><li><div class="attack-head"><code>A1</code><strong>The fast‑path guard assumes that a version lacking the indicator characters contains only ASCII digits and dots, so it splits on &#x27;.&#x27; and feeds each piece to int().</strong></div><p>base: The old __init__ falls through to the full regex (self._regex.fullmatch). The pattern does not allow whitespace between the dot and the digits, so the match fails and InvalidVersion is raised.; head: The fast‑path executes: version.strip().split(&#x27;.&#x27;) yields pieces like &#x27;1 &#x27; and &#x27;2&#x27;; int() accepts the surrounding whitespace, so a Version object is created with release=(1, 2).</p><p class="muted small">Inputs: versions with spaces adjacent to the dot separator · e.g. <code class="bidi">Version(&quot;1 .2&quot;), Version(&quot;1. 2&quot;)</code> · Lightning strategies: 3/4 valid, 2 hits</p></li><li><div class="attack-head"><code>A2</code><strong>The fast‑path guard assumes that any string lacking the indicator characters consists only of ASCII digits and dots, so int() will only ever see ASCII digits.</strong></div><p>base: `Version(&quot;１.２&quot;)` falls through to the regex path; `VERSION_PATTERN` uses `[0-9]` which matches only ASCII digits, so the fullmatch fails and `InvalidVersion` is raised.; head: The fast‑path is taken, `version.strip().split(&quot;.&quot;)` yields `[&quot;１&quot;, &quot;２&quot;]`; `int()` accepts Unicode decimal digits, producing `(1, 2)`. A `Version` instance is created with `release=(1, 2)` and no exception.</p><p class="muted small">Inputs: PEP‑440‑like release segment written with non‑ASCII decimal digits · e.g. <code class="bidi">Version(&quot;１.２&quot;)</code> · Lightning strategies: 3/4 valid, 1 hits</p></li><li><div class="attack-head"><code>A3</code><strong>The fast‑path assumes `int()` only accepts ASCII decimal digits; it treats any string without the indicator characters as a simple numeric version.</strong></div><p>base: The regex `VERSION_PATTERN` only matches ASCII `[0-9]` in the release segment, so `Version(&quot;١.٢.٣&quot;)` raises `InvalidVersion`.; head: The fast‑path runs `version.strip().split(&#x27;.&#x27;)` and `map(int, …)`. `int()` accepts Unicode decimal digits, so the version is accepted and normalized to `(1, 2, 3)`.</p><p class="muted small">Inputs: non‑ASCII decimal digits (Arabic‑Indic) · e.g. <code class="bidi">Version(&quot;١.٢.٣&quot;)</code> · Lightning strategies: 3/4 valid, 2 hits</p></li><li><div class="attack-head"><code>A4</code><strong>The fast‑path guard assumes that a version without indicator characters consists solely of ASCII decimal digits, but int() also accepts any Unicode decimal digit.</strong></div><p>base: The regex uses [0-9] for the release segment, which matches only ASCII digits; the fullmatch fails and InvalidVersion is raised.; head: The fast‑path splits on &#x27;.&#x27; and calls int() on each segment; int() accepts full‑width digits (e.g. U+FF11), so a Version object is created with release=(1, 2).</p><p class="muted small">Inputs: versions written with non‑ASCII decimal digits · e.g. <code class="bidi">Version(&quot;１.２&quot;), Version(&quot;１２３.４５６&quot;)</code> · Lightning strategies: 2/4 valid, 0 hits</p></li><li><div class="attack-head"><code>A5</code><strong>The fast‑path guard assumes that a string without indicator characters contains no whitespace inside the release segment.</strong></div><p>base: Regex `\s*` only permits leading/trailing whitespace; the pattern for `release` (`[0-9]+(?:\.[0-9]+)*`) does not allow a space between a digit and a dot, so `fullmatch` fails and `InvalidVersion` is raised.; head: Fast‑path executes; `strip()` removes only leading/trailing whitespace, `split(&quot;.&quot;)` gives `[&quot;1 &quot;, &quot;2&quot;]`; `int(&quot;1 &quot;)` succeeds (int ignores surrounding whitespace), producing `release=(1, 2)`. A `Version` instance is returned.</p><p class="muted small">Inputs: Release segment with ASCII whitespace around the dot separator · e.g. <code class="bidi">Version(&quot;1 .2&quot;), Version(&quot;1. 2&quot;)</code> · Lightning strategies: 3/4 valid, 1 hits</p></li></ol></section>
+<section><h2>Counterexamples <small class="muted">· 5 groups of 6 classes: 4 likely bug, 2 intended</small></h2><div class="cards"><article class="card card-likely-bug">
+  <header><span class="probe">P2</span><h3>Exception behaviour changed</h3></header>
+  <div class="io"><span class="k">input</span><code>Version(&quot;0 .0&quot;)</code></div>
+  <div class="sides"><div class="side base" title="packaging.version.InvalidVersion"><span class="k">base</span>raises InvalidVersion</div>
+  <div class="side head" title=""><span class="k">head</span>returns normally</div></div>
+  
+  <div class="adj"><div class="adj-head"><span class="chip bug">Likely bug</span><span class="votes">votes: 3 likely-bug</span></div><p>The fast path accepts a version with an internal space (e.g., &#x27;0 .0&#x27;) because space is not in _NON_SIMPLE_VERSION_INDICATORS and strip() only removes leading/trailing whitespace. The base version correctly rejects it via regex. This is an unintended regression.</p><blockquote><code>if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):</code></blockquote><blockquote><code>self._release = tuple(map(int, version.strip().split(&#x27;.&#x27;)))</code></blockquote></div>
+  <p class="found">Found by: Nemotron strategy search, Ultra&#x27;s planned example, hostile mutation, search sample</p>
+  <details class="test"><summary>Regression test <span class="chip ok sm">verified</span> <span class="muted small">passes on base, fails on head</span></summary><pre><code>def test_p2_outcome_0():
+    &quot;&quot;&quot;Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).&quot;&quot;&quot;
+    import pytest
+    from packaging.version import InvalidVersion, Version
+    with pytest.raises(InvalidVersion) as excinfo:
+        Version(&#x27;0 .0&#x27;)
+    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change
+</code></pre></details>
+  <details><summary>Reproduce</summary><pre><code>uv run breakwater probe --repo https://github.com/pypa/packaging --base 59f183fe90da --head 61967cca278d --target packaging.version:Version --input &quot;0 .0&quot;</code></pre></details>
+  <details class="dups"><summary>1 near-duplicate class <span class="muted small">same behaviour, inputs with extra traits</span></summary><ul><li><code class="bidi">Version(&quot;١ .2&quot;)</code><span class="muted small"> base raises InvalidVersion · head returns normally</span> <span class="chip ok sm">test verified</span> <span class="muted small">(also under another group)</span></li></ul></details>
+</article><article class="card card-likely-bug">
+  <header><span class="probe">P2</span><h3>Exception behaviour changed</h3></header>
+  <div class="io"><span class="k">input</span><code>Version(&quot;٠&quot;)</code></div>
+  <div class="sides"><div class="side base" title="packaging.version.InvalidVersion"><span class="k">base</span>raises InvalidVersion</div>
+  <div class="side head" title=""><span class="k">head</span>returns normally</div></div>
+  
+  <div class="adj"><div class="adj-head"><span class="chip bug">Likely bug</span><span class="votes">votes: 3 likely-bug</span></div><p>The fast path accepts Arabic-Indic digits (e.g., &#x27;٠&#x27;) because they are not in the indicator set, while the base version rejects them via the ASCII-only regex. This expands accepted characters unintentionally.</p><blockquote><code>_NON_SIMPLE_VERSION_INDICATORS = frozenset(&#x27;!+-ABCDEHILOPRSTVW_abcdehiloprstvw&#x27;)</code></blockquote><blockquote><code>if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):</code></blockquote></div>
+  <p class="found">Found by: Nemotron strategy search, Ultra&#x27;s planned example, hostile mutation</p>
+  <details class="test"><summary>Regression test <span class="chip ok sm">verified</span> <span class="muted small">passes on base, fails on head</span></summary><pre><code>def test_p2_outcome_2():
+    &quot;&quot;&quot;Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).&quot;&quot;&quot;
+    import pytest
+    from packaging.version import InvalidVersion, Version
+    with pytest.raises(InvalidVersion) as excinfo:
+        Version(&#x27;٠&#x27;)
+    assert type(excinfo.value) is InvalidVersion  # exact type: a subclass would be a behaviour change
+</code></pre></details>
+  <details><summary>Reproduce</summary><pre><code>uv run breakwater probe --repo https://github.com/pypa/packaging --base 59f183fe90da --head 61967cca278d --target packaging.version:Version --input &quot;٠&quot;</code></pre></details>
+  <details class="dups"><summary>1 near-duplicate class <span class="muted small">same behaviour, inputs with extra traits</span></summary><ul><li><code class="bidi">Version(&quot;١ .2&quot;)</code><span class="muted small"> base raises InvalidVersion · head returns normally</span> <span class="chip ok sm">test verified</span> <span class="muted small">(also under another group)</span></li></ul></details>
+</article><article class="card card-likely-bug">
+  <header><span class="probe">P2</span><h3>Exception behaviour changed</h3></header>
+  <div class="io"><span class="k">input</span><code>Version([&quot;１&quot;])</code></div>
+  <div class="sides"><div class="side base" title="builtins.TypeError"><span class="k">base</span>raises TypeError</div>
+  <div class="side head" title="builtins.AttributeError"><span class="k">head</span>raises AttributeError</div></div>
+  
+  <div class="adj"><div class="adj-head"><span class="chip bug">Likely bug</span><span class="votes">votes: 2 likely-bug, 1 needs-human</span></div><p>The fast path accepts full-width digits (e.g., &#x27;１&#x27;) because they are not in the ASCII-only indicator set, but then an AttributeError occurs (likely due to incomplete initialization). The base version raises TypeError. This change in exception type and acceptance of non-ASCII digits is unintended.</p><blockquote><code>_NON_SIMPLE_VERSION_INDICATORS = frozenset(&#x27;!+-ABCDEHILOPRSTVW_abcdehiloprstvw&#x27;)</code></blockquote><blockquote><code>if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):</code></blockquote></div>
+  <p class="found">Found by: Nemotron strategy search, search sample</p>
+  <details class="test"><summary>Regression test <span class="chip ok sm">verified</span> <span class="muted small">passes on base, errors on head</span></summary><pre><code>def test_p2_outcome_1():
+    &quot;&quot;&quot;Breakwater P2: base behaviour pinned (found by differential testing; label: likely-bug).&quot;&quot;&quot;
+    import pytest
+    from packaging.version import Version
+    with pytest.raises(TypeError) as excinfo:
+        Version([&#x27;１&#x27;])
+    assert type(excinfo.value) is TypeError  # exact type: a subclass would be a behaviour change
+</code></pre></details>
+  
+  
+</article><article class="card card-intended">
+  <header><span class="probe">P2</span><h3>Exception behaviour changed</h3></header>
+  <div class="io"><span class="k">input</span><code>Version(&quot;100000000000000000000000000000000000000000…0000000000&quot; (4,301 chars))</code></div>
+  <div class="sides"><div class="side base" title="builtins.ValueError"><span class="k">base</span>raises ValueError</div>
+  <div class="side head" title="packaging.version.InvalidVersion"><span class="k">head</span>raises InvalidVersion</div></div>
+  
+  <div class="adj"><div class="adj-head"><span class="chip ok">Intended</span><span class="votes">votes: 2 intended, 1 needs-human</span></div><p>The fast path wraps ValueError from int() into InvalidVersion, matching the library&#x27;s documented exception for invalid versions. The base version let ValueError escape. This makes error handling consistent and deliberate.</p><blockquote><code>    self._release = tuple(map(int, version.strip().split(&#x27;.&#x27;)))</code></blockquote><blockquote><code>except ValueError: raise InvalidVersion(f&#x27;Invalid version: {version!r}&#x27;) from None</code></blockquote></div>
+  <p class="found">Found by: hostile mutation</p>
+  <p class="found">No regression test: adjudicated intended: no test pins the old behaviour.</p>
+  
+  
+</article><article class="card card-intended">
+  <header><span class="probe">P2</span><h3>Exception behaviour changed</h3></header>
+  <div class="io"><span class="k">input</span><code>Version(&quot;100000000000000000000000000000000000000000…0000000 .2&quot; (4,303 chars))</code></div>
+  <div class="sides"><div class="side base" title="packaging.version.InvalidVersion"><span class="k">base</span>raises InvalidVersion</div>
+  <div class="side head" title=""><span class="k">head</span>returns normally</div></div>
+  
+  <div class="adj"><div class="adj-head"><span class="chip ok">Intended</span><span class="votes">votes: 2 intended, 1 needs-human</span></div><p>The fast path is designed for all simple versions (only numbers and dots) without length limits. The base version&#x27;s regex likely hit an internal recursion/length limit, causing InvalidVersion. The new behavior correctly accepts arbitrarily long simple versions per PEP 440.</p><blockquote><code># Fast path: If a version doesn&#x27;t have one of these characters then</code></blockquote><blockquote><code># it is a simple version with just numbers and dots (e.g. 1.2.3).</code></blockquote></div>
+  <p class="found">Found by: hostile mutation</p>
+  <p class="found">No regression test: adjudicated intended: no test pins the old behaviour.</p>
+  
+  
+</article></div></section>
+<section><h2>Regression tests</h2><p class="section-lede">4 of 6 classes have a generated pytest that passed on base and failed on head in the sandbox.</p><p><a class="button" href="test_regressions.py" download>Download test_regressions.py</a></p></section>
+<section>
+  <h2>Performance <small class="muted">· Version</small></h2>
+  <p class="section-lede">Worst family with mostly valid inputs: <strong>2.74×</strong> the instructions of base (Trailing numeric sub-label added).</p>
+  
+  <figure><svg class="chart" viewBox="0 0 640 260" role="img" aria-label="Head/base instruction ratio by input size"><rect x="52" y="14" width="572" height="104.5" class="slow-zone"/><text x="618" y="28" class="zone-label" text-anchor="end">head slower</text><text x="618" y="214" class="zone-label" text-anchor="end">head faster</text><line x1="52" x2="624" y1="183.6" y2="183.6" class="grid"/><text x="46" y="187.6" class="tick" text-anchor="end">0.5×</text><line x1="52" x2="624" y1="118.5" y2="118.5" class="axis-one"/><text x="46" y="122.5" class="tick" text-anchor="end">1×</text><line x1="52" x2="624" y1="53.4" y2="53.4" class="grid"/><text x="46" y="57.4" class="tick" text-anchor="end">2×</text><line x1="70.2" x2="70.2" y1="14" y2="220" class="grid"/><text x="70.2" y="236" class="tick" text-anchor="middle">10</text><line x1="187.5" x2="187.5" y1="14" y2="220" class="grid"/><text x="187.5" y="236" class="tick" text-anchor="middle">100</text><line x1="304.8" x2="304.8" y1="14" y2="220" class="grid"/><text x="304.8" y="236" class="tick" text-anchor="middle">1,000</text><line x1="422.1" x2="422.1" y1="14" y2="220" class="grid"/><text x="422.1" y="236" class="tick" text-anchor="middle">10,000</text><line x1="539.4" x2="539.4" y1="14" y2="220" class="grid"/><text x="539.4" y="236" class="tick" text-anchor="middle">100,000</text><text x="338.0" y="256" class="axis-title" text-anchor="middle">input size (characters)</text><path d="M88.5,114.3 L113.3,111.4 L211.9,89.2 L343.9,45.7 L483.2,23.8" class="series" style="stroke:var(--c1)"><title>R4.2</title></path><circle cx="88.5" cy="114.3" r="3" style="fill:var(--c1)"><title>R4.2: 1.05× at ~14 chars</title></circle><circle cx="113.3" cy="111.4" r="3" style="fill:var(--c1)"><title>R4.2: 1.08× at ~23 chars</title></circle><circle cx="211.9" cy="89.2" r="3" style="fill:var(--c1)"><title>R4.2: 1.37× at ~161 chars</title></circle><circle cx="343.9" cy="45.7" r="3" style="fill:var(--c1)"><title>R4.2: 2.17× at ~2,153 chars</title></circle><circle cx="483.2" cy="23.8" r="3" style="fill:var(--c1)"><title>R4.2: 2.74× at ~33,161 chars</title></circle><path d="M82.2,114.5 L109.6,111.7 L211.3,90.4 L343.8,46.2 L483.2,23.8" class="series" style="stroke:var(--c2);stroke-dasharray:7 4"><title>R4.1</title></path><circle cx="82.2" cy="114.5" r="3" style="fill:var(--c2)"><title>R4.1: 1.04× at ~13 chars</title></circle><circle cx="109.6" cy="111.7" r="3" style="fill:var(--c2)"><title>R4.1: 1.07× at ~22 chars</title></circle><circle cx="211.3" cy="90.4" r="3" style="fill:var(--c2)"><title>R4.1: 1.35× at ~160 chars</title></circle><circle cx="343.8" cy="46.2" r="3" style="fill:var(--c2)"><title>R4.1: 2.16× at ~2,152 chars</title></circle><circle cx="483.2" cy="23.8" r="3" style="fill:var(--c2)"><title>R4.1: 2.74× at ~33,160 chars</title></circle><path d="M94.1,115.1 L116.9,112.7 L212.4,94.6 L343.9,54.4 L483.2,31.9 L624.0,46.4" class="series" style="stroke:var(--c3)"><title>R4</title></path><circle cx="94.1" cy="115.1" r="3" style="fill:var(--c3)"><title>R4: 1.04× at ~16 chars</title></circle><circle cx="116.9" cy="112.7" r="3" style="fill:var(--c3)"><title>R4: 1.06× at ~25 chars</title></circle><circle cx="212.4" cy="94.6" r="3" style="fill:var(--c3)"><title>R4: 1.29× at ~163 chars</title></circle><circle cx="343.9" cy="54.4" r="3" style="fill:var(--c3)"><title>R4: 1.98× at ~2,155 chars</title></circle><circle cx="483.2" cy="31.9" r="3" style="fill:var(--c3)"><title>R4: 2.51× at ~33,163 chars</title></circle><circle cx="624.0" cy="46.4" r="3" style="fill:var(--c3)"><title>R4: 2.15× at ~525,835 chars</title></circle><path d="M64.8,115.4 L83.5,114.5 L136.8,111.3 L202.0,108.2 L271.2,106.6 L341.5,106.2 L412.0,106.2" class="series" style="stroke:var(--c4);stroke-dasharray:7 4"><title>F1</title></path><circle cx="64.8" cy="115.4" r="3" style="fill:var(--c4)"><title>F1: 1.03× at ~9 chars</title></circle><circle cx="83.5" cy="114.5" r="3" style="fill:var(--c4)"><title>F1: 1.04× at ~13 chars</title></circle><circle cx="136.8" cy="111.3" r="3" style="fill:var(--c4)"><title>F1: 1.08× at ~37 chars</title></circle><circle cx="202.0" cy="108.2" r="3" style="fill:var(--c4)"><title>F1: 1.12× at ~133 chars</title></circle><circle cx="271.2" cy="106.6" r="3" style="fill:var(--c4)"><title>F1: 1.14× at ~517 chars</title></circle><circle cx="341.5" cy="106.2" r="3" style="fill:var(--c4)"><title>F1: 1.14× at ~2,053 chars</title></circle><circle cx="412.0" cy="106.2" r="3" style="fill:var(--c4)"><title>F1: 1.14× at ~8,197 chars</title></circle><path d="M52.0,210.2 L75.0,197.5 L134.0,163.2 L201.2,139.3 L271.0,130.3 L341.4,128.0 L412.0,127.0" class="series" style="stroke:var(--c5)"><title>F2</title></path><circle cx="52.0" cy="210.2" r="3" style="fill:var(--c5)"><title>F2: 0.38× at ~7 chars</title></circle><circle cx="75.0" cy="197.5" r="3" style="fill:var(--c5)"><title>F2: 0.43× at ~11 chars</title></circle><circle cx="134.0" cy="163.2" r="3" style="fill:var(--c5)"><title>F2: 0.62× at ~35 chars</title></circle><circle cx="201.2" cy="139.3" r="3" style="fill:var(--c5)"><title>F2: 0.80× at ~131 chars</title></circle><circle cx="271.0" cy="130.3" r="3" style="fill:var(--c5)"><title>F2: 0.88× at ~515 chars</title></circle><circle cx="341.4" cy="128.0" r="3" style="fill:var(--c5)"><title>F2: 0.90× at ~2,051 chars</title></circle><circle cx="412.0" cy="127.0" r="3" style="fill:var(--c5)"><title>F2: 0.91× at ~8,195 chars</title></circle></svg><ul class="legend"><li><span class="swatch" style="background:var(--c1)"></span>R4.2</li><li><span class="swatch" style="background:var(--c2)"></span>R4.1</li><li><span class="swatch" style="background:var(--c3)"></span>R4</li><li><span class="swatch" style="background:var(--c4)"></span>F1</li><li><span class="swatch" style="background:var(--c5)"></span>F2</li></ul><figcaption>Head/base cachegrind instructions per call, by input size
+  (log-log). Each line is one input family Nemotron proposed; points above 1× are where the "faster" code does more work.</figcaption></figure>
+  <div class="table-wrap"><table class="perf"><thead><tr><th>Family</th><th>Inputs</th><th class="num">Ratio range</th>
+  <th class="num">Slope base → head</th><th>Verdict</th></tr></thead><tbody><tr><td><code>R4.2</code></td><td class="title-cell">Trailing numeric sub-label added<small>suspected slowdown · expand:R4</small></td><td class="num">1.05× – 2.74×</td><td class="num">0.57 → 0.70</td><td><span class="chip bug sm">slower</span></td></tr><tr><td><code>R4.1</code></td><td class="title-cell">Pre-release label variation<small>suspected slowdown · expand:R4</small></td><td class="num">1.04× – 2.74×</td><td class="num">0.55 → 0.68</td><td><span class="chip bug sm">slower</span></td></tr><tr><td><code>R4</code></td><td class="title-cell">Pre-release label changed from &#x27;c5&#x27; to &#x27;alpha.1&#x27;<small>suspected slowdown · archive</small></td><td class="num">1.04× – 2.51×</td><td class="num">0.69 → 0.78</td><td><span class="chip bug sm">slower</span></td></tr><tr><td><code>F1</code></td><td class="title-cell">Long release segment (many dot-separated numbers) ending with a pre‑release marker (e.g. &quot;1.1.1…a1&quot;). The new fast‑path scans the whole string looking for indicator characters before falling back to the regex, so the disjointness check walks the entire long numeric prefix before finding the trailing &#x27;a&#x27;.<small>suspected slowdown · plan</small></td><td class="num">1.03× – 1.14×</td><td class="num">0.80 → 0.82</td><td><span class="chip bug sm">slower</span></td></tr><tr><td><code>F2</code></td><td class="title-cell">many numeric segments, no special characters<small>claimed speedup · plan</small></td><td class="num">0.38× – 0.91×</td><td class="num">0.79 → 0.92</td><td><span class="chip ok sm">faster</span></td></tr></tbody></table></div>
+</section>
+<section>
+  <h2>Receipt</h2>
+  <div class="receipt-grid">
+  <div class="table-wrap"><table class="receipt"><thead><tr><th>Model (Nebius Token Factory)</th><th class="num">Cost</th></tr></thead>
+  <tbody><tr><td>Nemotron 3 Ultra</td><td class="num">$0.18</td></tr><tr><td>Nemotron 3.5 Lightning</td><td class="num">$0.001</td></tr><tr><td>Nemotron 3 Super</td><td class="num">$0.001</td></tr><tr><td><strong>Total</strong></td><td class="num"><strong>$0.18</strong></td></tr></tbody></table></div>
+  <div class="receipt-facts"><p><span class="k">run</span><code>e780ff68654f</code></p>
+  <p><span class="k">image</span><code>dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49</code></p>
+  <p><span class="k">backend</span>contree</p>
+  <p><span class="k">sandbox</span>$11.92 <span class="muted small">Sandbox cost (free during beta) · 358 Token Factory Sandboxes runs · 1165.3s CPU</span></p>
+  <p class="muted small">semantic plan 17s · semantic generate 9s · semantic search 12s · semantic batch 7s · perf plan 15s · perf screen 148s · perf full 146s</p></div>
+  </div>
+</section>
+
+</main>
+<footer>
+  <p>Breakwater: a red team for performance PRs. Nemotron 3 Ultra and 3.5 Lightning on Nebius Token Factory plan
+  and write attacks; deterministic probes and cachegrind instruction counts decide. Every number links to the
+  JSON it came from (report.json, events.jsonl).</p>
+</footer>
+</body>
+</html>

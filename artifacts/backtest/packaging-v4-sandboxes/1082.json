@@ -1,0 +1,690 @@
+{
+  "id": "#1082",
+  "pr": 1082,
+  "title": "perf: Add fast path for parsing simple versions (digits and dots only)",
+  "base": "59f183fe90da403e41eef339ce9088bda0fe4cd3",
+  "head": "ee13ba2c1c9a01c97a08ca9d98ff9fa6f0a0a67b",
+  "merged": "2026-02-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "oversized-int-exception",
+      "match": {
+        "probe": "P2",
+        "traits": "long-digits"
+      },
+      "fixed_by": 1155,
+      "status": "verified"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "run_id": "bt-1082-4a405a",
+      "image": "cdd80561-4ef0-4ca1-b645-b13306e326c6",
+      "backend": "contree",
+      "usd": 0.171,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.9,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits"
+          ],
+          "known": [
+            "oversized-int-exception"
+          ],
+          "seconds": 7.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits"
+          ],
+          "known": [
+            "oversized-int-exception"
+          ],
+          "seconds": 95.1,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              "10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0.1"
+            ]
+          ],
+          "base": {
+            "status": "exc",
+            "exc": "builtins.ValueError"
+          },
+          "head": {
+            "status": "exc",
+            "exc": "packaging.version.InvalidVersion"
+          },
+          "found_by": [
+            "mutation:huge-number"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "R4.1",
+            "family": "Trailing zeros",
+            "verdict": "slower",
+            "ladder": [
+              1.0498106560446727,
+              1.0961698465366798,
+              1.4732648823943841,
+              2.2318519556988643,
+              2.3567471199218972
+            ],
+            "origin": "expand:R4"
+          },
+          {
+            "id": "R4",
+            "family": "Leading zeros in first segment",
+            "verdict": "slower",
+            "ladder": [
+              1.0507413940217862,
+              1.097670460276449,
+              1.4704821930600647,
+              2.3163802951410113,
+              2.9094914773975624
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "R4.2",
+            "family": "Mixed leading/trailing",
+            "verdict": "slower",
+            "ladder": [
+              1.0431228483648358,
+              1.0730388582216601,
+              1.2958332214867916,
+              1.9549026735505168,
+              2.614730675344393,
+              2.663349531514239
+            ],
+            "origin": "expand:R4"
+          },
+          {
+            "id": "R4.3",
+            "family": "Increasing common prefix",
+            "verdict": "slower",
+            "ladder": [
+              1.0338402300273581,
+              1.0508439007612764,
+              1.1749641952889027,
+              1.6262930198020835,
+              2.326995247048955,
+              2.5866585816381433
+            ],
+            "origin": "expand:R4"
+          }
+        ],
+        "worst_valid_ratio": 2.9094914773975624,
+        "worst_family": "Leading zeros in first segment",
+        "speedup_ratio_small": null,
+        "report": {
+          "run_id": "bt-1082-4a405a",
+          "target": "packaging.version:Version",
+          "image": "cdd80561-4ef0-4ca1-b645-b13306e326c6",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "suspected_slowdown",
+              "family": "simple numeric versions (only digits and dots)",
+              "why": "This is the family the change is meant to speed up. The fast‑path check `_SIMPLE_VERSION_INDICATORS.issuperset(version)` succeeds, the regex is skipped, and the version is parsed by a cheap split+map. Cost grows with the number of dot‑separated segments.",
+              "size_meaning": "Number of release segments (dots).",
+              "make_source": "def make(n):\n    # n segments, e.g. '1', '1.2', '1.2.3', …\n    version = '.'.join('1' for _ in range(n))\n    return [[version]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.6143256072944111,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "suspected_slowdown",
+              "family": "Long pre-release versions (many release segments)",
+              "why": "The fast‑path check scans the entire string (O(n)) before falling back to the regex; base version only runs the regex once.",
+              "size_meaning": "Number of dot‑separated release segments (n). Total string length grows linearly with n.",
+              "make_source": "def make(n):\n    release = \".\".join([\"1\"] * n)\n    version = f\"{release}a1\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0765683240418076,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "suspected_slowdown",
+              "family": "intended_fast_path",
+              "why": "Version strings that consist only of digits and dots (e.g. '1.2.3.4') match the new fast‑path check and avoid the regex entirely. This is the case the change was designed to accelerate.",
+              "size_meaning": "Number of dot‑separated numeric segments in the release (length of the string grows linearly with n).",
+              "make_source": "def make(n):\n    # Produce n+1 numeric segments: 1.2.3....(n+1)\n    # Using '1' for every segment keeps the string short and deterministic.\n    segs = ['1'] * (n + 1)\n    return [['.'.join(segs)]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.6233499568052088,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "long versions that are almost simple but contain a trailing pre‑release letter",
+              "why": "The fast‑path `issuperset` scan walks the whole string because every character is a digit or dot until the final letter. Only then does it fall back to the regex, adding an O(n) scan on top of the regex work. Cost grows with the length of the numeric prefix.",
+              "size_meaning": "Number of release segments before the trailing pre‑release letter.",
+              "make_source": "def make(n):\n    # n numeric segments followed by a pre‑release letter, e.g. '1a', '1.2a', '1.2.3a', …\n    version = '.'.join('1' for _ in range(n)) + 'a'\n    return [[version]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.078013275862249,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Long post‑release versions (many release segments)",
+              "why": "Same extra scan as pre‑release; the version contains a '.post' suffix so the fast‑path set check fails after examining the whole string.",
+              "size_meaning": "Number of dot‑separated release segments (n).",
+              "make_source": "def make(n):\n    release = \".\".join([\"1\"] * n)\n    version = f\"{release}.post1\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0845590117447932,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "regression_long_release_pre",
+              "why": "The new code first tests `_SIMPLE_VERSION_INDICATORS.issuperset(version)`. For a long release consisting only of digits and dots followed by a pre‑release marker (e.g. 'a1'), the superset check scans the entire long prefix before failing, then falls back to the regex. The old version went straight to the regex, so the extra full‑string scan is overhead.",
+              "size_meaning": "Number of dot‑separated numeric segments before the pre‑release suffix.",
+              "make_source": "def make(n):\n    # Build a release with n+1 segments, then append a pre‑release 'a1'\n    segs = ['1'] * (n + 1)\n    base = '.'.join(segs)\n    return [[base + 'a1']]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0783514286493459,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "Each numeric chunk is an ascending sequence starting at '0'",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "\ndef make(n):\n    chunks = []\n    start_ord = ord('0')\n    for i in range(n):\n        s = ''\n        cur = start_ord\n        while len(s) < i:\n            s += chr(cur)\n            cur += 1\n            if cur > ord('9'):\n                cur = ord('0')\n        chunks.append(s)\n    version = '.'.join(chunks) + 'rc1'\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 2.223738271025866,
+              "valid_fraction": 0.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "Invalid version strings that nevertheless contain indicator characters (e.g. a trailing dot followed by a letter). The fast‑path still does the full scan before the regex fails.",
+              "why": "Even though the version is invalid, the extra disjoint check runs; the regex then fails. This is the single allowed invalid family.",
+              "size_meaning": "Number of dotted segments before the malformed tail.",
+              "make_source": "def make(n):\n    # \"1.\" repeated n times then an alphabetic tail – not a valid PEP‑440 version\n    version = \"1.\" * n + \"x\"\n    return [(version,)]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.1874768863736873,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "invalid strings that look simple (only digits and dots) but contain a non‑numeric segment, e.g. \"1.2.x\"",
+              "why": "The indicator set is disjoint, so the fast path is entered. The code then executes `tuple(map(int, version.strip().split('.')))`, which raises `ValueError` on the bad segment; the exception is caught and re‑raised as `InvalidVersion`. Exception handling is considerably slower than the original regex‑only failure path.",
+              "size_meaning": "n = number of leading numeric segments before the bad segment; larger n makes the split and the failed `int` conversion traverse more items before the exception.",
+              "make_source": "def make(n):\n    # build \"1.1.1....1.x\" with n numeric parts then a non‑numeric \"x\"\n    good = \".\".join(\"1\" for _ in range(n))\n    version = f\"{good}.x\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.1874768863736873,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Leading zeros in first segment",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    # Leading zero padding increases base length without changing value\n    segs = ['0' * (i*2) + '5' for i in range(1, n+1)]\n    full_base = \".\".join(segs)\n    suffixes = ['-dev']\n    outs = []\n    for s in suffixes:\n        v = full_base + s\n        outs.append([v])\n    return outs",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.4704821930600647,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            },
+            {
+              "id": "R4.1",
+              "kind": "suspected_slowdown",
+              "family": "Trailing zeros",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    # Trailing zeros increase base length by appending zeros after nonzero digits\n    segs = [str(i) + ('0' * (i * 2)) for i in range(1, n+1)]\n    full_base = \".\".join(segs)\n    suffixes = ['-dev']\n    outs = []\n    for s in suffixes:\n        v = full_base + s\n        outs.append([v])\n    return outs",
+              "example_args": [],
+              "origin": "expand:R4",
+              "screen_ratio": 1.4732648823943841,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            },
+            {
+              "id": "R4.2",
+              "kind": "suspected_slowdown",
+              "family": "Mixed leading/trailing",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    # Mix leading and trailing zeros within each segment for maximal growth effect\n    segs = [('0' * (i // 2)) + str((i % 9) + 1) + ('0' * ((i + 1) // 2)) for i in range(1, n+1)]\n    full_base = \".\".join(segs)\n    suffixes = ['-rc']\n    outs = []\n    for s in suffixes:\n        v = full_base + s\n        outs.append([v])\n    return outs",
+              "example_args": [],
+              "origin": "expand:R4",
+              "screen_ratio": 1.2958332214867916,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            },
+            {
+              "id": "R4.3",
+              "kind": "suspected_slowdown",
+              "family": "Increasing common prefix",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "size_meaning": "Number of dotted release segments (plus the trailing pre‑release).",
+              "make_source": "def make(n):\n    # Create many identical prefixes before varying later parts to extend shared substring scans\n    prefix = '.'.join(['0'*i for i in range(n//2, 0, -1)])\n    rest   = '.'.join(str(j) + ('0'*j) for j in range(1, n//2 + 1))\n    full_base = f'{prefix}.{rest}' if prefix else rest\n    suffixes = ['-alpha.dev']\n    outs = []\n    for s in suffixes:\n        v = full_base + s\n        outs.append([v])\n    return outs",
+              "example_args": [],
+              "origin": "expand:R4",
+              "screen_ratio": 1.1749641952889027,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here"
+            },
+            {
+              "id": "F5.1",
+              "kind": "suspected_slowdown",
+              "family": "Long alpha-suffixed versions",
+              "why": "Same extra scan as pre‑release; the version contains a '.post' suffix so the fast‑path set check fails after examining the whole string.",
+              "size_meaning": "Number of dot‑separated release segments (n).",
+              "make_source": "def make(n):\n    release = \".\".join([\"2\"] * n)\n    version = f\"{release}.alpha\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "expand:F5",
+              "screen_ratio": 1.0795107928145309,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5.2",
+              "kind": "suspected_slowdown",
+              "family": "Many numeric-only segments before local version delimiter (+)",
+              "why": "Same extra scan as pre‑release; the version contains a '.post' suffix so the fast‑path set check fails after examining the whole string.",
+              "size_meaning": "Number of dot‑separated release segments (n).",
+              "make_source": "def make(n):\n    base = \".\".join([\"5\"] * n)\n    version = f\"{base}+localabc\"\n    return [[version]]",
+              "example_args": [],
+              "origin": "expand:F5",
+              "screen_ratio": 1.0722746989354865,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5.3",
+              "kind": "suspected_slowdown",
+              "family": "Release part lengthened via literal numbers instead of single digits",
+              "why": "Same extra scan as pre‑release; the version contains a '.post' suffix so the fast‑path set check fails after examining the whole string.",
+              "size_meaning": "Number of dot‑separated release segments (n).",
+              "make_source": "def make(n):\n    nums = []\n    for i in range(n):\n        num_str = str(i + 1) * 2\n        nums.append(num_str)\n    release = \".\".join(nums)\n    version = f\"{release}.dev0\"\n    return [[version]]}]}, ]}.json[",
+              "example_args": [],
+              "origin": "expand:F5",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: unmatched '}' (line 9)"
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "R4.1",
+              "kind": "suspected_slowdown",
+              "family": "Trailing zeros",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "origin": "expand:R4",
+              "screen_ratio": 1.4732648823943841,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 34272.285,
+                  "head_ir": 35979.41,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0498106560446727,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 38610.855,
+                  "head_ir": 42324.055,
+                  "input_chars": 35.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0961698465366798,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 74334.69354838709,
+                  "head_ir": 109514.69354838709,
+                  "input_chars": 318.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.4732648823943841,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 392315.0,
+                  "head_ir": 875589.0,
+                  "input_chars": 4350.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.2318519556988643,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 5459205.25,
+                  "head_ir": 12865966.25,
+                  "input_chars": 66715.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.3567471199218972,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": null,
+                  "head_ir": null,
+                  "input_chars": 1053620.0,
+                  "valid_fraction": null,
+                  "ratio": null,
+                  "judged": false
+                }
+              ],
+              "slope_base": 0.6022993376651943,
+              "slope_head": 0.7102107297167647,
+              "top_inputs": [],
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+              "verdict": "slower",
+              "worst_ratio": 2.3567471199218972,
+              "worst_search": null
+            },
+            {
+              "family_id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Leading zeros in first segment",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "origin": "archive",
+              "screen_ratio": 1.4704821930600647,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 34274.285,
+                  "head_ir": 36013.41,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0507413940217862,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 38590.9925,
+                  "head_ir": 42360.1925,
+                  "input_chars": 35.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.097670460276449,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 73530.94444444444,
+                  "head_ir": 108125.94444444444,
+                  "input_chars": 311.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.4704821930600647,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 362953.625,
+                  "head_ir": 840738.625,
+                  "input_chars": 4295.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.3163802951410113,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 3857360.5,
+                  "head_ir": 11222957.5,
+                  "input_chars": 66311.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.9094914773975624,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": null,
+                  "head_ir": null,
+                  "input_chars": 1051655.0,
+                  "valid_fraction": null,
+                  "ratio": null,
+                  "judged": false
+                }
+              ],
+              "slope_base": 0.5647505509675612,
+              "slope_head": 0.6955719845350675,
+              "top_inputs": [
+                {
+                  "args": [
+                    "5.005.00005.0000005.000000005.00000000005.0000000000005.000000000000005.00000000000000005.0000000000000000005.000000000000000000005.00000000000000000000005.0000000000000000000000005.000000000000000000000000005.00000000000000000000000000005.0000000000000000000000000000005.000000000000000000000000000000005.00000000000000000000000000000000005.0000000000000000000000000000000000005.000000000000000000000000000000000000005.00000000000000000000000000000000000000005.0000000000000000000000000000000000000000005.000000000000000000000000000000000000000000005.00000000000000000000000000000000000000000000005.0000000000000000000000000000000000000000000000005.000000000000000000000000000000000000000000000000005.00000000000000000000000000000000000000000000000000005.0000000000000000000000000000000000000000000000000000005.000000000000000000000000000000000000000000000000000000005.00000000000000000000000000000000000000000000000000000000005-dev"
+                  ],
+                  "cpu_ratio": 1.734,
+                  "base_ir": 130564.66666666667,
+                  "head_ir": 235005.66666666666,
+                  "ir_ratio": 1.7999177929710435,
+                  "outcome": "ok"
+                },
+                {
+                  "args": [
+                    "5.005.00005.0000005.000000005.00000000005.0000000000005.000000000000005.00000000000000005.0000000000000000005.000000000000000000005.00000000000000000000005.0000000000000000000000005.000000000000000000000000005.00000000000000000000000000005.0000000000000000000000000000005.000000000000000000000000000000005.00000000000000000000000000000000005.0000000000000000000000000000000000005.000000000000000000000000000000000000005.00000000000000000000000000000000000000005.0000000000000000000000000000000000000000005.000000000000000000000000000000000000000000005.00000000000000000000000000000000000000000000005.0000000000000000000000000000000000000000000000005.000000000000000000000000000000000000000000000000005.00000000000000000000000000000000000000000000000000005.0000000000000000000000000000000000000000000000000000005.000000000000000000000000000000000000000000000000000000005-dev"
+                  ],
+                  "cpu_ratio": 1.682,
+                  "base_ir": 125654.72727272728,
+                  "head_ir": 223409.72727272726,
+                  "ir_ratio": 1.7779651599404427,
+                  "outcome": "ok"
+                }
+              ],
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+              "verdict": "slower",
+              "worst_ratio": 2.9094914773975624,
+              "worst_search": {
+                "args": [
+                  "5.005.00005.0000005.000000005.00000000005.0000000000005.000000000000005.00000000000000005.0000000000000000005.000000000000000000005.00000000000000000000005.0000000000000000000000005.000000000000000000000000005.00000000000000000000000000005.0000000000000000000000000000005.000000000000000000000000000000005.00000000000000000000000000000000005.0000000000000000000000000000000000005.000000000000000000000000000000000000005.00000000000000000000000000000000000000005.0000000000000000000000000000000000000000005.000000000000000000000000000000000000000000005.00000000000000000000000000000000000000000000005.0000000000000000000000000000000000000000000000005.000000000000000000000000000000000000000000000000005.00000000000000000000000000000000000000000000000000005.0000000000000000000000000000000000000000000000000000005.000000000000000000000000000000000000000000000000000000005.00000000000000000000000000000000000000000000000000000000005-dev"
+                ],
+                "cpu_ratio": 1.734,
+                "base_ir": 130564.66666666667,
+                "head_ir": 235005.66666666666,
+                "ir_ratio": 1.7999177929710435,
+                "outcome": "ok"
+              }
+            },
+            {
+              "family_id": "R4.2",
+              "kind": "suspected_slowdown",
+              "family": "Mixed leading/trailing",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "origin": "expand:R4",
+              "screen_ratio": 1.2958332214867916,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 31865.3,
+                  "head_ir": 33239.4225,
+                  "input_chars": 13.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0431228483648358,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 35859.85,
+                  "head_ir": 38479.0125,
+                  "input_chars": 24.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0730388582216601,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 65275.91150442478,
+                  "head_ir": 84586.69469026549,
+                  "input_chars": 174.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.2958332214867916,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 257672.33333333334,
+                  "head_ir": 503724.3333333333,
+                  "input_chars": 2214.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.9549026735505168,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 2297376.0,
+                  "head_ir": 6007019.5,
+                  "input_chars": 33414.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.614730675344393,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 35159606.5,
+                  "head_ir": 93642321.5,
+                  "input_chars": 526854.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.663349531514239,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.6493188351219623,
+              "slope_head": 0.7490572902962757,
+              "top_inputs": [],
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+              "verdict": "slower",
+              "worst_ratio": 2.663349531514239,
+              "worst_search": null
+            },
+            {
+              "family_id": "R4.3",
+              "kind": "suspected_slowdown",
+              "family": "Increasing common prefix",
+              "why": "The fast‑path’s `isdisjoint` test iterates over every character. For a long dotted release the string length grows with n, so the extra scan adds linear overhead before the (already linear) regex match.",
+              "origin": "expand:R4",
+              "screen_ratio": 1.1749641952889027,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 34046.385,
+                  "head_ir": 35198.5225,
+                  "input_chars": 18.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0338402300273581,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 37942.85,
+                  "head_ir": 39872.0125,
+                  "input_chars": 25.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0508439007612764,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 64501.13333333333,
+                  "head_ir": 75786.52222222222,
+                  "input_chars": 109.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1749641952889027,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 209665.4375,
+                  "head_ir": 340977.4375,
+                  "input_chars": 1188.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.6262930198020835,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 1425851.0,
+                  "head_ir": 3317948.5,
+                  "input_chars": 17057.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.326995247048955,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 18549924.25,
+                  "head_ir": 47982320.75,
+                  "input_chars": 265121.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.5866585816381433,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.6394612947766604,
+              "slope_head": 0.7437053059955331,
+              "top_inputs": [],
+              "error": "ladder inputs exceed 2000000 chars at n=4096; ladder stops here",
+              "verdict": "slower",
+              "worst_ratio": 2.5866585816381433,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 17.77,
+            "screen": 180.84,
+            "full": 108.98,
+            "total": 307.6
+          }
+        }
+      }
+    }
+  ]
+}

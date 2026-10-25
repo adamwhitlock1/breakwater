@@ -724,7 +724,8 @@ def _fmt(x: float | None) -> str:
 
 
 def render_markdown(r: PerfReport) -> str:
-    lines = ["### Performance", "", "Screened families (head/base Ir per call at one size; >1 means the change is slower):", ""]
+    lines = ["### Performance", "", f"backend `{r.backend}` · image `{r.image}` · run `{r.run_id}`", "",
+             "Screened families (head/base Ir per call at one size; >1 means the change is slower):", ""]
     for f in sorted(r.families, key=lambda f: (not f.realistic, -(f.screen_ratio or 0))):
         ratio = f"{f.screen_ratio:.2f}x" if f.screen_ratio else "n/a"
         valid = f"{f.valid_fraction:.0%} valid" if f.valid_fraction is not None else "validity ?"

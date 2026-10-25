@@ -1,0 +1,76 @@
+{
+  "id": "#1030",
+  "pr": 1030,
+  "targets": [
+    {
+      "target": "packaging.utils:canonicalize_name",
+      "image": "a2d83f6b-ca9d-4fca-95ce-558082aac714",
+      "backend": "contree",
+      "tests": [
+        {
+          "signature": "P1|value|differs|non-ascii",
+          "name": "test_1030_p1_value_0",
+          "source": "def test_1030_p1_value_0():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    assert canonicalize_name('İ') == 'i̇'\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|value|differs|non-ascii+whitespace",
+          "name": "test_1030_p1_value_1",
+          "source": "def test_1030_p1_value_1():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    assert canonicalize_name('İ ') == 'i̇ '\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P1|value|differs|control+non-ascii",
+          "name": "test_1030_p1_value_2",
+          "source": "def test_1030_p1_value_2():\n    \"\"\"Breakwater P1: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    assert canonicalize_name('İ\\x00') == 'i̇\\x00'\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|gt|False|True",
+          "name": "test_1030_p3_gt_3",
+          "source": "def test_1030_p3_gt_3():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    a = canonicalize_name('İ')\n    b = canonicalize_name('ÖÄ')\n    assert (a > b) is False\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|gt|True|False",
+          "name": "test_1030_p3_gt_4",
+          "source": "def test_1030_p3_gt_4():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    a = canonicalize_name('Ω')\n    b = canonicalize_name('ẞ')\n    assert (a > b) is True\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|lt|True|False",
+          "name": "test_1030_p3_lt_5",
+          "source": "def test_1030_p3_lt_5():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    a = canonicalize_name('İ')\n    b = canonicalize_name('ÖÄ')\n    assert (a < b) is True\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        },
+        {
+          "signature": "P3|lt|False|True",
+          "name": "test_1030_p3_lt_6",
+          "source": "def test_1030_p3_lt_6():\n    \"\"\"Breakwater P3: base behaviour pinned (found by differential testing; label: likely-bug).\"\"\"\n    from packaging.utils import canonicalize_name\n    a = canonicalize_name('Ω')\n    b = canonicalize_name('ẞ')\n    assert (a < b) is False\n",
+          "base": "pass",
+          "head": "fail",
+          "skipped": "",
+          "verified": true
+        }
+      ]
+    }
+  ]
+}

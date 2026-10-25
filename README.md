@@ -80,7 +80,7 @@ uv run breakwater regress   # backtest v3 -> artifacts/regress/packaging-v3/test
 Build the static report (overview + one page per PR: verdict, counterexample cards with labels and quoted evidence, perf ladder charts, receipts). It reads only committed JSON, makes no network requests, and refuses non-Token-Factory inputs unless `--allow-dev`:
 
 ```bash
-uv run breakwater site --run artifacts/demo/pr1082-61967cca   # writes site/; open site/index.html
+uv run breakwater site --run artifacts/demo/pr1082-61967cca --run artifacts/demo/pr1082-61967cca-sandboxes   # writes site/; open site/index.html
 ```
 
 The site includes a judge box (`judge.html`): type a version string and four real versions of pypa/packaging run it in your browser, with differences classified by the same code the probes use. Rebuild its bundle with `uv run python scripts/site/build_judge_bundle.py`.
@@ -104,6 +104,12 @@ scripts/day1/          day-1 verification scripts; results land in artifacts/day
 docker/                local harness image (Python 3.12 + valgrind), the Sandboxes fallback
 docs/                  roadmap, day-1 checklist, spec, decisions, risks, demo script, feedback log
 ```
+
+## Limitations
+
+- **Sandbox networking.** contree-sdk 0.3.6 has no option to disable networking in a run and the microVM has internet access by default. Breakwater runs every probe, search and measurement under `unshare -n`, which puts the process in an empty network namespace (verified: name resolution and connections fail). Image builds are the only runs with networking. The local Docker backend uses `--network=none`.
+- **Falsifies, doesn't prove.** "No divergence found" means none was found by these probes and this search budget.
+- **Scope.** Python 3.12 targets with JSON-serialisable arguments; cachegrind instruction counts rather than wall time.
 
 ## License
 

@@ -1,0 +1,10 @@
+{
+  "id": "json_repair#113",
+  "pr": 113,
+  "title": "⚡️ Speed up method `ObjectComparer.is_same_object` by 109%",
+  "merged": "2025-05-16",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": []
+}

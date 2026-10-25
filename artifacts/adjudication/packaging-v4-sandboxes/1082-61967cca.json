@@ -1,0 +1,175 @@
+{
+  "id": "1082@61967cca",
+  "pr": 1082,
+  "title": "perf: fast path for simple versions (intermediate commit 61967cca)",
+  "merged": "2026-02-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "unicode-digits",
+      "match": {
+        "probe": "P2",
+        "traits": "non-ascii"
+      },
+      "fixed_by": "review",
+      "status": "verified"
+    },
+    {
+      "id": "inner-whitespace",
+      "match": {
+        "probe": "P2",
+        "traits": "whitespace"
+      },
+      "fixed_by": "review",
+      "status": "verified"
+    },
+    {
+      "id": "oversized-int-exception",
+      "match": {
+        "probe": "P2",
+        "traits": "long-digits"
+      },
+      "fixed_by": 1155,
+      "status": "verified"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "62d98fe8-9c1e-42e6-b250-ab6f630d8680",
+      "backend": "contree",
+      "run_id": "adj-1082-61967cca-b7a72e",
+      "samples": 3,
+      "usd": 0.0886,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The fast path accepts Unicode digits (e.g., Arabic-Indic '٠') because `int()` supports them, while the original regex only matches ASCII `[0-9]`. This expands accepted input beyond PEP 440 without documentation or tests.",
+          "evidence": [
+            "_NON_SIMPLE_VERSION_INDICATORS = frozenset('!+-ABCDEHILOPRSTVW_abcdehiloprstvw')",
+            "        if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+            "                self._release = tuple(map(int, version.strip().split('.')))",
+            "self._release = tuple(map(int, version.strip().split('.')))",
+            "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"
+          ],
+          "rejected": [
+            "# Fast path: If a version doesn't have one of these characters then it is a simple version with just numbers and dots (e.g. 1.2.3)."
+          ],
+          "reason": "",
+          "known": [
+            "unicode-digits"
+          ],
+          "facts": "Outcome differs. Input [\"٠\"]: base raises packaging.version.InvalidVersion, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.AttributeError|nested",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "For non-string input (a list), the fast path bypasses the regex and calls `.strip()` on the list, raising `AttributeError` instead of the original `TypeError`. The PR does not intend to change error types for invalid input types.",
+          "evidence": [
+            "        if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+            "                self._release = tuple(map(int, version.strip().split('.')))",
+            "            except ValueError:",
+            "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+            "self._release = tuple(map(int, version.strip().split('.')))",
+            "match = self._regex.fullmatch(version)"
+          ],
+          "rejected": [
+            "try:"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[\"..0\"]]: base raises builtins.TypeError, head raises builtins.AttributeError. (neither exception type subclasses the other.)"
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The fast path accepts spaces in the version string (e.g., '1 .2') because `strip()` removes leading/trailing spaces and `int()` ignores spaces around digits, whereas the regex rejects spaces. This is an unintended relaxation of the version syntax.",
+          "evidence": [
+            "        if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):",
+            "                self._release = tuple(map(int, version.strip().split('.')))",
+            "self._release = tuple(map(int, version.strip().split('.')))",
+            "_NON_SIMPLE_VERSION_INDICATORS = frozenset('!+-ABCDEHILOPRSTVW_abcdehiloprstvw')",
+            "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"
+          ],
+          "rejected": [
+            "# Fast path: If a version doesn't have one of these characters then it is a simple version with just numbers and dots (e.g. 1.2.3)."
+          ],
+          "reason": "",
+          "known": [
+            "inner-whitespace"
+          ],
+          "facts": "Outcome differs. Input [\"1 .2\"]: base raises packaging.version.InvalidVersion, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|non-ascii+whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Combines Unicode digit and space acceptance (as in C1 and C3). The fast path's use of `int()` and `strip()` permits characters the regex forbids, expanding the accepted language without intent.",
+          "evidence": [
+            "_NON_SIMPLE_VERSION_INDICATORS = frozenset('!+-ABCDEHILOPRSTVW_abcdehiloprstvw')",
+            "                self._release = tuple(map(int, version.strip().split('.')))",
+            "self._release = tuple(map(int, version.strip().split('.')))",
+            "if _NON_SIMPLE_VERSION_INDICATORS.isdisjoint(version):"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [
+            "unicode-digits",
+            "inner-whitespace"
+          ],
+          "facts": "Outcome differs. Input [\"١ .2\"]: base raises packaging.version.InvalidVersion, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:packaging.version.InvalidVersion|ok|long-digits+whitespace",
+          "label": "needs-human",
+          "votes": {
+            "intended": 1,
+            "likely-bug": 1,
+            "needs-human": 1
+          },
+          "rationale": "The fast path accepts extremely long numbers that the regex rejects (likely due to regex engine limits). The PR is a perf refactor; no intent to change valid version set. PEP 440 doesn't forbid long numbers but the original behavior was to reject them.",
+          "evidence": [],
+          "rejected": [
+            "# Fast path: If a version doesn't have one of these characters then it is a simple version with just numbers and dots (e.g. 1.2.3)."
+          ],
+          "reason": "no majority",
+          "known": [
+            "inner-whitespace",
+            "oversized-int-exception"
+          ],
+          "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4307 chars): base raises packaging.version.InvalidVersion, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.version.InvalidVersion|long-digits",
+          "label": "needs-human",
+          "votes": {
+            "intended": 1,
+            "likely-bug": 1,
+            "needs-human": 1
+          },
+          "rationale": "Both error but with different exception types (ValueError vs InvalidVersion) for a very long number. The fast path catches ValueError and wraps in InvalidVersion; the base path lets ValueError propagate. The PR is a perf refactor; no intent to change exception types.",
+          "evidence": [],
+          "rejected": [],
+          "reason": "no majority",
+          "known": [
+            "oversized-int-exception"
+          ],
+          "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4309 chars): base raises builtins.ValueError, head raises packaging.version.InvalidVersion. (packaging.version.InvalidVersion is a subclass of builtins.ValueError.)"
+        }
+      ]
+    }
+  ]
+}

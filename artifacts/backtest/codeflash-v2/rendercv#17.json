@@ -1,0 +1,286 @@
+{
+  "id": "rendercv#17",
+  "pr": 17,
+  "title": "⚡️ Speed up function `validate_typst_dimension` by 59%",
+  "base": "ddd75cabd6753939b4c3b18f40c061dae77c8021",
+  "head": "7f7abe4ebf939e25ebac92b9d1d43f226e80b373",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "repo": "https://github.com/IanHollow/rendercv",
+  "install": {
+    "exclude_newer": "2026-08-11"
+  },
+  "targets": [
+    {
+      "target": "rendercv.themes.options:validate_typst_dimension",
+      "run_id": "bt-rendercv#17-945eef",
+      "image": "aa55391a-3699-4da1-90cb-9549f152a03d",
+      "backend": "contree",
+      "usd": 0.0316,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 13.3,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.6,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.5600697437602842,
+        "report": {
+          "run_id": "bt-rendercv#17-945eef",
+          "target": "rendercv.themes.options:validate_typst_dimension",
+          "image": "aa55391a-3699-4da1-90cb-9549f152a03d",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "valid dimensions with increasing numeric length",
+              "why": "The change hoists the regex compilation out of the hot path; each call now reuses a pre‑compiled pattern, so the cost grows only with the match itself. Long valid strings exercise the matching loop and show the speed‑up.",
+              "size_meaning": "n = number of decimal digits before the unit (the string length grows ≈ n).",
+              "make_source": "def make(n):\n    # produce n+1 test cases, each a valid dimension with 1..n+1 digits\n    out = []\n    for i in range(1, n + 2):\n        # e.g. '12345cm'\n        s = '1' + '0' * (i - 1) + 'cm'\n        out.append([s])\n    return out",
+              "example_args": [
+                [
+                  "1cm"
+                ],
+                [
+                  "10cm"
+                ],
+                [
+                  "100cm"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5875239215825396,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated calls with typical valid Typst dimensions (e.g. \"10cm\", \"12.5pt\", \"3em\")",
+              "why": "The head version reuses a module‑level compiled regex (_DIMENSION_PATTERN), so each call only executes the fast fullmatch on the pre‑compiled pattern. The base version calls re.fullmatch with a literal pattern string each time; although the re module caches recent patterns, the first few calls still pay the compilation cost, making the head faster for a hot loop of many valid dimensions.",
+              "size_meaning": "n = number of dimensions validated in the loop",
+              "make_source": "\ndef make(n):\n    # produce n distinct valid dimension strings\n    units = [\"cm\", \"in\", \"pt\", \"mm\", \"ex\", \"em\"]\n    vals = []\n    for i, u in zip(range(n), itertools.cycle(units)):\n        # alternate integer and decimal forms\n        if i % 2 == 0:\n            vals.append(f\"{i+1}{u}\")\n        else:\n            vals.append(f\"{i+1}.5{u}\")\n    # each element is a single‑argument call list for validate_typst_dimension\n    return [[v] for v in vals]",
+              "example_args": [
+                [
+                  "10cm"
+                ],
+                [
+                  "12.5pt"
+                ],
+                [
+                  "3em"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5694788009675633,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "valid typst dimensions of increasing numeric length",
+              "why": "The head version reuses a pre‑compiled regex (_DIMENSION_PATTERN) while the base version calls re.fullmatch with a literal pattern each time. For repeated valid inputs the head avoids repeated pattern lookup/compilation, so it becomes faster as the number of calls grows.",
+              "size_meaning": "n = number of digits in the numeric part of the dimension string",
+              "make_source": "def make(n):\n    # generate 1‑8 dimension strings whose numeric part has n digits\n    # each string is a valid dimension, e.g. '12345cm'\n    res = []\n    for i in range(1, 9):\n        num = '1' * n + str(i)          # n+1 digits, still O(n)\n        res.append([f'{num}cm'])\n    return res",
+              "example_args": [
+                [
+                  "111cm"
+                ],
+                [
+                  "1111cm"
+                ],
+                [
+                  "11111cm"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6138530398627762,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "invalid strings that force a full scan before failing",
+              "why": "Both versions must scan the entire input before rejecting it; the head version adds a trivial attribute lookup (_DIMENSION_PATTERN) but otherwise does the same work. For extremely long non‑matching strings the overhead of the extra attribute access can make the new code marginally slower. Marked as invalid because such inputs are not accepted by the validator.",
+              "size_meaning": "n = length of the garbage prefix before the unit suffix.",
+              "make_source": "def make(n):\n    out = []\n    for i in range(1, n + 2):\n        # a string of 'x' repeated i times followed by a valid unit – never matches\n        s = 'x' * i + 'cm'\n        out.append([s])\n    return out",
+              "example_args": [
+                [
+                  "xcm"
+                ],
+                [
+                  "xxcm"
+                ],
+                [
+                  "xxxcm"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6656152188650563,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "A single call with a very long string that does *not* match the dimension pattern (e.g. \"9\" * n + \"px\")",
+              "why": "Both versions must scan the whole input before rejecting it, but the head version adds an extra attribute lookup (_DIMENSION_PATTERN) and a bound‑method call (fullmatch) on the compiled object, while the base version calls the module‑level re.fullmatch which is a plain function. For extremely long inputs the constant‑factor overhead of the attribute access can make the head marginally slower.",
+              "size_meaning": "n = length of the digit run before the non‑matching suffix",
+              "make_source": "def make(n):\n    # one argument list containing a long non‑matching string\n    s = \"9\" * n + \"px\"   # \"px\" is not an allowed unit\n    return [[s]]",
+              "example_args": [
+                [
+                  "9999999999px"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.941588103824428,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "very long strings that do not match the dimension pattern (invalid)",
+              "why": "Both versions must run the regex to discover the mismatch. The head version adds an extra attribute access (_DIMENSION_PATTERN.fullmatch) and a function call, while the base version calls re.fullmatch directly. For extremely long non‑matching inputs the constant‑factor overhead of the extra attribute lookup can make the head marginally slower.",
+              "size_meaning": "n = length of the input string (number of characters before the first non‑digit)",
+              "make_source": "def make(n):\n    # produce 1‑8 long invalid strings: n 'a' characters followed by 'cm'\n    # they are not valid dimensions because they lack leading digits\n    res = []\n    for i in range(1, 9):\n        s = 'a' * n + 'cm'\n        res.append([s])\n    return res",
+              "example_args": [
+                [
+                  "aaaaaaaaacm"
+                ],
+                [
+                  "aaaaaaaaaaaaacm"
+                ],
+                [
+                  "aaaaaaaaaaaaaaaaacm"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6673849806035448,
+              "valid_fraction": 0.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated calls with typical valid Typst dimensions (e.g. \"10cm\", \"12.5pt\", \"3em\")",
+              "why": "The head version reuses a module‑level compiled regex (_DIMENSION_PATTERN), so each call only executes the fast fullmatch on the pre‑compiled pattern. The base version calls re.fullmatch with a literal pattern string each time; although the re module caches recent patterns, the first few calls still pay the compilation cost, making the head faster for a hot loop of many valid dimensions.",
+              "origin": "plan",
+              "screen_ratio": 0.5694788009675633,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": null,
+                  "head_ir": 3933.79875,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": null,
+                  "judged": false
+                },
+                {
+                  "n": 4,
+                  "base_ir": 6750.783125,
+                  "head_ir": 3780.909375,
+                  "input_chars": 8.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5600697437602842,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 6751.865546218487,
+                  "head_ir": 3845.0417542016808,
+                  "input_chars": 8.4375,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5694784245748452,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 6774.465680803572,
+                  "head_ir": 3850.6774553571427,
+                  "input_chars": 8.859375,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5684105045020147,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 6774.610491071428,
+                  "head_ir": 3850.6495535714284,
+                  "input_chars": 8.859375,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5683942358968648,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 6774.77734375,
+                  "head_ir": 3850.5764508928573,
+                  "input_chars": 8.859375,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5683694467752755,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 6774.481863839285,
+                  "head_ir": 3850.7039620535716,
+                  "input_chars": 8.859375,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5684130593968808,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.5694784245748452,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 8.64,
+            "screen": 322.54,
+            "full": 245.23,
+            "total": 576.41
+          }
+        }
+      }
+    }
+  ]
+}

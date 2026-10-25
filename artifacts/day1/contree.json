@@ -1,0 +1,89 @@
+{
+  "hello": {
+    "stdout": "Python 3.12.13",
+    "exit": 0,
+    "ms": 1262,
+    "resources": {
+      "user_cpu_s": 0.0,
+      "sys_cpu_s": 0.003469,
+      "max_rss_kb": 7788,
+      "involuntary_switches": 0,
+      "cost_usd": 7.363e-05
+    }
+  },
+  "build": {
+    "exit": 0,
+    "image": "deeeaedd-bce8-430b-8452-24bc6bfeb116",
+    "ms": 20219,
+    "stderr_tail": "s recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n"
+  },
+  "branch": {
+    "image": "e2c74095-a60e-40cc-9469-381b9514a388",
+    "outputs": [
+      "a6c803a9f6bac8c74425a888e8fce2802711affba8f64e13b76da1dee8a6a2b1  /w/f\n26.3\n",
+      "a6c803a9f6bac8c74425a888e8fce2802711affba8f64e13b76da1dee8a6a2b1  /w/f\n26.3\n"
+    ],
+    "identical": true,
+    "branch_ms": [
+      941,
+      952
+    ]
+  },
+  "aa": {
+    "user_cpu": [
+      0.044136,
+      0.042825,
+      0.034708,
+      0.041299,
+      0.035604,
+      0.041801,
+      0.037145,
+      0.035278,
+      0.047612,
+      0.043611
+    ],
+    "user_cpu_cv": 0.10418013029159626,
+    "wall_ms": [
+      947,
+      936,
+      939,
+      1261,
+      939,
+      932,
+      933,
+      926,
+      1610,
+      947
+    ],
+    "cost_usd": [
+      0.00053113,
+      0.00051975,
+      0.0005291100000000001,
+      0.00053764,
+      0.00053054,
+      0.0005338000000000001,
+      0.00052857,
+      0.0005261900000000001,
+      0.0005319400000000001,
+      0.00052547
+    ],
+    "involuntary_switches": [
+      0,
+      0,
+      1,
+      3,
+      3,
+      0,
+      2,
+      8,
+      7,
+      0
+    ]
+  },
+  "cachegrind": {
+    "exit": 0,
+    "out": "==9== I refs:        428,703,675",
+    "ms": 3789
+  },
+  "total_s": 38.8
+}

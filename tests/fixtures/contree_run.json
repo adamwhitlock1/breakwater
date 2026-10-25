@@ -1,0 +1,63 @@
+{
+ "_note": "Recorded 2026-10-18 from Token Factory Sandboxes (contree-sdk 0.3.6): one disposable run on the day-1 image, command exits 3. `raw` is cattrs.unstructure(ContreeResult._raw); `cost` is ContreeResult.cost (USD).",
+ "image": "deeeaedd-bce8-430b-8452-24bc6bfeb116",
+ "raw": {
+  "args": [],
+  "command": "python -c \"import sys; print('out'); print('err', file=sys.stderr); sys.exit(3)\"",
+  "cwd": "/",
+  "disposable": true,
+  "env": {},
+  "files": {},
+  "hostname": "hostname",
+  "image": "deeeaedd-bce8-430b-8452-24bc6bfeb116",
+  "result": {
+   "resources": {
+    "block_input": 0,
+    "block_output": 0,
+    "cost": 0.0001675,
+    "elapsed_time": 0.01238,
+    "involuntary_switches": 5,
+    "max_rss": 8740,
+    "monotonic_time": 0.09277588,
+    "page_faults": 77,
+    "page_faults_io": 922,
+    "shared_memory": 0,
+    "signals": 0,
+    "swaps": 0,
+    "system_cpu_time": 0.0,
+    "unshared_memory": 0,
+    "user_cpu_time": 0.01238,
+    "voluntary_switches": 260
+   },
+   "state": {
+    "continued": false,
+    "core_dump": false,
+    "exit_code": 3,
+    "pid": 7,
+    "signal": -1,
+    "stopped": false,
+    "timed_out": false
+   },
+   "stderr": {
+    "value": "err\n",
+    "encoding": "ascii",
+    "truncated": false
+   },
+   "stdout": {
+    "value": "out\n",
+    "encoding": "ascii",
+    "truncated": false
+   }
+  },
+  "shell": true,
+  "stdin": {
+   "value": "",
+   "encoding": "ascii",
+   "truncated": false
+  },
+  "timeout": 60,
+  "truncate_output_at": 65535,
+  "preserve_env": false
+ },
+ "cost": 0.0001675
+}

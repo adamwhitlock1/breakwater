@@ -127,11 +127,11 @@ def test_install_lines_for_packages_scripts_and_pinned_dates():
     from breakwater.images import _install_lines, req_for
 
     pip = req_for("https://github.com/o/r", "abc", {"exclude_newer": "2026-01-27"})
-    assert _install_lines(pip, "base") == [
-        'RUN uv pip install -q --exclude-newer 2026-01-27 --python /envs/base/bin/python "git+https://github.com/o/r@abc"']
+    assert _install_lines(pip, "base") == [  # shell lines; the Docker builder prefixes RUN, the Sandboxes one joins them
+        'uv pip install -q --exclude-newer 2026-01-27 --python /envs/base/bin/python "git+https://github.com/o/r@abc"']
     src = req_for("https://github.com/o/s", "def", {"mode": "src", "subdir": "scripts", "deps": ["pyyaml"]})
     lines = _install_lines(src, "head")
-    assert lines[0] == "RUN git clone -q https://github.com/o/s /src/head && git -C /src/head checkout -q def"
+    assert lines[0] == "git clone -q https://github.com/o/s /src/head && git -C /src/head checkout -q def"
     assert 'uv pip install -q --python /envs/head/bin/python "pyyaml"' in lines[1]
     assert "breakwater_src.pth" in lines[2] and "/src/head/scripts" in lines[2]
     assert req_for("https://github.com/o/r", "abc") == "git+https://github.com/o/r@abc"

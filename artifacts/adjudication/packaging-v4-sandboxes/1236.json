@@ -1,0 +1,129 @@
+{
+  "id": "#1236",
+  "pr": 1236,
+  "title": "perf: simply work done in parse_tag a bit",
+  "merged": "2026-06-09",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.tags:parse_tag",
+      "image": "5c5765e3-5a87-48f2-8b21-497e56c1292b",
+      "backend": "contree",
+      "run_id": "adj-1236-be2944",
+      "samples": 3,
+      "usd": 0.0278,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|empty",
+          "label": "needs-human",
+          "votes": {
+            "likely-bug": 1,
+            "intended": 1,
+            "needs-human": 1
+          },
+          "rationale": "The PR is described as a performance refactor, but the change turns a plain ValueError (from unpacking a tag that doesn't have three components) into the library‑specific InvalidTag. No test, doc, or changelog entry mentions this new error type, so existing callers that expect a ValueError for malformed tags could be affected.",
+          "evidence": [],
+          "rejected": [
+            "Raises InvalidTag on empty tag components.",
+            "if '' in parts: component = '.'.join(parts); raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+          ],
+          "reason": "no majority",
+          "known": [],
+          "facts": "Outcome differs. Input [\"\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|plain",
+          "label": "needs-human",
+          "votes": {
+            "likely-bug": 1,
+            "intended": 1,
+            "needs-human": 1
+          },
+          "rationale": "Same reasoning as C1: the refactor changes the exception type for a tag like '-' that lacks three components, raising InvalidTag instead of the original ValueError, without any documented intention.",
+          "evidence": [],
+          "rejected": [
+            "Raises InvalidTag on empty tag components.",
+            "if '' in parts: component = '.'.join(parts); raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+          ],
+          "reason": "no majority",
+          "known": [],
+          "facts": "Outcome differs. Input [\"-\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|whitespace",
+          "label": "needs-human",
+          "votes": {
+            "likely-bug": 1,
+            "intended": 1,
+            "needs-human": 1
+          },
+          "rationale": "Input '- ' also lacks three components; the refactor now raises InvalidTag where the original code raised ValueError. No indication this was intended.",
+          "evidence": [],
+          "rejected": [
+            "Raises InvalidTag on empty tag components.",
+            "if '' in parts: component = '.'.join(parts); raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+          ],
+          "reason": "no majority",
+          "known": [],
+          "facts": "Outcome differs. Input [\"- \"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii+whitespace",
+          "label": "needs-human",
+          "votes": {
+            "likely-bug": 1,
+            "intended": 1,
+            "needs-human": 1
+          },
+          "rationale": "The non‑breaking‑space variant '- ' behaves like '- ' and now raises InvalidTag instead of ValueError, an undocumented change introduced by the performance refactor.",
+          "evidence": [],
+          "rejected": [
+            "Raises InvalidTag on empty tag components.",
+            "if '' in parts: component = '.'.join(parts); raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+          ],
+          "reason": "no majority",
+          "known": [],
+          "facts": "Outcome differs. Input [\"- \"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|control",
+          "label": "needs-human",
+          "votes": {
+            "likely-bug": 1,
+            "intended": 1,
+            "needs-human": 1
+          },
+          "rationale": "The tag containing a control character and a single hyphen ('<U+001B>-') likewise triggers the new InvalidTag path rather than the original ValueError, with no PR justification.",
+          "evidence": [],
+          "rejected": [
+            "Raises InvalidTag on empty tag components.",
+            "if '' in parts: component = '.'.join(parts); raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+          ],
+          "reason": "no majority",
+          "known": [],
+          "facts": "Outcome differs. Input [\"\\u001b-\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.ValueError|exc:packaging.tags.InvalidTag|non-ascii",
+          "label": "needs-human",
+          "votes": {
+            "likely-bug": 1,
+            "intended": 1,
+            "needs-human": 1
+          },
+          "rationale": "The tag '-ç' (missing interpreter component) now raises InvalidTag instead of ValueError, a behavior change not mentioned in the PR, tests, docs, or changelog.",
+          "evidence": [],
+          "rejected": [
+            "Raises InvalidTag on empty tag components.",
+            "if '' in parts: component = '.'.join(parts); raise InvalidTag(f'Tag {tag!r} has an empty component: {component!r}')"
+          ],
+          "reason": "no majority",
+          "known": [],
+          "facts": "Outcome differs. Input [\"-ç\"]: base raises builtins.ValueError, head raises packaging.tags.InvalidTag. (packaging.tags.InvalidTag is a subclass of builtins.ValueError.)"
+        }
+      ]
+    }
+  ]
+}

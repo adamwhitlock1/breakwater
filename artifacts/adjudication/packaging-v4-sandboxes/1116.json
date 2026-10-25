@@ -1,0 +1,55 @@
+{
+  "id": "#1116",
+  "pr": 1116,
+  "title": "perf: Overhaul `_cmpkey` to remove use of custom objects",
+  "merged": "2026-03-11",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "old-pickles-fail-to-load",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1163,
+      "status": "verified"
+    }
+  ],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "packaging.version:Version",
+      "image": "e7fbcc0c-cc99-4f27-9713-ec040778674e",
+      "backend": "contree",
+      "run_id": "adj-1116-11f686",
+      "samples": 3,
+      "usd": 0.0462,
+      "verdicts": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.ModuleNotFoundError",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The PR removes the `_structures` module and its `Infinity`/`NegativeInfinity` sentinel classes, which were used in the comparison key (`_cmpkey`) of `Version` objects. Pickled `Version` objects from the old version may contain references to these sentinel classes in their cached `_key_cache`. Unpickling them in the new version fails with `ModuleNotFoundError` because the module no longer exists. This is an unintended regression for users who rely on pickling `Version` objects across versions; the PR presents itself as a performance refactor and does not mention pickling compatibility in tests,",
+          "evidence": [
+            "-@typing.final",
+            "-class InfinityType:",
+            "-    __slots__ = ()",
+            "perf: Overhaul `_cmpkey` to remove use of custom objects",
+            "deleted file mode 100644",
+            "    '1.0.dev0',",
+            "-from ._structures import Infinity, InfinityType, NegativeInfinity, NegativeInfinityType",
+            "-        _pre: CmpPrePostDevType = NegativeInfinity",
+            "        pre_rank, pre_n = _PRE_RANK_DEV_ONLY, 0"
+          ],
+          "rejected": [],
+          "reason": "",
+          "known": [
+            "old-pickles-fail-to-load"
+          ],
+          "facts": "An object built by base from [\"0\"], pickled, then unpickled by head fails to load: builtins.ModuleNotFoundError."
+        }
+      ]
+    }
+  ]
+}

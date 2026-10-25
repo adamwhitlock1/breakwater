@@ -1,0 +1,43 @@
+{
+  "id": "rendercv#18",
+  "pr": 18,
+  "title": "⚡️ Speed up function `validate_date_field` by 47%",
+  "merged": "2026-08-10",
+  "after_ultra_release": true,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "rendercv.data.models.computers:get_date_object",
+      "image": "54410864-aefc-4bb1-bbeb-5b5c15c9eda6",
+      "backend": "contree",
+      "run_id": "adj-rendercv#18-40e6cf",
+      "samples": 3,
+      "usd": 0.0221,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.TypeError|exc:builtins.ValueError|nested",
+          "label": "intended",
+          "votes": {
+            "intended": 3
+          },
+          "rationale": "The refactored `get_date_object` now explicitly raises `ValueError` with a clear message for invalid inputs, matching the function’s documented contract, whereas the previous implementation raised an unexpected `TypeError`. The change was a deliberate performance refactor (regex replaced by manual checks) and the new exception type aligns with the library’s own error handling.",
+          "evidence": [
+            "        message = (            ",
+            "            raise ValueError(message)",
+            "    elif len(date) == 4 and date.isdigit():",
+            "        message = (",
+            "            'This is not a valid date! Please use either YYYY-MM-DD, YYYY-MM, or'"
+          ],
+          "rejected": [
+            "            ' YYYY format.' ) ; raise ValueError(message)",
+            "    else:"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[\"!!!!\"]]: base raises builtins.TypeError, head raises builtins.ValueError. (neither exception type subclasses the other.)"
+        }
+      ]
+    }
+  ]
+}

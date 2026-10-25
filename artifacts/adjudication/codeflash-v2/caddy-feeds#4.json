@@ -1,0 +1,44 @@
+{
+  "id": "caddy-feeds#4",
+  "pr": 4,
+  "title": "⚡️ Speed up function `is_excluded` by 17,376%",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "ip:is_excluded",
+      "image": "1bafd31e-3df4-4239-8ac7-13dd73b31ec0",
+      "backend": "contree",
+      "run_id": "adj-caddy-feeds#4-cb26dd",
+      "samples": 3,
+      "usd": 0.0185,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|ok|exc:builtins.TypeError|nested",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Base version gracefully handles invalid IPs by catching ValueError and returning True; the new @lru_cache decorator introduces a TypeError for the same input, changing documented behavior without any test, doc, or changelog update.",
+          "evidence": [
+            "        return True  # Treat invalid IPs as excluded",
+            "+@lru_cache(maxsize=1024)",
+            "⚡️ Speed up function `is_excluded` by 17,376%",
+            "except ValueError:",
+            "return True  # Treat invalid IPs as excluded",
+            "def is_excluded(ip_address: str) -> bool:"
+          ],
+          "rejected": [
+            "PR title: ⚡️ Speed up function `is_excluded` by 17,376%",
+            "PR title: ⚡️ Speed up function `is_excluded` by 17,376%"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [[\":\"]]: base returns normally, head raises builtins.TypeError."
+        }
+      ]
+    }
+  ]
+}

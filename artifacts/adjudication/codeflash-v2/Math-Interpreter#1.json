@@ -1,0 +1,85 @@
+{
+  "id": "Math-Interpreter#1",
+  "pr": 1,
+  "title": "⚡️ Speed up method `Lexer.generate_number` by 11%",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "provider": "tokenfactory",
+  "targets": [
+    {
+      "target": "lexer:Lexer#generate_tokens",
+      "image": "6cbae808-5ef0-4683-8481-a6120ba99109",
+      "backend": "contree",
+      "run_id": "adj-Math-Interpreter#1-2dd010",
+      "samples": 3,
+      "usd": 0.0201,
+      "verdicts": [
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "The change replaces the ASCII‑digit check (`self.current_char in DIGITS`) with `str.isdigit()`, which now accepts Unicode digits such as '١'. The PR only claims a speed‑up and does not mention expanding the accepted digit set, so the new acceptance of non‑ASCII digits is an unintended regression.",
+          "evidence": [
+            "DIGITS = '0123456789'",
+            "-        while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+            "+        while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+            "⚡️ Speed up method `Lexer.generate_number` by 11%",
+            "- while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+            "+ while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):"
+          ],
+          "rejected": [
+            "PR title: ⚡️ Speed up method `Lexer.generate_number` by 11%"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"1١\"]: base raises builtins.Exception, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|long-digits+non-ascii",
+          "label": "needs-human",
+          "votes": {
+            "needs-human": 2,
+            "likely-bug": 1
+          },
+          "rationale": "The only difference for the very long all‑zero input is that the old version raises an Exception while the new version succeeds. The provided material does not explain why the old version fails (no test, doc, or changelog mentions this case), so we cannot decide whether the change is intentional or a bug.",
+          "evidence": [],
+          "rejected": [
+            "PR title: ⚡️ Speed up method `Lexer.generate_number` by 11%"
+          ],
+          "reason": "model abstained",
+          "known": [],
+          "facts": "Outcome differs. Input [\"100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000... (4305 chars): base raises builtins.Exception, head returns normally."
+        },
+        {
+          "signature": "P2|outcome|exc:builtins.Exception|ok|non-ascii+whitespace",
+          "label": "likely-bug",
+          "votes": {
+            "likely-bug": 3
+          },
+          "rationale": "Same Unicode‑digit issue as C1: the old lexer rejects '١' because it is not in `DIGITS`, while the new lexer accepts it via `isdigit()`. The PR does not document expanding the digit repertoire, indicating an unintended behavior change.",
+          "evidence": [
+            "DIGITS = '0123456789'",
+            "-        while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+            "+        while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):",
+            "while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+            "⚡️ Speed up method `Lexer.generate_number` by 11%",
+            "- while self.current_char is not None and (self.current_char in DIGITS or self.current_char == '.'):",
+            "+ while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):"
+          ],
+          "rejected": [
+            "PR title: ⚡️ Speed up method `Lexer.generate_number` by 11%"
+          ],
+          "reason": "",
+          "known": [],
+          "facts": "Outcome differs. Input [\"1١ \"]: base raises builtins.Exception, head returns normally."
+        }
+      ]
+    }
+  ]
+}

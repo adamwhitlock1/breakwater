@@ -1,0 +1,302 @@
+{
+  "id": "#1147",
+  "pr": 1147,
+  "title": "perf: add __slots__ to Marker",
+  "base": "04a7600a21febca084022d88c6684f1aedf81c8a",
+  "head": "76cc6298254887e17d6b39df0425a4b6c2f1714a",
+  "merged": "2026-04-05",
+  "after_ultra_release": false,
+  "known": [
+    {
+      "id": "marker-pickle",
+      "match": {
+        "probe": "P4"
+      },
+      "fixed_by": 1171,
+      "status": "candidate"
+    }
+  ],
+  "targets": [
+    {
+      "target": "packaging.markers:Marker",
+      "run_id": "bt-1147-6bdc51",
+      "image": "583e9e77-230e-4727-b18e-e799efeb03f4",
+      "backend": "contree",
+      "usd": 0.0312,
+      "harvested": 80,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 8.9,
+          "error": null
+        },
+        "mutations": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [
+            "marker-pickle"
+          ],
+          "seconds": 5.4,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P4|base->head load|loads|exc:builtins.AttributeError"
+          ],
+          "known": [
+            "marker-pickle"
+          ],
+          "seconds": 16.2,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P4|base->head load|loads|exc:builtins.AttributeError",
+          "probe": "P4",
+          "detail": "base->head load",
+          "args": [
+            [
+              "\"b\" > \"a\""
+            ]
+          ],
+          "base": "loads",
+          "head": {
+            "status": "exc",
+            "exc": "builtins.AttributeError"
+          },
+          "found_by": [
+            "tests",
+            "mutation:whitespace-outer",
+            "mutation:whitespace-inner",
+            "mutation:case",
+            "mutation:underscores",
+            "mutation:huge-number",
+            "mutation:equivalents",
+            "mutation:unicode-digits"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.9981989034045647,
+        "report": {
+          "run_id": "bt-1147-6bdc51",
+          "target": "packaging.markers:Marker",
+          "image": "583e9e77-230e-4727-b18e-e799efeb03f4",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "Simple single‑comparison markers (e.g. python_version >= \"3.8\")",
+              "why": "The __slots__ change only affects instance attribute storage; evaluating a trivial marker exercises the fast path (single tuple, no nesting, no extras). Any speed‑up from slot access shows up here.",
+              "size_meaning": "Number of markers created and evaluated (each marker string length grows modestly with n).",
+              "make_source": "def make(n):\n    # produce n markers of slowly increasing length\n    base = \"python_version >= '3.'\"\n    return [[base + str(i % 10) + \"'\"] for i in range(1, n + 1)]",
+              "example_args": [
+                [
+                  "python_version >= '3.0'"
+                ],
+                [
+                  "python_version >= '3.1'"
+                ],
+                [
+                  "python_version >= '3.2'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9922103154462992,
+              "valid_fraction": 0.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "many simple markers",
+              "why": "The added __slots__ eliminates the instance __dict__, making Marker construction and attribute access faster. This family creates many tiny, valid marker strings to exercise object creation and evaluation.",
+              "size_meaning": "n is the number of Marker instances created and evaluated",
+              "make_source": "def make(n):\n    # Simple, always‑true marker to keep evaluation cheap\n    base = \"python_version >= '3.0'\"\n    return [[base] for _ in range(n)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.9986648899142944,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "many_simple_markers",
+              "why": "Adding __slots__ removes the per‑instance __dict__, making object allocation and attribute write/read of _markers faster. Creating a large number of Marker objects therefore benefits from the change.",
+              "size_meaning": "number of Marker objects created (each with a trivial marker expression)",
+              "make_source": "\ndef make(n):\n    # generate n distinct but simple marker strings\n    base = \"python_version >= '3.{0}'\"\n    return [[base.format(i % 10)] for i in range(1, n + 1)]",
+              "example_args": [
+                [
+                  "python_version >= '3.0'"
+                ],
+                [
+                  "python_version >= '3.1'"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9986648899142944,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "Deeply nested marker expressions with many 'and'/'or' groups",
+              "why": "Parsing creates a large recursive MarkerList structure. The __slots__ addition does not change parsing cost, but the extra attribute‑lookup overhead for each node (now via slot) can marginally increase per‑node work when the evaluator walks a very deep tree.",
+              "size_meaning": "Nesting depth proportional to n (each level adds an 'or' group).",
+              "make_source": "def make(n):\n    # Build a left‑deep expression: a or (a or (a or ...))\n    atom = \"python_version == '3.8'\"\n    expr = atom\n    for i in range(n):\n        expr = f\"{atom} or ({expr})\"\n    return [[expr]]",
+              "example_args": [
+                [
+                  "python_version == '3.8' or (python_version == '3.8')"
+                ],
+                [
+                  "python_version == '3.8' or (python_version == '3.8' or (python_version == '3.8'))"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0051616722386,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "deeply nested OR groups",
+              "why": "A marker with many nested ``or`` groups forces the evaluator to allocate many intermediate lists. The __slots__ change does not affect parsing but could make the per‑object overhead slightly higher for the many temporary Marker objects created during parsing.",
+              "size_meaning": "n is the nesting depth (number of ``or`` levels)",
+              "make_source": "def make(n):\n    # Build: (a or (b or (c or ...))) using dummy comparisons\n    parts = []\n    for i in range(n):\n        parts.append(f\"python_version == '{i}'\")\n    # join with ' or ' and wrap each level in parentheses\n    expr = parts[0]\n    for p in parts[1:]:\n        expr = f\"({expr} or {p})\"\n    return [[expr]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0002220884820348,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "deeply_nested_markers",
+              "why": "Evaluation of a marker walks the parsed tree recursively (_evaluate_markers). The __slots__ change does not affect the recursive algorithm, but attribute access to self._markers now goes through a slot descriptor instead of a plain __dict__ lookup. In a deep tree the same Marker instance is accessed many times (once per recursive call), so the extra descriptor overhead could make the head version marginally slower.",
+              "size_meaning": "nesting depth of the marker expression (number of nested 'or' groups)",
+              "make_source": "def make(n):\n    # Build a marker with n nested 'or' groups: a or (b or (c ...))\n    parts = []\n    for i in range(n):\n        parts.append(f\"python_version == '3.{i % 10}'\")\n    # join with ' or ' and wrap each level in parentheses\n    expr = parts[0]\n    for p in parts[1:]:\n        expr = f\"({expr} or {p})\"\n    return [[expr]]",
+              "example_args": [
+                [
+                  "(python_version == '3.0' or python_version == '3.1')"
+                ],
+                [
+                  "((python_version == '3.0' or python_version == '3.1') or python_version == '3.2')"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.9996308561497064,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "many simple markers",
+              "why": "The added __slots__ eliminates the instance __dict__, making Marker construction and attribute access faster. This family creates many tiny, valid marker strings to exercise object creation and evaluation.",
+              "origin": "plan",
+              "screen_ratio": 0.9986648899142944,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 145443.3375,
+                  "head_ir": 145181.38,
+                  "input_chars": 27.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9981989034045647,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 145255.80886627908,
+                  "head_ir": 145039.98110465117,
+                  "input_chars": 27.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9985141540065596,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 145017.32921511628,
+                  "head_ir": 144823.71511627908,
+                  "input_chars": 27.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9986648899142944,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 145015.3359375,
+                  "head_ir": 144819.93984375,
+                  "input_chars": 27.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9986525832424081,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 145015.3359375,
+                  "head_ir": 144819.93984375,
+                  "input_chars": 27.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9986525832424081,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 145015.3359375,
+                  "head_ir": 144819.93984375,
+                  "input_chars": 27.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9986525832424081,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 145015.3359375,
+                  "head_ir": 144819.93984375,
+                  "input_chars": 27.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.9986525832424081,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 0.9986648899142944,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 9.6,
+            "screen": 124.0,
+            "full": 94.33,
+            "total": 227.93
+          }
+        }
+      }
+    }
+  ]
+}

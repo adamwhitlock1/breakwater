@@ -1,0 +1,293 @@
+{
+  "id": "caddy-feeds#4",
+  "pr": 4,
+  "title": "⚡️ Speed up function `is_excluded` by 17,376%",
+  "base": "f5e3d0c28fe86f51150194ba903055ab6a146a69",
+  "head": "d94d92d5d9dafa5b20b06ab7b7f129952309187e",
+  "merged": "2025-02-09",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/fabriziosalmi/caddy-feeds",
+  "install": {
+    "mode": "src",
+    "subdir": "scripts",
+    "deps": [
+      "requests",
+      "pyyaml",
+      "aiohttp",
+      "prometheus-client"
+    ],
+    "exclude_newer": "2025-02-10"
+  },
+  "targets": [
+    {
+      "target": "ip:is_excluded",
+      "run_id": "bt-caddy-feeds#4-081228",
+      "image": "1bafd31e-3df4-4239-8ac7-13dd73b31ec0",
+      "backend": "contree",
+      "usd": 0.0369,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 12.3,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.9,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [
+            "P2|outcome|ok|exc:builtins.TypeError|nested"
+          ],
+          "known": [],
+          "seconds": 24.0,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 7.5,
+          "error": null
+        }
+      },
+      "findings": [
+        {
+          "signature": "P2|outcome|ok|exc:builtins.TypeError|nested",
+          "probe": "P2",
+          "detail": "outcome",
+          "args": [
+            [
+              [
+                ":"
+              ]
+            ]
+          ],
+          "base": {
+            "status": "ok",
+            "obs": {
+              "value": true
+            }
+          },
+          "head": {
+            "status": "exc",
+            "exc": "builtins.TypeError"
+          },
+          "found_by": [
+            "A1/s3",
+            "batch"
+          ]
+        }
+      ],
+      "perf": {
+        "slower_families": [],
+        "worst_valid_ratio": null,
+        "worst_family": null,
+        "speedup_ratio_small": 0.003160293020624661,
+        "report": {
+          "run_id": "bt-caddy-feeds#4-081228",
+          "target": "ip:is_excluded",
+          "image": "1bafd31e-3df4-4239-8ac7-13dd73b31ec0",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "repeated_same_ipv4",
+              "why": "The same public IPv4 address is checked many times; the added LRU cache turns the first miss into a hit for all subsequent calls, so the head version should be faster.",
+              "size_meaning": "Number of repeated checks (n) – the generator returns up to 8 identical calls, cost grows with n because the caller will repeat the list n times.",
+              "make_source": "def make(n):\n    ip = \"20.0.0.1\"          # public, not in EXCLUDE_RANGES\n    # return up to 8 identical argument lists; the harness can repeat the list n times\n    return [[ip] for _ in range(min(n, 8))]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.003161057396159,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Repeated identical IP address – the cache should turn the second and later calls into O(1) look‑ups.",
+              "why": "The added @lru_cache stores the result after the first evaluation. Subsequent calls with the same argument hit the cache and avoid the ipaddress parsing + overlap loop entirely.",
+              "size_meaning": "Number of calls (n) – the first call does the full work, the remaining n‑1 calls are cache hits.",
+              "make_source": "def make(n):\n    ip = '8.8.8.8'                     # public, not excluded\n    return [[ip] for _ in range(max(1, min(n, 8)))]",
+              "example_args": [
+                [
+                  [
+                    "8.8.8.8"
+                  ],
+                  [
+                    "8.8.8.8"
+                  ],
+                  [
+                    "8.8.8.8"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.0031605623280493017,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "repeated_same_ip",
+              "why": "The new version adds an LRU cache. When the same IP address is checked many times, the first call does the full overlap scan and subsequent calls are O(1) cache hits. The base version repeats the full scan every time.",
+              "size_meaning": "Number of calls (n) – we emit up to 8 calls, each with the identical address.",
+              "make_source": "def make(n):\n    # repeat the same public, non‑excluded IPv4 address\n    ip = \"8.8.8.8\"\n    calls = min(n, 8)\n    return [[ip] for _ in range(calls)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.0031605577215178746,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "unique_ipv4",
+              "why": "Every call receives a distinct, valid public IPv4 address. The cache never hits, so each call pays the extra dictionary lookup, hashing, and LRU bookkeeping on top of the original overlap test.",
+              "size_meaning": "Number of distinct IPs (n) – the generator returns up to 8 different IPs; the harness can repeat the list to reach n total calls.",
+              "make_source": "def make(n):\n    base = 20_000_001          # 20.0.0.1 as integer\n    ips = []\n    for i in range(min(n, 8)):\n        # construct a.b.c.d from integer\n        val = base + i\n        a = (val >> 24) & 0xFF\n        b = (val >> 16) & 0xFF\n        c = (val >> 8) & 0xFF\n        d = val & 0xFF\n        ips.append([f\"{a}.{b}.{c}.{d}\"])\n    return ips",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.0029839806425204893,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Many distinct, non‑excluded IPv4 addresses – each call misses the cache and pays the cache‑lookup overhead plus the full ipaddress/overlap work.",
+              "why": "The cache can hold at most 1024 entries, but with a stream of unique addresses every call is a miss. The wrapper adds a dict lookup and function‑call overhead that the original code did not have.",
+              "size_meaning": "Number of distinct IPs (n, ≤8). Cost grows linearly with n because each call does a full check.",
+              "make_source": "def make(n):\n    base = 1_000_000                # 1.0.0.0/8 is excluded, start above it\n    ips = []\n    for i in itertools.islice(range(base, base + max(1, min(n, 8))), max(1, min(n, 8))):\n        a = (i >> 24) & 0xFF\n        b = (i >> 16) & 0xFF\n        c = (i >> 8) & 0xFF\n        d = i & 0xFF\n        ips.append([f'{a}.{b}.{c}.{d}'])\n    return ips",
+              "example_args": [
+                [
+                  [
+                    "15.0.0.0"
+                  ],
+                  [
+                    "15.0.0.1"
+                  ],
+                  [
+                    "15.0.0.2"
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.017936193458917248,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "many_distinct_valid_ips",
+              "why": "Each distinct, non‑excluded address causes a cache miss. The LRU wrapper adds a dictionary lookup, key creation and possible eviction logic on top of the original linear scan over EXCLUDE_NETWORKS. With no repeats the base version avoids that overhead.",
+              "size_meaning": "Number of distinct IPs (n) – we emit up to 8 distinct public addresses.",
+              "make_source": "def make(n):\n    calls = min(n, 8)\n    # Use a public / non‑excluded block (8.0.0.0/8 is not in EXCLUDE_RANGES)\n    return [[f\"8.0.0.{i}\"] for i in range(calls)]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 0.0030291575488036035,
+              "valid_fraction": 1.0,
+              "error": null
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F3",
+              "kind": "claimed_speedup",
+              "family": "repeated_same_ip",
+              "why": "The new version adds an LRU cache. When the same IP address is checked many times, the first call does the full overlap scan and subsequent calls are O(1) cache hits. The base version repeats the full scan every time.",
+              "origin": "plan",
+              "screen_ratio": 0.0031605577215178746,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 298862.70875,
+                  "head_ir": 1171.84875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.003921026998989884,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 298706.6425,
+                  "head_ir": 1014.5225,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.0033963841296230967,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 298606.771484375,
+                  "head_ir": 943.6848958333334,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.003160293020624661,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 298606.7698567708,
+                  "head_ir": 943.7643229166666,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.003160559030089475,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 298606.6829427083,
+                  "head_ir": 943.685546875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.003160296137967075,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 298606.6826171875,
+                  "head_ir": 943.6884765625,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.003160305952604231,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 298606.771484375,
+                  "head_ir": 943.763671875,
+                  "input_chars": 11.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.003160556832598097,
+                  "judged": true
+                }
+              ],
+              "slope_base": null,
+              "slope_head": null,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.003921026998989884,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 11.43,
+            "screen": 300.54,
+            "full": 224.83,
+            "total": 536.81
+          }
+        }
+      }
+    }
+  ]
+}

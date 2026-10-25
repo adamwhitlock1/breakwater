@@ -1,0 +1,838 @@
+{
+  "id": "micropie#3",
+  "pr": 3,
+  "title": "⚡️ Speed up method `Server._parse_cookies` by 6%",
+  "base": "b760304db8ecfe6577a17fac0623c07972427516",
+  "head": "19ce2334b6c8ce9217d0e7b7aea3a66d75f83b19",
+  "merged": "2025-02-03",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/hoopinwhoopin/micropie",
+  "install": {
+    "exclude_newer": "2025-02-04"
+  },
+  "targets": [
+    {
+      "target": "MicroPie:App()#_parse_cookies",
+      "run_id": "bt-micropie#3-ae94a9",
+      "image": "f05e47b2-dfb5-4e4e-8bff-cb2a2dcddd6b",
+      "backend": "contree",
+      "usd": 0.0535,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 10.1,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.6,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 26.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 6.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "F5",
+            "family": "many_empty_segments",
+            "verdict": "slower",
+            "ladder": [
+              1.0262405855229926,
+              1.0364046320534492,
+              1.0950635955029355,
+              1.2440709416633968,
+              1.456898020929322,
+              1.604931540857205,
+              1.6035186029976054
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F4",
+            "family": "many_semicolon_segments_without_equals",
+            "verdict": "slower",
+            "ladder": [
+              1.016924586328987,
+              1.0281007565691043,
+              1.0846397547306883,
+              1.2003535964039693,
+              1.3175636101318646,
+              1.3718171795783076,
+              1.3727797324019853
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F6",
+            "family": "malformed cookie header – many semicolon‑separated parts that do NOT contain \"=\"",
+            "verdict": "slower",
+            "ladder": [
+              1.01691611608539,
+              1.028074672488551,
+              1.0843783653713397,
+              1.1982828403826216,
+              1.3116162621500775,
+              1.3662352005134333,
+              1.3619241635701043
+            ],
+            "origin": "plan"
+          },
+          {
+            "id": "F4.1",
+            "family": "many_semicolon_segments_with_plus_in_middle",
+            "verdict": "slower",
+            "ladder": [
+              1.016907251585494,
+              1.0276886347772645,
+              1.0842533733254556,
+              1.1959682743253186,
+              1.2980715190680983,
+              1.3475857001204052,
+              1.343159033208263
+            ],
+            "origin": "expand:F4"
+          }
+        ],
+        "worst_valid_ratio": 1.604931540857205,
+        "worst_family": "many_empty_segments",
+        "speedup_ratio_small": 1.0056459013831607,
+        "report": {
+          "run_id": "bt-micropie#3-ae94a9",
+          "target": "MicroPie:App()#_parse_cookies",
+          "image": "f05e47b2-dfb5-4e4e-8bff-cb2a2dcddd6b",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "single_cookie_with_equals",
+              "why": "The change was introduced with a docstring and a tiny refactor; the intended fast path is the common case of a short Cookie header containing a few well‑formed \"name=value\" pairs. Both versions allocate a dict once and strip only the parts that contain \"=\", so the new code should not be slower here.",
+              "size_meaning": "Number of cookies in the header (each cookie adds a \"k=v;\" segment).",
+              "make_source": "def make(n):\n    # n cookies \"c0=v0;c1=v1;...\"\n    parts = [f'c{i}=v{i}' for i in range(n)]\n    header = ';'.join(parts)\n    return [[header]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.009192950127595,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "many_well_formed_cookies",
+              "why": "Typical cookie headers contain many key=value pairs. The change moves the strip outside the equality test, which the author likely expected to avoid repeated attribute look‑ups and make the hot path tighter.",
+              "size_meaning": "Number of cookies (each ≈ 10 bytes).",
+              "make_source": "def make(n):\n    # generate a header with n cookies like \"c0=v0; c1=v1; ...\"\n    parts = [f\"c{i}=v{i}\" for i in range(n)]\n    header = \"; \".join(parts)\n    return [[header]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0072629307261658,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "well‑formed cookie header – each part contains a \"=\" and no surrounding whitespace",
+              "why": "The new code strips each part before the \"=\" test; when every part already has an \"=\" and no spaces the extra strip is a no‑op, so the fast‑path of the original (strip‑then‑split) and the new (strip‑then‑split) take the same time. The change was advertised as a cleanup that should not hurt this common case.",
+              "size_meaning": "n = number of cookie key/value pairs",
+              "make_source": "def make(n):\n    # Build a header like \"k0=v0;k1=v1;...;k{n-1}=v{n-1}\"\n    header = \";\".join(f\"k{i}=v{i}\" for i in range(n))\n    return [[header]]",
+              "example_args": [
+                [
+                  "k0=v0;k1=v1;k2=v2"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.009196622275625,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "many_semicolon_segments_without_equals",
+              "why": "Head version strips *every* segment before checking for \"=\". Base version only strips segments that actually contain \"=\". A header with many segments that lack \"=\" (e.g. \"a;b;c;...\") forces the new code to do O(n) extra strip operations.",
+              "size_meaning": "Number of semicolon‑separated segments that do NOT contain \"=\".",
+              "make_source": "def make(n):\n    # n segments like \"seg0;seg1;...\" without \"=\"\n    parts = [f'seg{i}' for i in range(n)]\n    header = ';'.join(parts)\n    return [[header]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0846397547306883,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "many_empty_segments",
+              "why": "The new version strips every segment before checking for '=', while the old version only stripped when '=' was present. A header with many empty segments (e.g. repeated ';;') forces the new code to allocate and strip a string for each empty piece, adding O(n) work the old code skipped.",
+              "size_meaning": "Number of empty segments (each just ';').",
+              "make_source": "def make(n):\n    # header consisting of n empty segments: \";;\" repeated n times\n    header = \";\" * (n + 1)   # leading ';' gives n empty pieces after split\n    return [[header]]",
+              "example_args": [],
+              "origin": "plan",
+              "screen_ratio": 1.0950635955029355,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "malformed cookie header – many semicolon‑separated parts that do NOT contain \"=\"",
+              "why": "The original version checks `if \"=\" in cookie:` *before* calling `strip()`. The new version unconditionally executes `cookie = cookie.strip()` for every part, then tests for \"=\". For inputs with a large number of parts lacking an equals sign the new code does an extra `strip()` call per part, making it slower.",
+              "size_meaning": "n = number of malformed parts",
+              "make_source": "def make(n):\n    # Build a header like \"part0;part1;...;part{n-1}\" – no \"=\" anywhere\n    header = \";\".join(f\"part{i}\" for i in range(n))\n    return [[header]]",
+              "example_args": [
+                [
+                  "part0;part1;part2;part3"
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 1.0843783653713397,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "many malformed fragments without \"=\" (invalid but accepted)",
+              "why": "The parser still iterates over every `;`‑separated fragment. The new explicit `strip()` runs on each fragment even though the `if \"=\" in cookie:` guard skips the split. With many such fragments the extra `strip()` work dominates, making the new version slower.",
+              "size_meaning": "n = number of malformed fragments.",
+              "make_source": "def make(n):\n    fragments = [f\"badtoken{i}\" for i in range(n)]\n    header = \";\".join(fragments)\n    return [[header]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0835937892941376,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "cookies surrounded by whitespace",
+              "why": "The new code executes `cookie = cookie.strip()` for every split fragment *before* the `=` test, while the old version only stripped when `=` was present (`cookie.strip().split(...)`). Headers that contain many fragments without `=` (e.g. stray spaces or malformed tokens) pay the `strip()` cost without any benefit, slowing the path that the change was supposed to accelerate.",
+              "size_meaning": "n = number of whitespace‑only fragments plus one real cookie.",
+              "make_source": "def make(n):\n    # n‑1 fragments that are just spaces, then one valid cookie\n    fragments = [\"   \" for _ in range(n-1)] + [\"session=abc123\"]\n    header = \";\".join(fragments)\n    return [[header]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0668392964562166,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "single cookie",
+              "why": "Even with a single well‑formed cookie the new version allocates an extra empty dict (`cookies = {}` after the early‑return) and performs an explicit `strip()` call. The overhead is constant but measurable; it shows the regression on the smallest non‑empty input.",
+              "size_meaning": "n is ignored – always one cookie.",
+              "make_source": "def make(n):\n    return [[\"userid=42\"]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.005607546458243,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "few cookies but very large values",
+              "why": "`strip()` copies the string; on huge values the extra explicit `strip()` copies the whole value a second time (the original `strip().split()` also copies once). The double copy makes the new version slower proportionally to the total length of cookie values.",
+              "size_meaning": "n = length of the cookie value (in characters).",
+              "make_source": "def make(n):\n    # one cookie with a value of length n\n    header = f\"big={'x'*n}\"\n    return [[header]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 1.0056049575978068,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5.1",
+              "kind": "suspected_slowdown",
+              "family": "many_trailing_semicolons",
+              "why": "The new version strips every segment before checking for '=', while the old version only stripped when '=' was present. A header with many empty segments (e.g. repeated ';;') forces the new code to allocate and strip a string for each empty piece, adding O(n) work the old code skipped.",
+              "size_meaning": "Number of empty segments (each just ';').",
+              "make_source": "def make(n):\n    # Header ending with n semicolons produces n+1 empty trailing splits\n    header = \"\";\" * (n + 2)\" \"",
+              "example_args": [],
+              "origin": "expand:F5",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: unterminated string literal (detected at line 4) (line 4)"
+            },
+            {
+              "id": "F5.2",
+              "kind": "suspected_slowdown",
+              "family": "many_leading_spaces_stripped",
+              "why": "The new version strips every segment before checking for '=', while the old version only stripped when '=' was present. A header with many empty segments (e.g. repeated ';;') forces the new code to allocate and strip a string for each empty piece, adding O(n) work the old code skipped.",
+              "size_meaning": "Number of empty segments (each just ';').",
+              "make_source": "def make(n):\n    # Many segments starting with spaces, then null value (no =)\n    header = ', '.join([' ;'] * n)",
+              "example_args": [],
+              "origin": "expand:F5",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(2): TypeError: 'NoneType' object is not iterable"
+            },
+            {
+              "id": "F4.1",
+              "kind": "suspected_slowdown",
+              "family": "many_semicolon_segments_with_plus_in_middle",
+              "why": "Head version strips *every* segment before checking for \"=\". Base version only strips segments that actually contain \"=\". A header with many segments that lack \"=\" (e.g. \"a;b;c;...\") forces the new code to do O(n) extra strip operations.",
+              "size_meaning": "Number of semicolon‑separated segments that do NOT contain \"=\".",
+              "make_source": "def make(n):\n    parts = []\n    for i in range(n):\n        s = f'seg{i}+{i+5}'\n        parts.append(s)\n    header = ';'.join(parts)\n    return [[header]]",
+              "example_args": [],
+              "origin": "expand:F4",
+              "screen_ratio": 1.0842533733254556,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4.2",
+              "kind": "suspected_slowdown",
+              "family": "many_colon_sep_keyval_no_value",
+              "why": "Head version strips *every* segment before checking for \"=\". Base version only strips segments that actually contain \"=\". A header with many segments that lack \"=\" (e.g. \"a;b;c;...\") forces the new code to do O(n) extra strip operations.",
+              "size_meaning": "Number of semicolon‑separated segments that do NOT contain \"=\".",
+              "make_source": "def make(n):\n    key_val_pairs = [f'key{i}:' for i in range(n)]\n    header = ','.join(key_val_pairs)\n    return [[header]]",
+              "example_args": [],
+              "origin": "expand:F4",
+              "screen_ratio": 1.0121220505817177,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F4.3",
+              "kind": "suspected_slowdown",
+              "family": "repeated_empty_segments_at_start_and_end",
+              "why": "Head version strips *every* segment before checking for \"=\". Base version only strips segments that actually contain \"=\". A header with many segments that lack \"=\" (e.g. \"a;b;c;...\") forces the new code to do O(n) extra strip operations.",
+              "size_meaning": "Number of semicolon‑separated segments that do NOT contain \"=\".",
+              "make_source": "def make(n):\n    empty_count = max(0, n // 2)\n    normal_segments = ['normal'] * ((n + 1) // 2)\n    all_parts = ([''] * empty_count) + normal_segments + ([''] * empty_count)\n    header = ';'.join(all_parts)\n    return [[header]]}]}, {",
+              "example_args": [],
+              "origin": "expand:F4",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: syntax error: unmatched '}' (line 7)"
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "many_empty_segments",
+              "why": "The new version strips every segment before checking for '=', while the old version only stripped when '=' was present. A header with many empty segments (e.g. repeated ';;') forces the new code to allocate and strip a string for each empty piece, adding O(n) work the old code skipped.",
+              "origin": "plan",
+              "screen_ratio": 1.0950635955029355,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 42038.315,
+                  "head_ir": 43141.425,
+                  "input_chars": 7.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0262405855229926,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 42635.3025,
+                  "head_ir": 44187.425,
+                  "input_chars": 9.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0364046320534492,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 46703.5775,
+                  "head_ir": 51143.3875,
+                  "input_chars": 21.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0950635955029355,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 64529.64,
+                  "head_ir": 80279.45,
+                  "input_chars": 69.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.2440709416633968,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 133564.81578947368,
+                  "head_ir": 194590.31578947368,
+                  "input_chars": 261.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.456898020929322,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 398991.34210526315,
+                  "head_ir": 640353.7894736842,
+                  "input_chars": 1029.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.604931540857205,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 1591178.375,
+                  "head_ir": 2551484.125,
+                  "input_chars": 4101.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.6035186029976054,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.5475252965420538,
+              "slope_head": 0.6272788678221376,
+              "top_inputs": [
+                {
+                  "args": [
+                    ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;"
+                  ],
+                  "cpu_ratio": 1.339,
+                  "base_ir": 100577.46610169491,
+                  "head_ir": 139513.14406779662,
+                  "ir_ratio": 1.387121285465011,
+                  "outcome": "ok"
+                },
+                {
+                  "args": [
+                    ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;"
+                  ],
+                  "cpu_ratio": 1.337,
+                  "base_ir": 109769.48039215687,
+                  "head_ir": 154815.48039215687,
+                  "ir_ratio": 1.410369073799666,
+                  "outcome": "ok"
+                }
+              ],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.604931540857205,
+              "worst_search": {
+                "args": [
+                  ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;"
+                ],
+                "cpu_ratio": 1.337,
+                "base_ir": 109769.48039215687,
+                "head_ir": 154815.48039215687,
+                "ir_ratio": 1.410369073799666,
+                "outcome": "ok"
+              }
+            },
+            {
+              "family_id": "F4",
+              "kind": "suspected_slowdown",
+              "family": "many_semicolon_segments_without_equals",
+              "why": "Head version strips *every* segment before checking for \"=\". Base version only strips segments that actually contain \"=\". A header with many segments that lack \"=\" (e.g. \"a;b;c;...\") forces the new code to do O(n) extra strip operations.",
+              "origin": "plan",
+              "screen_ratio": 1.0846397547306883,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 41939.5775,
+                  "head_ir": 42649.3875,
+                  "input_chars": 13.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.016924586328987,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 43052.5775,
+                  "head_ir": 44262.3875,
+                  "input_chars": 23.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0281007565691043,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 50269.64,
+                  "head_ir": 54524.45,
+                  "input_chars": 89.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0846397547306883,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 81127.91346153847,
+                  "head_ir": 97382.18269230769,
+                  "input_chars": 377.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.2003535964039693,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 205038.0909090909,
+                  "head_ir": 270150.7272727273,
+                  "input_chars": 1685.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3175636101318646,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 689365.0,
+                  "head_ir": 945682.75,
+                  "input_chars": 7085.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3718171795783076,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 2765024.25,
+                  "head_ir": 3795769.25,
+                  "input_chars": 31661.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3727797324019853,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.5266393361206952,
+              "slope_head": 0.5708123012049002,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.3727797324019853,
+              "worst_search": null
+            },
+            {
+              "family_id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "malformed cookie header – many semicolon‑separated parts that do NOT contain \"=\"",
+              "why": "The original version checks `if \"=\" in cookie:` *before* calling `strip()`. The new version unconditionally executes `cookie = cookie.strip()` for every part, then tests for \"=\". For inputs with a large number of parts lacking an equals sign the new code does an extra `strip()` call per part, making it slower.",
+              "origin": "plan",
+              "screen_ratio": 1.0843783653713397,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 41960.5775,
+                  "head_ir": 42670.3875,
+                  "input_chars": 15.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.01691611608539,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 43092.5775,
+                  "head_ir": 44302.3875,
+                  "input_chars": 27.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.028074672488551,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 50427.61827956989,
+                  "head_ir": 54682.61827956989,
+                  "input_chars": 105.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0843783653713397,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 81903.98888888888,
+                  "head_ir": 98144.14444444445,
+                  "input_chars": 441.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1982828403826216,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 207478.1,
+                  "head_ir": 272131.65,
+                  "input_chars": 1941.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3116162621500775,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 700383.25,
+                  "head_ir": 956888.25,
+                  "input_chars": 8109.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3662352005134333,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 2793083.75,
+                  "head_ir": 3803968.25,
+                  "input_chars": 35757.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3619241635701043,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.5300648887785131,
+              "slope_head": 0.5734420109497845,
+              "top_inputs": [
+                {
+                  "args": [
+                    [
+                      "j7yzsofc2g58"
+                    ]
+                  ],
+                  "cpu_ratio": 1.107,
+                  "base_ir": 46430.9225,
+                  "head_ir": 46635.7325,
+                  "ir_ratio": 1.0044110689379475,
+                  "outcome": "exc:builtins.AttributeError"
+                },
+                {
+                  "args": [
+                    [
+                      "mg0528ui8o5casqq24av"
+                    ]
+                  ],
+                  "cpu_ratio": 1.033,
+                  "base_ir": 46430.9225,
+                  "head_ir": 46635.7325,
+                  "ir_ratio": 1.0044110689379475,
+                  "outcome": "exc:builtins.AttributeError"
+                }
+              ],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.3662352005134333,
+              "worst_search": {
+                "args": [
+                  [
+                    "j7yzsofc2g58"
+                  ]
+                ],
+                "cpu_ratio": 1.107,
+                "base_ir": 46430.9225,
+                "head_ir": 46635.7325,
+                "ir_ratio": 1.0044110689379475,
+                "outcome": "exc:builtins.AttributeError"
+              }
+            },
+            {
+              "family_id": "F4.1",
+              "kind": "suspected_slowdown",
+              "family": "many_semicolon_segments_with_plus_in_middle",
+              "why": "Head version strips *every* segment before checking for \"=\". Base version only strips segments that actually contain \"=\". A header with many segments that lack \"=\" (e.g. \"a;b;c;...\") forces the new code to do O(n) extra strip operations.",
+              "origin": "expand:F4",
+              "screen_ratio": 1.0842533733254556,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 41982.5775,
+                  "head_ir": 42692.3875,
+                  "input_chars": 17.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.016907251585494,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 43151.64,
+                  "head_ir": 44346.45,
+                  "input_chars": 31.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0276886347772645,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 50674.409395973154,
+                  "head_ir": 54943.89932885906,
+                  "input_chars": 132.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0842533733254556,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 83074.67142857143,
+                  "head_ir": 99354.67142857143,
+                  "input_chars": 564.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.1959682743253186,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 214406.35714285713,
+                  "head_ir": 278314.78571428574,
+                  "input_chars": 2609.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.2980715190680983,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 734188.0,
+                  "head_ir": 989381.25,
+                  "input_chars": 11110.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3475857001204052,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 2972129.25,
+                  "head_ir": 3992042.25,
+                  "input_chars": 51046.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.343159033208263,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.5221943756459514,
+              "slope_head": 0.5622911004648111,
+              "top_inputs": [
+                {
+                  "args": [
+                    "򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016;IRX;Ýùfx`󃟔ÎÙê2¡;ÒÑç\u0013\u0007󙯝¼9;󶢝h򢄼\u0016C\u0007;Ùw􃰟déµ4\u00064\u0002k¾U򘦸;ù󝿊­ý;ôæ򉺥Êêã«Ä;4K򭬲I𽼛QÑ]»ìeE|\r¸񋠲¯;Û.񱟤;K\u0007RØQ򮌦䤕;󨓹\u001d𰡦\u0000N\u0010v°񧅇\u001d𻺽p;@¦Ã;ú;򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016;IRX;Ýùfx`󃟔ÎÙê2¡;ÒÑç\u0013\u0007󙯝¼9;󶢝h򢄼\u0016C\u0007;Ùw􃰟déµ4\u00064\u0002k¾U򘦸;ù󝿊­ý;ôæ򉺥Êêã«Ä;򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016;IRX;Ýùfx`󃟔ÎÙê2¡;ÒÑç\u0013\u0007󙯝¼9;󶢝h򢄼\u0016C\u0007;Ùw􃰟déµ4\u00064\u0002k¾U򘦸;ù󝿊­ý;ôæ򉺥Êêã«Ä;4K򭬲I𽼛QÑ]»ìeE|\r¸񋠲¯;Û.񱟤"
+                  ],
+                  "cpu_ratio": 1.218,
+                  "base_ir": 79653.1,
+                  "head_ir": 95151.3,
+                  "ir_ratio": 1.1945712094067902,
+                  "outcome": "ok"
+                },
+                {
+                  "args": [
+                    "򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016;IRX;Ýùfx`󃟔ÎÙê2¡;ÒÑç\u0013\u0007󙯝¼9;󶢝h򢄼\u0016C\u0007;Ùw􃰟déµ4\u00064\u0002k¾U򘦸;ù󝿊­ý;ôæ򉺥Êêã«Ä;4K򭬲I𽼛QÑ]»ìeE|\r¸񋠲¯;Û.񱟤;K\u0007RØQ򮌦䤕;󨓹\u001d𰡦\u0000N\u0010v°񧅇\u001d𻺽p;@¦Ã;ú;򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016;IRX;Ýùfx`󃟔ÎÙê2¡;ÒÑç\u0013\u0007󙯝¼9;󶢝h򢄼\u0016C\u0007;Ùw􃰟déµ4\u00064\u0002k¾U򘦸;ù󝿊­ý;ôæ򉺥Êêã«Ä;4K򭬲I𽼛QÑ]»ìeE|\r¸񋠲¯;Û.񱟤;K\u0007RØQ򮌦䤕;󨓹\u001d𰡦\u0000N\u0010v°񧅇\u001d𻺽p;@¦Ã;ú;𥤆«éñ\u000e\r򂣏\u0003Wæ;񠌭𘣼򶵔µ;¯󀲯k¸𲓎;򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016"
+                  ],
+                  "cpu_ratio": 1.214,
+                  "base_ir": 79660.6,
+                  "head_ir": 94453.05,
+                  "ir_ratio": 1.1856934293741197,
+                  "outcome": "ok"
+                }
+              ],
+              "error": null,
+              "verdict": "slower",
+              "worst_ratio": 1.3475857001204052,
+              "worst_search": {
+                "args": [
+                  "򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016;IRX;Ýùfx`󃟔ÎÙê2¡;ÒÑç\u0013\u0007󙯝¼9;󶢝h򢄼\u0016C\u0007;Ùw􃰟déµ4\u00064\u0002k¾U򘦸;ù󝿊­ý;ôæ򉺥Êêã«Ä;4K򭬲I𽼛QÑ]»ìeE|\r¸񋠲¯;Û.񱟤;K\u0007RØQ򮌦䤕;󨓹\u001d𰡦\u0000N\u0010v°񧅇\u001d𻺽p;@¦Ã;ú;򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016;IRX;Ýùfx`󃟔ÎÙê2¡;ÒÑç\u0013\u0007󙯝¼9;󶢝h򢄼\u0016C\u0007;Ùw􃰟déµ4\u00064\u0002k¾U򘦸;ù󝿊­ý;ôæ򉺥Êêã«Ä;򏣉åN\u0001O;Ù;U\rÛ;ð򠪉âä,󃍵iÈ;å?;IRX;ÂL­½®񌡒\u0016;IRX;Ýùfx`󃟔ÎÙê2¡;ÒÑç\u0013\u0007󙯝¼9;󶢝h򢄼\u0016C\u0007;Ùw􃰟déµ4\u00064\u0002k¾U򘦸;ù󝿊­ý;ôæ򉺥Êêã«Ä;4K򭬲I𽼛QÑ]»ìeE|\r¸񋠲¯;Û.񱟤"
+                ],
+                "cpu_ratio": 1.218,
+                "base_ir": 79653.1,
+                "head_ir": 95151.3,
+                "ir_ratio": 1.1945712094067902,
+                "outcome": "ok"
+              }
+            },
+            {
+              "family_id": "F2",
+              "kind": "claimed_speedup",
+              "family": "many_well_formed_cookies",
+              "why": "Typical cookie headers contain many key=value pairs. The change moves the strip outside the equality test, which the author likely expected to avoid repeated attribute look‑ups and make the hot path tighter.",
+              "origin": "plan",
+              "screen_ratio": 1.0072629307261658,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 46379.5775,
+                  "head_ir": 46643.3875,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0056880638897583,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 52216.64,
+                  "head_ir": 52511.45,
+                  "input_chars": 30.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0056459013831607,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 88944.81089743589,
+                  "head_ir": 89590.81089743589,
+                  "input_chars": 126.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0072629307261658,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 237371.65714285715,
+                  "head_ir": 239241.65714285715,
+                  "input_chars": 558.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0078779413789682,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 833412.3571428572,
+                  "head_ir": 840490.7857142857,
+                  "input_chars": 2598.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0084933088773667,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 3194014.25,
+                  "head_ir": 3216655.75,
+                  "input_chars": 11094.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.007088728549035,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 12874764.75,
+                  "head_ir": 12973831.25,
+                  "input_chars": 51030.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0076946260319048,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.707566564849701,
+              "slope_head": 0.7078163998816763,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "neutral",
+              "worst_ratio": 1.0084933088773667,
+              "worst_search": null
+            }
+          ],
+          "seconds": {
+            "plan": 13.09,
+            "screen": 334.81,
+            "full": 378.58,
+            "total": 726.49
+          }
+        }
+      }
+    }
+  ]
+}

@@ -318,3 +318,10 @@ details.dups .known { margin-left: 6px; }
 .judge-out code { display: block; overflow-wrap: anywhere; }
 .judge-out small { display: block; color: var(--muted); overflow-wrap: anywhere; margin-top: 2px; unicode-bidi: bidi-override; direction: ltr; }
 .judge-table td p { margin: 6px 0 0; overflow-wrap: anywhere; }
+
+/* Provenance: where the untrusted code ran, and the image that reproduces it */
+.chip.backend { background: var(--accent-soft); color: var(--accent); }
+.chip.backend.docker { background: var(--none-soft); color: var(--none); }
+.prov { margin: 0; color: var(--muted); font-size: 0.8rem; overflow-wrap: anywhere; }
+.prov .k { font-weight: 650; margin-right: 6px; }
+table.compare td.images code { font-size: 0.72rem; overflow-wrap: anywhere; }

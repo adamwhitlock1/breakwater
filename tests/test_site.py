@@ -212,3 +212,85 @@ def test_judge_page_links_divergences_to_backtest_cards(tmp_path):
     assert meta["known"]["pr"][sig]["href"] == "pr/1082-61967cca.html"
     assert (tmp_path / "s" / "data" / "judge.json").exists() and (tmp_path / "s" / "assets" / "compare.py").exists()
     assert 'href="judge.html">Try it</a>' in (tmp_path / "s" / "index.html").read_text()
+
+
+def test_backend_of_infers_from_the_image_ref_and_prefers_the_record():
+    from breakwater.site.build import backend_of
+
+    assert backend_of("bw-pair:7a0f18c452d5a146") == "docker"
+    assert backend_of("dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49") == "contree"
+    assert backend_of("dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49", "docker") == "docker"  # the artifact's word wins
+
+
+def _mini_backend(tmp_path: Path, name: str, image: str, backend: str | None, worst: float | None) -> Path:
+    """A one-item backtest on a given backend (image ref + optional recorded backend)."""
+    d = tmp_path / name
+    d.mkdir()
+    finding = {"signature": "P2|outcome|exc:builtins.ValueError|ok|plain", "probe": "P2", "detail": "outcome",
+               "args": [["x"]], "base": {"status": "exc", "exc": "builtins.ValueError"}, "head": {"status": "ok"},
+               "found_by": ["A1/s1"]}
+    perf = None
+    if worst:
+        perf = {"worst_valid_ratio": worst, "worst_family": "f", "slower_families": [], "speedup_ratio_small": None,
+                "report": {"findings": [{"family_id": "F1", "family": "f", "verdict": "slower", "kind": "suspected_slowdown",
+                                         "origin": "plan", "valid_fraction": 1.0, "worst_ratio": worst,
+                                         "ladder": [{"n": 2, "input_chars": 10, "ratio": worst, "judged": True},
+                                                    {"n": 4, "input_chars": 100, "ratio": worst, "judged": True}]}]}}
+    target = {"target": "m:F", "run_id": "r", "image": image, "usd": 0.01, "findings": [finding],
+              "arms": {"breakwater": {"classes": [finding["signature"]], "known": ["k1"]}}, "perf": perf}
+    if backend:
+        target["backend"] = backend
+    item = {"id": "#1", "pr": 1, "title": "perf: x", "base": "a" * 40, "head": "b" * 40, "merged": "2026-01-01",
+            "after_ultra_release": False, "known": [{"id": "k1", "status": "verified", "match": {"probe": "P2"}}],
+            "targets": [target]}
+    summary = {"items": 1, "known_verified": 1, "known_candidate": 0, "caught_verified": {"breakwater": 1},
+               "caught_candidate": {"breakwater": 0}, "items_with_classes": {"breakwater": 1}, "usd": 0.01,
+               "provider": "tokenfactory"}
+    (d / "results.json").write_text(json.dumps({"corpus": "missing.json", "arms": ["breakwater"], "items": [item],
+                                                "summary": summary}))
+    (d / "1.json").write_text(json.dumps(item))
+    return d
+
+
+def test_every_page_and_card_names_its_backend_and_image(tmp_path):
+    uuid = "dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49"
+    build(_mini_backend(tmp_path, "sb", uuid, "contree", None), None, tmp_path / "out")
+    index = (tmp_path / "out" / "index.html").read_text()
+    assert f'<span class="chip backend sm contree" title="image {uuid}">Sandboxes</span>' in index
+    assert "Backend: where the untrusted code ran" in index
+    pr = (tmp_path / "out" / "pr" / "1.html").read_text()
+    assert f"Token Factory Sandboxes · image <code>{uuid}</code>" in pr  # on the card
+    assert "--backend contree --input" in pr  # the reproduce command re-runs where it was found
+    assert "<th>Backend</th>" in pr and "<td>Token Factory Sandboxes</td>" in pr  # receipt
+    build(_mini_backend(tmp_path, "dk", "bw-pair:abc", None, None), None, tmp_path / "out2")  # older artifact: no record
+    assert 'class="chip backend sm docker"' in (tmp_path / "out2" / "index.html").read_text()
+    assert "local Docker · image <code>bw-pair:abc</code>" in (tmp_path / "out2" / "pr" / "1.html").read_text()
+
+
+def test_compare_sub_site_puts_the_backends_side_by_side(tmp_path):
+    from breakwater.site.build import Corpus, compare_rows, load
+
+    main = _mini_backend(tmp_path, "docker", "bw-pair:abc", "docker", 2.44)
+    sub = _mini_backend(tmp_path, "sandboxes", "dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49", "contree", 2.51)
+    rows = compare_rows(load(main, None)[2], load(sub, None)[2])
+    assert len(rows) == 1 and rows[0]["same_verdict"] and rows[0]["same_known"]
+    assert abs(rows[0]["worst_delta"] - (2.51 - 2.44) / 2.44) < 1e-9
+    build(main, None, tmp_path / "out", extras=[Corpus("sandboxes", sub, compare=True)])
+    index = (tmp_path / "out" / "sandboxes" / "index.html").read_text()
+    assert rows[0]["families"][0]["family"] == "f" and abs(rows[0]["families"][0]["gap"] - 0.07 / 2.44) < 1e-9
+    assert "1/1" in index and "same verdict on both backends" in index and "3%" in index  # the shared family's gap
+    assert "bw-pair:abc" in index and "dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49" in index  # both images, every row
+    assert (tmp_path / "out" / "sandboxes" / "pr" / "1.html").exists()
+    root = (tmp_path / "out" / "index.html").read_text()
+    assert "Checked on Token Factory Sandboxes: 1/1 verdicts agree" in root
+    assert 'href="sandboxes/index.html">Sandboxes</a>' in root
+
+
+def test_run_page_names_backend_and_image_from_the_receipt_when_the_semantic_report_lacks_them(tmp_path):
+    from breakwater.site.build import run_provenance
+
+    rep = _run_report()
+    assert run_provenance(rep) == ("docker", "bw-pair:x")
+    rep["semantic"].pop("backend"), rep["semantic"].pop("image")
+    rep["sandbox"] = {"backend": "contree", "image": "dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49", "runs": 3, "cpu_s": 1.0}
+    assert run_provenance(rep) == ("contree", "dbe8dafe-78c4-4fc8-b8c2-a5adaad2ed49")

@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import hashlib
 import subprocess
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
 CACHE = Path("artifacts/cache/repos")
+_CLONE_LOCK = threading.Lock()  # backtest workers share the cache; two clones of one repo would collide
 EXCLUDE = (":(exclude)tests/**", ":(exclude)test/**", ":(exclude)docs/**", ":(exclude)*.md", ":(exclude)*.rst")
 INTENT = ("tests/**", "test/**", "docs/**", "*.md", "*.rst")  # the complement of EXCLUDE
 MAX_INTENT_CHARS = 20_000
@@ -40,9 +42,10 @@ def _git(path: Path, *args: str) -> str:
 
 def checkout(repo: str) -> Path:
     path = CACHE / hashlib.sha256(repo.encode()).hexdigest()[:12]
-    if not path.exists():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["git", "clone", "-q", "--filter=blob:none", "--no-checkout", repo, str(path)], check=True)
+    with _CLONE_LOCK:
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run(["git", "clone", "-q", "--filter=blob:none", "--no-checkout", repo, str(path)], check=True)
     return path
 
 

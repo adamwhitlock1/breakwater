@@ -1,0 +1,838 @@
+{
+  "id": "json_repair#113",
+  "pr": 113,
+  "title": "⚡️ Speed up method `ObjectComparer.is_same_object` by 109%",
+  "base": "ec462b47b30464b66eaaec6753a8db3d79522253",
+  "head": "cbfa7a1c6fa8360f90303c5b9b8054ef2f6298bb",
+  "merged": "2025-05-16",
+  "after_ultra_release": false,
+  "known": [],
+  "repo": "https://github.com/mangiucugna/json_repair",
+  "install": {
+    "exclude_newer": "2025-05-17"
+  },
+  "targets": [
+    {
+      "target": "json_repair.object_comparer:ObjectComparer.is_same_object",
+      "run_id": "bt-json_repair#113-ba5cd1",
+      "image": "44ce7ab3-2490-4df1-96bc-08c7d76584d1",
+      "backend": "contree",
+      "usd": 0.2319,
+      "harvested": 0,
+      "arms": {
+        "hypothesis": {
+          "classes": [],
+          "known": [],
+          "seconds": 9.2,
+          "error": null
+        },
+        "mutations": {
+          "classes": [],
+          "known": [],
+          "seconds": 4.8,
+          "error": null
+        },
+        "breakwater": {
+          "classes": [],
+          "known": [],
+          "seconds": 64.7,
+          "error": null
+        },
+        "llm-plan": {
+          "classes": [],
+          "known": [],
+          "seconds": 0.0,
+          "error": null
+        }
+      },
+      "findings": [],
+      "perf": {
+        "slower_families": [
+          {
+            "id": "R1",
+            "family": "large dicts with identical length but one key swapped, and deep equal values on the shared keys",
+            "verdict": "complexity-regression",
+            "ladder": [
+              1.2602686492869575,
+              4.103154504112442,
+              30.477666763689747,
+              160.05565269193215
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "R2",
+            "family": "swap position of the mismatched key within dict ordering",
+            "verdict": "complexity-regression",
+            "ladder": [
+              0.35832971330687147,
+              1.5079980646476456,
+              14.324632030247788,
+              79.2704114307474,
+              363.31034819644236
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "R3",
+            "family": "Large dictionaries with same length but almost no common keys",
+            "verdict": "complexity-regression",
+            "ladder": [
+              0.6398499950965152,
+              1.068620960906729,
+              2.199936083248765,
+              3.000317692940644,
+              3.4632837101604963,
+              3.664158315908098,
+              3.7265635923582434
+            ],
+            "origin": "archive"
+          },
+          {
+            "id": "R4",
+            "family": "Dicts with numeric string keys where only the first matches",
+            "verdict": "complexity-regression",
+            "ladder": [
+              0.3560818082832093,
+              1.0796623428018193,
+              1.3734950008795683,
+              2.176923134283045,
+              1.3707106923900108,
+              3.389626599822074,
+              1.291599474451235
+            ],
+            "origin": "archive"
+          }
+        ],
+        "worst_valid_ratio": 363.31034819644236,
+        "worst_family": "swap position of the mismatched key within dict ordering",
+        "speedup_ratio_small": 0.5611763686241454,
+        "report": {
+          "run_id": "bt-json_repair#113-ba5cd1",
+          "target": "json_repair.object_comparer:ObjectComparer.is_same_object",
+          "image": "44ce7ab3-2490-4df1-96bc-08c7d76584d1",
+          "backend": "contree",
+          "families": [
+            {
+              "id": "F1",
+              "kind": "claimed_speedup",
+              "family": "large flat dicts with many keys",
+              "why": "The old code built two key‑sets, computed intersections and differences (O(N) allocations) before iterating. The new code only checks length and then iterates over obj1's keys, doing a single hash lookup per key. For a dict with many keys the allocation‑heavy set work dominates, so the new version is noticeably faster.",
+              "size_meaning": "n = number of keys in each dict (values are tiny atoms)",
+              "make_source": "\ndef make(n):\n    # build two identical dicts with n string keys and simple int values\n    keys = [f'k{i}' for i in range(n)]\n    d1 = {k: i for i, k in enumerate(keys)}\n    d2 = {k: i for i, k in enumerate(keys)}\n    return [[d1, d2]]",
+              "example_args": [
+                [
+                  {
+                    "k0": 0,
+                    "k1": 1,
+                    "k2": 2
+                  }
+                ],
+                [
+                  {
+                    "k0": 0,
+                    "k1": 1,
+                    "k2": 2
+                  }
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6220240374148894,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F2",
+              "kind": "claimed_speedup",
+              "family": "Large dictionaries with identical key sets and simple values",
+              "why": "The new version avoids building two Python `set` objects, computing intersections and differences, and building path strings for recursive calls. For large equal dictionaries the old code spends O(n) time in C‑level set construction plus a Python loop over the common keys; the new code does a single length check and a plain Python loop over `obj1` keys, which is measurably faster.",
+              "size_meaning": "n = number of keys in each dictionary",
+              "make_source": "def make(n):\n    # create two identical dicts with n string keys mapping to small ints\n    d = {f'k{i}': i for i in range(n)}\n    return [(d, d)]",
+              "example_args": [
+                [
+                  {
+                    "obj1": {
+                      "k0": 0,
+                      "k1": 1,
+                      "k2": 2
+                    },
+                    "obj2": {
+                      "k0": 0,
+                      "k1": 1,
+                      "k2": 2
+                    }
+                  }
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6220240374148894,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F3",
+              "kind": "claimed_speedup",
+              "family": "deep_nesting",
+              "why": "Old code built a `path` string at every recursive call (`f\"{path}/{key}\"` and `f\"{path}[{i}]\"`). For deeply nested structures this creates O(depth²) temporary strings, while the new version drops the `path` argument entirely. The speed‑up grows with nesting depth.",
+              "size_meaning": "nesting depth",
+              "make_source": "def make(n):\n    # build a nested list of depth n, e.g. [[[...]]]\n    obj = []\n    for _ in range(n):\n        obj = [obj]\n    # both arguments are identical, so the function must walk the whole structure\n    return [[obj, obj]]",
+              "example_args": [
+                [
+                  [
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "exit 1: ks\n  File \"/usr/local/lib/python3.12/json/encoder.py\", line 326, in _iterencode_list\n    yield from chunks\n  [Previous line repeated 990 more times]\n  File \"/usr/local/lib/python3.12/json/encoder.py\", line 321, in _iterencode_list\n    chunks = _iterencode_list(value, _current_indent_level)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRecursionError: maximum recursion depth exceeded\n"
+            },
+            {
+              "id": "F4",
+              "kind": "claimed_speedup",
+              "family": "large flat lists",
+              "why": "The old implementation computed min(len) and then looped up to that length before finally comparing the lengths. The new version checks the lengths first and returns immediately on mismatch, avoiding the needless element‑wise loop when the lengths differ.",
+              "size_meaning": "n = length of each list (elements are tiny atoms)",
+              "make_source": "def make(n):\n    l1 = list(range(n))\n    l2 = list(range(n))\n    return [[l1, l2]]",
+              "example_args": [
+                [
+                  0,
+                  1,
+                  2
+                ],
+                [
+                  0,
+                  1,
+                  2
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.5676453099407834,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F5",
+              "kind": "suspected_slowdown",
+              "family": "Dictionaries where `obj2` lacks the last key of `obj1` (all other keys identical)",
+              "why": "The old implementation builds two `set`s and computes `extra_keys1 = keys1 - keys2` in C, which discovers the missing key without a Python‑level loop over all keys. The new implementation iterates over every key of `obj1` in pure Python and only fails on the final iteration, so the Python loop runs `n` times instead of the old version’s fast C‑level set difference.",
+              "size_meaning": "n = number of keys in `obj1` (the missing key is the nth)",
+              "make_source": "def make(n):\n    # obj1 has keys k0..k{n-1}, obj2 missing the last one\n    obj1 = {f'k{i}': i for i in range(n)}\n    obj2 = {f'k{i}': i for i in range(n-1)}\n    return [(obj1, obj2)]",
+              "example_args": [
+                [
+                  {
+                    "obj1": {
+                      "k0": 0,
+                      "k1": 1,
+                      "k2": 2
+                    },
+                    "obj2": {
+                      "k0": 0,
+                      "k1": 1
+                    }
+                  }
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.1258598681291185,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "F6",
+              "kind": "suspected_slowdown",
+              "family": "large_flat_dict",
+              "why": "The new implementation iterates over `obj1` keys in pure Python (`for key in obj1: …`). The old version created two `set` objects and used the C‑level intersection (`keys1 & keys2`) before a Python loop over the (usually much smaller) `common_keys`. For very large dictionaries with many keys the extra Python‑level loop can be slower even though both algorithms are O(N).",
+              "size_meaning": "number of keys",
+              "make_source": "def make(n):\n    # a dict with n distinct string keys, all mapping to the same simple value\n    d = {f'k{i}': i for i in range(n)}\n    return [[d, d]]",
+              "example_args": [
+                [
+                  {
+                    "k0": 0,
+                    "k1": 1,
+                    "k2": 2
+                  }
+                ],
+                [
+                  {
+                    "k0": 0,
+                    "k1": 1,
+                    "k2": 2
+                  }
+                ]
+              ],
+              "origin": "plan",
+              "screen_ratio": 0.6220240374148894,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "large dicts with identical length but one key swapped, and deep equal values on the shared keys",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "def make(n):\n    # shared keys k0..k{n-2} map to identical large lists\n    shared = {f'k{i}': list(range(n)) for i in range(n-1)}\n    # each side has its own extra key\n    obj1 = dict(shared)\n    obj1[f'extra1_{n}'] = list(range(n))\n    obj2 = dict(shared)\n    obj2[f'extra2_{n}'] = list(range(n))\n    # both dicts have length n\n    return [[obj1, obj2]] * 4",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 30.477666763689747,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=256; ladder stops here"
+            },
+            {
+              "id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "swap position of the mismatched key within dict ordering",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "\ndef make(n):\n    shared_val = list(range(n))\n    prefixed_key = f'{chr(97 + n % 26)}key'\n    other_keys = [f'{chr(97+i%26)}{i}' for i in range(n - 1)]\n    all_keys = other_keys[:]\n    idx = len(all_keys)//2\n    all_keys.insert(idx, prefixed_key)\n    o1 = {}\n    for k in all_keys:\n        val = shared_val if k != prefixed_key else list(range(n+1))\n        o1[k] = val\n    all_keys.remove(prefixed_key)\n    alt_key = f'zzz_{n}'\n    all_keys.append(alt_key)\n    o2 = {}\n    for k in all_keys:\n        val = shared_val if k != alt_key else list(range(n+1))\n        o2[k] = val\n    return [[o1, o2]]",
+              "example_args": [],
+              "origin": "archive",
+              "screen_ratio": 14.324632030247788,
+              "valid_fraction": 1.0,
+              "error": "ladder inputs exceed 2000000 chars at n=1024; ladder stops here"
+            },
+            {
+              "id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "Large dictionaries with same length but almost no common keys",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "size_meaning": "n = number of keys in each dictionary (both have length n, only 1 key overlaps)",
+              "make_source": "def make(n):\n    # dict1: keys k0..k{n-1}\n    # dict2: keys k0..k{n-2} plus 'extra' -> same length, 1 common key\n    d1 = {f'k{i}': i for i in range(n)}\n    d2 = {f'k{i}': i for i in range(n-1)}\n    d2['extra'] = n\n    return [[d1, d2]]",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 2.199936083248765,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Dicts with numeric string keys where only the first matches",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "size_meaning": "n = number of keys in each dictionary (both have length n, only 1 key overlaps)",
+              "make_source": "def make(n):\n    seq_a = [] ; running_total = 0\n    for idx in range(n):\n        element_value = idx * 17 + 42\n        seq_a.append((f'num_{idx:05d}', element_value))\n        running_total += element_value\n    seq_b = [] ; accumulator = 0\n    for idx in range(n - 1):\n        element_value = idx * 17 + 42\n        seq_b.append((f'num_{idx:05d}', element_value))\n        accumulator += element_value\n    unique_val = running_total + accumulator + 1\n    seq_b.append((f'special_{unique_val}', unique_val))\n    random.shuffle(seq_a)\n    random.shuffle(seq_b)\n    dict_a = dict(seq_a)\n    dict_b = dict(seq_b)\n    verification_sum_a = sum(dict_a.values())\n    verification_sum_b = sum(dict_b.values())\n    if verification_sum_a != running_total:\n        pass\n    if verification_sum_b != (running_total - ((n-2)*17+42 if n>=2 else 0) + unique_val):\n        pass\n    shuffle_attempts = 0\n    while shuffle_attempts < 3:\n        temp_list_a = list(dict_a.items())\n        random.shuffle(temp_list_a)\n        dict_a = dict(temp_list_a)\n        temp_list_b = list(dict_b.items())\n        random.shuffle(temp_list_b)\n        dict_b = dict(temp_list_b)\n        shuffle_attempts += 1\n    final_dict_a = {} ; final_dict_b = {}\n    for key_val, value_val in dict_a.items():\n        final_dict_a[key_val] = value_val\n    for key_val, value_val in dict_b.items():\n        final_dict_b[key_val] = value_val\n    return [[final_dict_a, final_dict_b]]",
+              "example_args": [
+                [
+                  {}
+                ],
+                [
+                  {}
+                ]
+              ],
+              "origin": "archive",
+              "screen_ratio": 1.3734950008795683,
+              "valid_fraction": 1.0,
+              "error": null
+            },
+            {
+              "id": "R2.1",
+              "kind": "suspected_slowdown",
+              "family": "swap position of mismatch at front",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "",
+              "example_args": [],
+              "origin": "expand:R2",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: code must assign `strategy`"
+            },
+            {
+              "id": "R2.2",
+              "kind": "suspected_slowdown",
+              "family": "swap position of mismatch near end",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "",
+              "example_args": [],
+              "origin": "expand:R2",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: code must assign `strategy`"
+            },
+            {
+              "id": "R2.3",
+              "kind": "suspected_slowdown",
+              "family": "preserve prefix but reposition deeper nesting under first mismatched key",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "size_meaning": "n is the number of keys per dict (>=2). Shared keys = n‑1, each holding a list of length n to make recursion costly.",
+              "make_source": "",
+              "example_args": [],
+              "origin": "expand:R2",
+              "screen_ratio": null,
+              "valid_fraction": null,
+              "error": "make(n) rejected: code must assign `strategy`"
+            }
+          ],
+          "findings": [
+            {
+              "family_id": "R1",
+              "kind": "suspected_slowdown",
+              "family": "large dicts with identical length but one key swapped, and deep equal values on the shared keys",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "origin": "archive",
+              "screen_ratio": 30.477666763689747,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 9040.25,
+                  "head_ir": 11393.143656716418,
+                  "input_chars": 72.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.2602686492869575,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 10217.25,
+                  "head_ir": 41922.955357142855,
+                  "input_chars": 176.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 4.103154504112442,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 19754.75,
+                  "head_ir": 602078.6875,
+                  "input_chars": 2012.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 30.477666763689747,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 58122.75,
+                  "head_ir": 9302874.6875,
+                  "input_chars": 32636.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 160.05565269193215,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.3078025037545104,
+              "slope_head": 1.082475659224245,
+              "top_inputs": [],
+              "error": "ladder inputs exceed 2000000 chars at n=256; ladder stops here",
+              "verdict": "complexity-regression",
+              "worst_ratio": 160.05565269193215,
+              "worst_search": null
+            },
+            {
+              "family_id": "R2",
+              "kind": "suspected_slowdown",
+              "family": "swap position of the mismatched key within dict ordering",
+              "why": "Head iterates over obj1 keys in Python, recursing into each shared value before discovering the missing key; base builds key sets in C and detects the extra/missing keys via set difference, returning False before any value recursion.",
+              "origin": "archive",
+              "screen_ratio": 14.324632030247788,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 9639.6625,
+                  "head_ir": 3454.1775,
+                  "input_chars": 71.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.35832971330687147,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 10906.098214285714,
+                  "head_ir": 16446.375,
+                  "input_chars": 175.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.5079980646476456,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 19748.0,
+                  "head_ir": 282882.8333333333,
+                  "input_chars": 2012.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 14.324632030247788,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 57774.0,
+                  "head_ir": 4579768.75,
+                  "input_chars": 32636.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 79.2704114307474,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 202156.0,
+                  "head_ir": 73445366.75,
+                  "input_chars": 603957.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 363.31034819644236,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.3389646045011183,
+              "slope_head": 1.0816434987267658,
+              "top_inputs": [],
+              "error": "ladder inputs exceed 2000000 chars at n=1024; ladder stops here",
+              "verdict": "complexity-regression",
+              "worst_ratio": 363.31034819644236,
+              "worst_search": null
+            },
+            {
+              "family_id": "R3",
+              "kind": "suspected_slowdown",
+              "family": "Large dictionaries with same length but almost no common keys",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "origin": "archive",
+              "screen_ratio": 2.199936083248765,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 9585.02,
+                  "head_ir": 6132.975,
+                  "input_chars": 43.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.6398499950965152,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 10831.02,
+                  "head_ir": 11574.255,
+                  "input_chars": 79.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.068620960906729,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 20137.08064516129,
+                  "head_ir": 44300.290322580644,
+                  "input_chars": 318.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.199936083248765,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 58682.0,
+                  "head_ir": 176064.64285714287,
+                  "input_chars": 1374.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.000317692940644,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 203556.33333333334,
+                  "head_ir": 704973.3333333334,
+                  "input_chars": 6221.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.4632837101604963,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 773782.0,
+                  "head_ir": 2835259.75,
+                  "input_chars": 26284.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.664158315908098,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 3046734.0,
+                  "head_ir": 11353848.0,
+                  "input_chars": 118444.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.7265635923582434,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.7408538196302779,
+              "slope_head": 0.9467405643569164,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "complexity-regression",
+              "worst_ratio": 3.7265635923582434,
+              "worst_search": null
+            },
+            {
+              "family_id": "R4",
+              "kind": "suspected_slowdown",
+              "family": "Dicts with numeric string keys where only the first matches",
+              "why": "The old implementation built two key‑sets in C, computed the intersection once, and then iterated only over the (tiny) common set. The new code iterates over *all* keys of the first dict in pure Python, performing a `key not in obj2` test for each one. When the overlap is tiny the new loop does O(n) Python work while the old path does O(n) C work plus O(1) Python work.",
+              "origin": "archive",
+              "screen_ratio": 1.3734950008795683,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 9533.02,
+                  "head_ir": 3394.535,
+                  "input_chars": 75.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.3560818082832093,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 10679.42700729927,
+                  "head_ir": 11530.175182481751,
+                  "input_chars": 143.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.0796623428018193,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 20397.70588235294,
+                  "head_ir": 28016.147058823528,
+                  "input_chars": 576.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3734950008795683,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 58671.3125,
+                  "head_ir": 127722.9375,
+                  "input_chars": 2319.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 2.176923134283045,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 199974.0,
+                  "head_ir": 274106.5,
+                  "input_chars": 9619.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.3707106923900108,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 776727.0,
+                  "head_ir": 2632814.5,
+                  "input_chars": 39680.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 3.389626599822074,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 3052809.0,
+                  "head_ir": 3943006.5,
+                  "input_chars": 162562.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 1.291599474451235,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.7658703767691176,
+              "slope_head": 0.9202113086524708,
+              "top_inputs": [],
+              "error": null,
+              "verdict": "complexity-regression",
+              "worst_ratio": 3.389626599822074,
+              "worst_search": null
+            },
+            {
+              "family_id": "F4",
+              "kind": "claimed_speedup",
+              "family": "large flat lists",
+              "why": "The old implementation computed min(len) and then looped up to that length before finally comparing the lengths. The new version checks the lengths first and returns immediately on mismatch, avoiding the needless element‑wise loop when the lengths differ.",
+              "origin": "plan",
+              "screen_ratio": 0.5676453099407834,
+              "valid_fraction": 1.0,
+              "ladder": [
+                {
+                  "n": 2,
+                  "base_ir": 14974.915,
+                  "head_ir": 8709.815,
+                  "input_chars": 16.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5816270075656523,
+                  "judged": true
+                },
+                {
+                  "n": 4,
+                  "base_ir": 22900.915,
+                  "head_ir": 13195.815,
+                  "input_chars": 28.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5762134395066747,
+                  "judged": true
+                },
+                {
+                  "n": 16,
+                  "base_ir": 70546.84,
+                  "head_ir": 40045.58285714286,
+                  "input_chars": 112.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5676453099407834,
+                  "judged": true
+                },
+                {
+                  "n": 64,
+                  "base_ir": 261927.9,
+                  "head_ir": 147617.15,
+                  "input_chars": 496.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5635793285098686,
+                  "judged": true
+                },
+                {
+                  "n": 256,
+                  "base_ir": 1030495.4375,
+                  "head_ir": 578289.6875,
+                  "input_chars": 2344.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5611763686241454,
+                  "judged": true
+                },
+                {
+                  "n": 1024,
+                  "base_ir": 4281401.0,
+                  "head_ir": 2470474.0,
+                  "input_chars": 10072.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5770246701955738,
+                  "judged": true
+                },
+                {
+                  "n": 4096,
+                  "base_ir": 17359220.75,
+                  "head_ir": 10037026.0,
+                  "input_chars": 46936.0,
+                  "valid_fraction": 1.0,
+                  "ratio": 0.5781956543181813,
+                  "judged": true
+                }
+              ],
+              "slope_base": 0.8870050452102738,
+              "slope_head": 0.8866042043131613,
+              "top_inputs": [
+                {
+                  "args": [
+                    [
+                      61,
+                      9,
+                      54,
+                      2,
+                      0,
+                      71,
+                      35
+                    ],
+                    [
+                      61,
+                      9,
+                      54,
+                      9,
+                      0,
+                      71,
+                      35
+                    ]
+                  ],
+                  "cpu_ratio": 0.607,
+                  "base_ir": 34746.86,
+                  "head_ir": 19881.76,
+                  "ir_ratio": 0.5721886812218427,
+                  "outcome": "ok"
+                },
+                {
+                  "args": [
+                    [
+                      61,
+                      9,
+                      54,
+                      2,
+                      0,
+                      71,
+                      35
+                    ],
+                    [
+                      61,
+                      9,
+                      54,
+                      2,
+                      0,
+                      71,
+                      35
+                    ]
+                  ],
+                  "cpu_ratio": 0.607,
+                  "base_ir": 34746.86,
+                  "head_ir": 19881.76,
+                  "ir_ratio": 0.5721886812218427,
+                  "outcome": "ok"
+                }
+              ],
+              "error": null,
+              "verdict": "faster",
+              "worst_ratio": 0.5816270075656523,
+              "worst_search": {
+                "args": [
+                  [
+                    61,
+                    9,
+                    54,
+                    2,
+                    0,
+                    71,
+                    35
+                  ],
+                  [
+                    61,
+                    9,
+                    54,
+                    9,
+                    0,
+                    71,
+                    35
+                  ]
+                ],
+                "cpu_ratio": 0.607,
+                "base_ir": 34746.86,
+                "head_ir": 19881.76,
+                "ir_ratio": 0.5721886812218427,
+                "outcome": "ok"
+              }
+            }
+          ],
+          "seconds": {
+            "plan": 13.79,
+            "screen": 130.28,
+            "full": 180.23,
+            "total": 324.31
+          }
+        }
+      }
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 This is the forward plan from Oct 17. [roadmap.md](roadmap.md) stays the ledger of what was built and when; this file says what to add and refine in the 12 days left, in priority order, with gates and a budget. Decisions here follow [decisions.md](decisions.md); nothing below reopens a settled one.
 
-**Deadline: Fri Oct 30, 10:00 PT. Submit Thu Oct 29. Feature freeze Sat Oct 24.** Judging is Dec 1–15; the demo URL must stay up and free until then.
+**Deadline: Fri Oct 30, 10:00 PT. Submit Thu Oct 29. Feature freeze moved from Sat Oct 24 to Mon Oct 26 23:59 PT (decided Oct 25).** Judging is Dec 1–15; the demo URL must stay up and free until then.
 
 ## 1. Where the project stands (audit)
 
@@ -135,7 +135,7 @@ What this adds to the story: the backend does not change what Breakwater finds; 
 
 ### WS-B: Story and submission (P0, Oct 21–29)
 
-- [ ] **B1. README rewrite.** Top: one paragraph, then the "For judges" table (Section 8). Then "What it found" (Codeflash first: 3/10 change behaviour, 393× reversal; then packaging 9/9 vs 7/9). Then how it works, as built, with an architecture figure (one SVG, no external assets). Usage table limited to what ran: Nemotron 3 Ultra, Nemotron 3.5 Lightning, Nemotron 3 Super, Token Factory inference, Sandboxes; Serverless Jobs and NeMo Gym removed unless D5 ships. Limitations: falsifies, doesn't prove; pre-existing bugs are invisible; Python 3.12, JSON-able arguments; Ir not wall time. Quickstart that works on a fresh machine (judges may try it). Remove "pre-alpha", "planned" and every `[x]`.
+- [x] **B1. README rewrite** (done 2026-10-25 without the architecture SVG; demo and video URLs left as `[x]` until B7; update the README when C2/C4/D1 land). Top: one paragraph, then the "For judges" table (Section 8). Then "What it found" (Codeflash first: 3/10 change behaviour, 393× reversal; then packaging 9/9 vs 7/9). Then how it works, as built, with an architecture figure (one SVG, no external assets). Usage table limited to what ran: Nemotron 3 Ultra, Nemotron 3.5 Lightning, Nemotron 3 Super, Token Factory inference, Sandboxes; Serverless Jobs and NeMo Gym removed unless D5 ships. Limitations: falsifies, doesn't prove; pre-existing bugs are invisible; Python 3.12, JSON-able arguments; Ir not wall time. Quickstart that works on a fresh machine (judges may try it). Remove "pre-alpha", "planned" and every `[x]`.
 - [ ] **B2. Static replay on the site.** Playback of the committed `events.jsonl` entirely in the browser (reuse `live.js`; no polling server), with a speed control and the "replay of run <id>" label and real timestamps. Linked from the index as "Watch an audit". Judges who never run anything still see the plan, the strategies, the Sandbox gauge filling, cards landing and the bill ticking.
 - [ ] **B3. Video** per [demo-script.md](demo-script.md), recorded from the Sandboxes demo run (replay at 8×, said on camera). Script locked Oct 25, recorded Oct 26–27, uploaded Oct 28 (allow 2–3 h). Say the model and product names aloud. Lead with the Codeflash reversal (a "109% faster" change that does 393× the work) within the first 20 s.
 - [ ] **B4. Feedback write-up** from [feedback-log.md](feedback-log.md): required field, 10 × $100 prizes. Group by product (Token Factory inference, Nemotron reasoning controls, structured output, Sandboxes SDK/docs), each entry with what we tried, what happened, what would have helped. Add today's Sandboxes entries (worked first try; resources only via `_raw`; units documented as diagnostics-only; docs page inconsistencies).
@@ -173,8 +173,8 @@ What this adds to the story: the backend does not change what Breakwater finds; 
 | Fri Oct 17 – Mon Oct 19 | A1, A2, A3, A6; E1 commit | — |
 | **Tue Oct 20** | A4 demo audit on Sandboxes | **G3: demo audit end to end on Sandboxes with Ir.** Fail → Docker stays, README reworded |
 | Wed Oct 21 – Thu Oct 22 | A4 Codeflash + packaging subset on Sandboxes; A5; C1; B5 | **G2' (Oct 22): evidence complete.** Every published number has a backend, image UUID and provider. *Passed Oct 24 (A4, A5); C1 and B5 still open* |
-| Fri Oct 23 – Sat Oct 24 | C2, C4 (Tavily + ablation), C3, B2, D1, D2, E2, E3 | **Feature freeze Sat Oct 24 23:59 PT.** Cut from the bottom of Section 7 |
-| Sun Oct 25 – Tue Oct 27 | B1 README, Section 8 table with links, B4 feedback write-up, script locked Oct 25, record Oct 26–27 | — |
+| Sun Oct 25 – Mon Oct 26 | B1 README (done Oct 25); features: E1, B2, C2, C4, D1 or delete its claim, D2 | **Feature freeze Mon Oct 26 23:59 PT** (moved from Sat Oct 24). Cut from the bottom of Section 7 |
+| Tue Oct 27 | B4 feedback write-up, script locked, record; README numbers refreshed for anything that landed | — |
 | Wed Oct 28 | B7 publish (public repo, Pages, clean-browser test), B3 upload | — |
 | **Thu Oct 29** | B6 submit on Devpost | Fri morning is buffer only |
 

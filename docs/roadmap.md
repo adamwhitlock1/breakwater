@@ -12,7 +12,7 @@
 | **Sun Oct 11** | **G0: first automatic finding** ✅ met Oct 8: 3/3 cold runs found a #1082 bug, ~$0.027 each | Day-1 C done (D too if access arrived). `breakwater audit` prototype on #1082's intermediate commit finds ≥1 known class with no hint about which bug exists | Debug the adversary prompts and probes before building anything else |
 | **Wed Oct 14** | **G1: hero works** ✅ met Oct 8: 3/3 known #1082 classes as separate classes in 2/2 runs; valid slower families found by the adversary and confirmed by Ir (post-release 1.14x, long epochs up to 2.9x) | ≥2 of 3 known #1082-era classes found automatically, **and** ≥1 performance reversal family (e.g. non-simple versions) found by the adversary and confirmed by Ir | Lean on deterministic probes plus Hypothesis and make the Nemotron delta a measured ablation; or change the hero PR |
 | **Wed Oct 21** | **G2: evidence + product v1** | Backtest done over packaging 2026 perf PRs + ≥8 Codeflash PRs, with baselines; report page v1; GitHub Action posts a check | Shrink the Codeflash set; keep packaging |
-| **Sat Oct 24 23:59 PT** | **Feature freeze** | — | Cut from the bottom of the cut list |
+| **Mon Oct 26 23:59 PT** (moved from Oct 24) | **Feature freeze** | — | Cut from the bottom of the cut list |
 | Sun Oct 25 – Tue Oct 27 | Rerun from clean images; fill numbers; README; record video | — | — |
 | Wed Oct 28 | Upload video (allow 2–3 h); deploy static demo; clean-browser test | — | — |
 | Thu Oct 29 | **Submit on Devpost** | — | Fri morning is buffer only |

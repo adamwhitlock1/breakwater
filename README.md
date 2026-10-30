@@ -15,7 +15,7 @@ Entry for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackat
 | Track fit | A coding agent that writes, runs and tests code in Token Factory Sandboxes | The live page's sandbox gauge; an image UUID on every number |
 | Feedback | Specific entries, each with a reproduction and a suggestion | [`docs/feedback-log.md`](docs/feedback-log.md) |
 
-Demo site: [x] (GitHub Pages, published at submission). Video: [x].
+Demo site: https://adamwhitlock1.github.io/breakwater/ (GitHub Pages). Video: [x].
 
 ## What it found
 
@@ -171,6 +171,8 @@ docs/                    backtest write-up, decisions, roadmap, feedback log
 - **Adversarial sizes.** Slowdown ratios are measured on the families the adversary built, not weighted by real-world input frequency.
 - **Adjudication varies between runs on borderline classes.** A class labelled `intended` in one run can be `likely-bug` in another. Every label shows its votes and quoted evidence, and split votes become `needs-human`.
 - **Not implemented:** an in-process vs out-of-process timing cross-check, input-mutation and hash-seed probes, and memory columns.
+- **The GitHub Action is new.** Its shell steps and comment rendering are tested locally, but it hasn't been run on a real pull request on GitHub yet.
+- **Post-merge evidence.** Every audited PR in the backtests had already merged; each was audited from its parent commit as if it were open.
 - **Sandbox networking.** contree-sdk 0.3.6 has no option to disable networking. Breakwater runs every non-build run under `unshare -n`, verified to break name resolution and connections. The Docker backend uses `--network=none`.
 - **Scope.** Python 3.12 targets with JSON-serialisable arguments.
 

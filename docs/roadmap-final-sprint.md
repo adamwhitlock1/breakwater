@@ -4,6 +4,8 @@ This is the forward plan from Oct 17. [roadmap.md](roadmap.md) stays the ledger 
 
 **Deadline: Fri Oct 30, 10:00 PT. Submit Thu Oct 29. Feature freeze moved from Sat Oct 24 to Mon Oct 26 23:59 PT (decided Oct 25).** Judging is Dec 1–15; the demo URL must stay up and free until then.
 
+**Status at submission (Oct 29).** Shipped: WS-A (A1–A6), B1 README, E1 Action (built and tested locally; never run on GitHub). Cut at the freeze: B2, C1–C5, D1–D3, E2, E3. The README's limitations section lists what isn't built. The remaining submission steps (B3 video, B6 Devpost, B7 publish) are tracked in [submission.md](submission.md), which also holds the Devpost answers drafted from the feedback log (B4). B5 is done for `spec.md`, `judging-map.md` and `risks.md`.
+
 ## 1. Where the project stands (audit)
 
 ### Built and verified (all on Token Factory unless stated)

@@ -158,7 +158,7 @@ def audit(args: argparse.Namespace) -> int:
     import uuid
     from pathlib import Path
 
-    from breakwater import adversary, ledger, perf
+    from breakwater import adversary, ledger, perf, verdict
     from breakwater.backends import get_backend
     from breakwater.events import Events, ObservedBackend
     from breakwater.images import build_pair, git_req
@@ -166,7 +166,7 @@ def audit(args: argparse.Namespace) -> int:
     from breakwater.models import Provider
     from breakwater.probes import Target
     from breakwater.repo import gather
-    from breakwater.site.build import run_cards, verdict_of, write_live_page, write_run_page
+    from breakwater.site.build import run_cards, write_live_page, write_run_page
 
     run_id = uuid.uuid4().hex[:12]
     out = Path(args.out or f"artifacts/runs/{run_id}")
@@ -193,7 +193,6 @@ def audit(args: argparse.Namespace) -> int:
                     "title": args.title or "", "provider": llm.provider.value}
     events("run", **report)
     sections: list[str] = [] if llm.provider is Provider.TOKENFACTORY else [DEV_BANNER.format(llm.provider.value)]
-    found = False
     try:
         events("phase", name="build")
         ctx = gather(args.repo, args.base, args.head, args.target)
@@ -233,15 +232,11 @@ def audit(args: argparse.Namespace) -> int:
                 events("tests", generated=sum(bool(t.source) for t in tests), verified=sum(t.verified for t in tests),
                        skipped=sum(bool(t.skipped) for t in tests))
             sections.append(adversary.render_markdown(sem, verdicts))
-            # BLOCK on likely bugs only once adjudicated; unadjudicated, every divergence counts.
-            found = found or (any(v.label == "likely-bug" for v in verdicts.values()) if verdicts
-                              else bool(sem.findings))
         if args.mode in ("perf", "both"):
             pr = perf.perf_audit(ctx, image, llm, backend, target, run_id=run_id, n_families=args.families,
                                  seed=args.seed, use_archive=not args.no_archive, events=events)
             report["perf"] = pr.to_json()
             sections.append(perf.render_markdown(pr))
-            found = found or any(f.verdict in ("slower", "complexity-regression") for f in pr.findings)
     except BaseException as e:
         events("error", message=f"{type(e).__name__}: {str(e)[:300]}")
         raise
@@ -254,11 +249,14 @@ def audit(args: argparse.Namespace) -> int:
                     f"({', '.join(f'{k} ${v:.4f}' for k, v in sorted(usd.items()))})  \n"
                     + sandbox_line(sandbox))
     md = "\n\n".join(sections)
+    report["verdict"] = verdict.of_report(json.loads(json.dumps(report, default=str)))
+    v = report["verdict"]
+    md = f"**{v['verdict']}**" + (": " + " ".join(v["reasons"]) if v["reasons"] else "") + "\n\n" + md
     (out / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False, default=str))
     (out / "report.md").write_text(md)
     write_run_page(out)
     cards = run_cards(report)
-    events("done", verdict=verdict_of(cards) if cards else "PASS", classes=len(cards), report="report.html",
+    events("done", verdict=v["verdict"], classes=len(cards), report="report.html",
            usd=round(sum(usd.values()), 6), usd_by_tier=usd, sandbox=sandbox)
     print("\n" + md + f"\n\nwrote {out}/report.json, report.md and report.html", flush=True)
     if server:
@@ -270,7 +268,7 @@ def audit(args: argparse.Namespace) -> int:
                 time.sleep(3600)
         except KeyboardInterrupt:
             server.shutdown()
-    return 1 if found else 0
+    return 1 if verdict.fails(v["verdict"], args.fail_on) else 0
 
 
 def replay(args: argparse.Namespace) -> int:
@@ -414,6 +412,35 @@ def regress(args: argparse.Namespace) -> int:
     return 0
 
 
+def comment(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from breakwater import comment as c
+
+    report = json.loads((Path(args.run) / "report.json").read_text())
+    body = c.render(report, artifact_url=args.artifact_url or None, run_url=args.run_url or None)
+    if args.out:
+        Path(args.out).write_text(body)
+    if args.post:
+        if not (args.repo and args.pr):
+            print("--post needs --repo and --pr")
+            return 2
+        print(c.post(body, repo=args.repo, pr=args.pr, target=report["target"]))
+    elif not args.out:
+        print(body)
+    return 0
+
+
+def verdict_cmd(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from breakwater.verdict import of_report
+
+    report = json.loads((Path(args.run) / "report.json").read_text())
+    print((report.get("verdict") or of_report(report))["verdict"])
+    return 0
+
+
 def bill(args: argparse.Namespace) -> int:
     names = [args.provider] if args.provider else ledger.providers(run_id=args.run_id)
     if not names:
@@ -465,6 +492,8 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--no-archive", action="store_true", help="ignore and do not update the perf family archive")
     a.add_argument("--no-adjudicate", action="store_true", help="skip labelling divergences (likely-bug/intended/...)")
     a.add_argument("--title", help="PR title, given to the adjudicator as a statement of intent")
+    a.add_argument("--fail-on", choices=("block", "review", "never"), default="block",
+                   help="exit 1 when the verdict is at least this (default block)")
     a.add_argument("--live", action="store_true", help="serve a live view of the run on localhost while it runs")
     a.add_argument("--open", action="store_true", help="with --live: open the live view in a browser")
     a.add_argument("--port", type=int, default=8766, help="with --live: port (default 8766)")
@@ -523,6 +552,18 @@ def main(argv: list[str] | None = None) -> int:
                    help="items of --backtest re-run on another backend, as an item-by-item comparison sub-site "
                         "(default: sandboxes, if artifacts/backtest/packaging-v4-sandboxes exists)")
     w.set_defaults(fn=site)
+    m = sub.add_parser("comment", help="render an audit as a pull-request comment, and optionally post it")
+    m.add_argument("run", help="audit run dir (with report.json)")
+    m.add_argument("--out", help="write the Markdown here")
+    m.add_argument("--post", action="store_true", help="create or update the PR comment (gh CLI, GH_TOKEN)")
+    m.add_argument("--repo", help="owner/name")
+    m.add_argument("--pr", type=int)
+    m.add_argument("--artifact-url", default="")
+    m.add_argument("--run-url", default="")
+    m.set_defaults(fn=comment)
+    vd = sub.add_parser("verdict", help="print an audit's verdict (BLOCK, REVIEW or PASS)")
+    vd.add_argument("run", help="audit run dir (with report.json)")
+    vd.set_defaults(fn=verdict_cmd)
     b = sub.add_parser("bill", help="Token Factory spend by tier, from the ledger")
     b.add_argument("--run-id")
     b.add_argument("--provider", help="tokenfactory or openrouter (default: each provider in the ledger)")

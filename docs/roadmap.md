@@ -12,7 +12,7 @@
 | **Sun Oct 11** | **G0: first automatic finding** ✅ met Oct 8: 3/3 cold runs found a #1082 bug, ~$0.027 each | Day-1 C done (D too if access arrived). `breakwater audit` prototype on #1082's intermediate commit finds ≥1 known class with no hint about which bug exists | Debug the adversary prompts and probes before building anything else |
 | **Wed Oct 14** | **G1: hero works** ✅ met Oct 8: 3/3 known #1082 classes as separate classes in 2/2 runs; valid slower families found by the adversary and confirmed by Ir (post-release 1.14x, long epochs up to 2.9x) | ≥2 of 3 known #1082-era classes found automatically, **and** ≥1 performance reversal family (e.g. non-simple versions) found by the adversary and confirmed by Ir | Lean on deterministic probes plus Hypothesis and make the Nemotron delta a measured ablation; or change the hero PR |
 | **Wed Oct 21** | **G2: evidence + product v1** | Backtest done over packaging 2026 perf PRs + ≥8 Codeflash PRs, with baselines; report page v1; GitHub Action posts a check | Shrink the Codeflash set; keep packaging |
-| **Sat Oct 24 23:59 PT** | **Feature freeze** | — | Cut from the bottom of the cut list |
+| **Mon Oct 26 23:59 PT** (moved from Oct 24) | **Feature freeze** | — | Cut from the bottom of the cut list |
 | Sun Oct 25 – Tue Oct 27 | Rerun from clean images; fill numbers; README; record video | — | — |
 | Wed Oct 28 | Upload video (allow 2–3 h); deploy static demo; clean-browser test | — | — |
 | Thu Oct 29 | **Submit on Devpost** | — | Fri morning is buffer only |
@@ -73,7 +73,8 @@ The project starts as one person. Critical path order: **WS1 → WS2 → WS3**. 
 - [x] Perf: validity per ladder size. Each size records the share of inputs base accepts; the verdict and slopes use only sizes where most inputs are valid (excluded sizes shown hollow on the chart). Published ladders were backfilled by regenerating them from the recorded generators, with no model calls (`scripts/backtest/backfill_ladder_validity.py`). The earlier demo run's claimed-speedup family F2 goes from `slower` to `faster`.
 - [ ] Report v2: wall-clock CIs once finalist timing exists.
 - [x] Judge box (`site/judge.html`, "Try it"): four real versions of `packaging.version` run in the browser (Pyodide 0.27.2, loaded from jsDelivr only after the visitor clicks Start). The versions are before #1082, its intermediate commit, merged, and after #1155. Differences are classified with the probes' own `compare.py`, so they get the backtest's class signatures and link to their cards. Sources are bundled by `scripts/site/build_judge_bundle.py` (committed, 122 KB).
-- [ ] GitHub Action that runs the CLI and posts a check + comment.
+- [x] GitHub Action (`action.yml`, docs/github-action.md): a composite action. It audits the PR against its merge base on Token Factory, posts one PR comment updated in place (verdict, grouped counterexamples, perf, verified tests, backend and image), writes the job summary, uploads the report artifact and fails on BLOCK (`fail-on`). With `nebius-project-id` untrusted code runs in Sandboxes, else Docker on the runner. It skips with a notice without a key (forks) and runs on `pull_request` only. `breakwater comment` and `breakwater verdict` commands; one verdict module shared by site, CLI and comment. Its shell steps are tested locally.
+- [ ] Run the action once on GitHub: needs repo secrets and a test PR (owner's call).
 - [ ] README "For judges" table ([judging-map.md](judging-map.md)), limitations, the real bill.
 - [ ] Video per [demo-script.md](demo-script.md). Say "Nebius Token Factory", "Sandboxes" and the Nemotron model names aloud.
 - [ ] Feedback write-up from [feedback-log.md](feedback-log.md). It is required, and 10 × $100 prizes reward it.

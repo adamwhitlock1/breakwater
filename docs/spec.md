@@ -1,5 +1,10 @@
 # Breakwater product spec (v0, 2026-10-08)
 
+> **Historical.** This is the day-1 spec. What shipped is described in the [README](../README.md). The main differences:
+> - Verdicts are `BLOCK` / `REVIEW` / `PASS`, on probes and cachegrind Ir. The wall-clock `FASTER` / `INCONCLUSIVE` CIs here were not built (see [decisions.md](decisions.md), 2026-10-12).
+> - Probes P1–P4 shipped. P5–P8 were cut: two clocks, memory, hash seed and non-mutation.
+> - Not built: Tavily recon, Serverless Jobs finalist timing, the sealed PyPI corpus.
+
 ## One-liner
 Breakwater audits AI-written "faster" pull requests. A Nemotron adversary in Nebius Token Factory Sandboxes hunts for the real-world input family where the speedup reverses or behavior silently changes, and two clocks catch timing hacks.
 

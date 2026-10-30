@@ -30,6 +30,10 @@ from typing import Any
 from breakwater.adjudicate import describe
 from breakwater.adversary import Finding
 from breakwater.display import card_text, short, sources
+from breakwater.verdict import RANK as _RANK
+from breakwater.verdict import behaviour as _behaviour
+from breakwater.verdict import combine as _combine
+from breakwater.verdict import performance as perf_verdict
 
 ASSETS = Path(__file__).parent / "assets"
 REPO_URL = "https://github.com/adamwhitlock1/breakwater"
@@ -87,38 +91,13 @@ class Card:
         return self.verdict["label"] if self.verdict else None
 
 
-SLOWER_REVIEW = 1.25  # a valid input family this much slower makes a PR at least REVIEW
-_RANK = {"PASS": 0, "REVIEW": 1, "BLOCK": 2}
-
-
-def perf_verdict(perf: dict | None) -> tuple[str, str]:
-    """(verdict, reason) from a perf summary: a complexity regression on a family of mostly valid inputs
-    blocks; a valid family at least SLOWER_REVIEW times slower needs review."""
-    p = perf or {}
-    worst = p.get("worst_valid_ratio")
-    if not worst:
-        return "PASS", ""
-    fam = next((f for f in (p.get("report") or {}).get("findings", []) if f.get("family") == p.get("worst_family")), {})
-    if fam.get("verdict") == "complexity-regression":
-        return "BLOCK", (f"The \u201cfaster\u201d code does up to {worst:.0f}\u00d7 the work on valid inputs, growing with "
-                         "input size (complexity regression).")
-    if worst >= SLOWER_REVIEW:
-        return "REVIEW", f"A valid input family runs {worst:.2f}\u00d7 the instructions of the old code."
-    return "PASS", ""
-
-
 def combine(behaviour: str, perf: tuple[str, str]) -> str:
-    return max(behaviour, perf[0], key=_RANK.__getitem__)
+    return _combine(behaviour, perf[0])
 
 
 def verdict_of(cards: list[Card]) -> str:
-    """BLOCK on any likely bug; REVIEW if anything is unsettled or unlabelled; otherwise PASS."""
-    labels = {c.label for c in cards}
-    if "likely-bug" in labels:
-        return "BLOCK"
-    if "needs-human" in labels or None in labels and cards:
-        return "REVIEW"
-    return "PASS"
+    """Behaviour verdict of a list of cards (breakwater.verdict.behaviour)."""
+    return _behaviour(c.label for c in cards) if cards else "PASS"
 
 
 @dataclass
@@ -1140,7 +1119,10 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
     repo, base, head, target = report["repo"], report["base"], report["head"], report["target"]
     sem = report.get("semantic") or {}
     cards = run_cards(report)
-    verdict = verdict_of(cards)
+    from breakwater.verdict import of_report
+
+    judged = report.get("verdict") or of_report(report)
+    verdict = judged["verdict"]
     fn = target.split(":")[1].split("#")[0]
     backend, image = run_provenance(report)
     title = report.get("title") or f"Audit of {target}"
@@ -1182,7 +1164,8 @@ def render_run(report: dict, *, depth: int, dev: str | None, home: str | None = 
     secs = {**{f"semantic {k}": v for k, v in (sem.get("seconds") or {}).items() if k != "total"},
             **{f"perf {k}": v for k, v in ((report.get("perf") or {}).get("seconds") or {}).items() if k != "total"}}
     times = " · ".join(f"{esc(k)} {v:.0f}s" for k, v in secs.items())
-    verdict_box = (f'<div class="verdict-box {verdict.lower()}">{verdict_chip(verdict)}<p>{esc(VERDICT_TEXT[verdict] if cards else "No behaviour divergence found by any probe.")}'
+    reason = " ".join(judged["reasons"]) or (VERDICT_TEXT[verdict] if cards else "No behaviour divergence found by any probe.")
+    verdict_box = (f'<div class="verdict-box {verdict.lower()}">{verdict_chip(verdict)}<p>{esc(reason)}'
                    f'{"" if report.get("adjudication") or not cards else " (not adjudicated)"}</p></div>')
     body = f"""
 {crumbs}

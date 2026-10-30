@@ -4,8 +4,8 @@ Review at each gate (Oct 11, 14, 21). Status: open / watching / retired.
 
 | # | Risk | Likelihood | Impact | Trigger to act | Mitigation | Status |
 |---|---|---|---|---|---|---|
-| 1 | Sandboxes beta access slow or denied | Med | High (Nebius judges expect it) | No access by Oct 13 | Docker backend works today; keep asking DevRel; disclose the backend per run | open |
-| 2 | Cachegrind unusable in microVMs | Med | Med | check_contree.py fails the cachegrind step | Ir in Docker; Sandbox CPU-time with repeats in Sandboxes | open |
+| 1 | Sandboxes beta access slow or denied | Med | High (Nebius judges expect it) | No access by Oct 13 | Docker backend works today; keep asking DevRel; disclose the backend per run | retired Oct 17 (access granted; published runs on Sandboxes Oct 24) |
+| 2 | Cachegrind unusable in microVMs | Med | Med | check_contree.py fails the cachegrind step | Ir in Docker; Sandbox CPU-time with repeats in Sandboxes | retired Oct 17 (cachegrind works in the microVM) |
 | 3 | Nemotron adversary adds little over plain Hypothesis | Med | High (Quality of Idea) | Ghostwriter baseline finds ≥ what the adversary finds by G1 | Lead with perf reversals (needs white-box reasoning); report the measured delta honestly; lean on white-box planning | open |
 | 4 | Contamination: models memorized the packaging PRs | Med | Med | Memorization probe shows Ultra knows #1082/#1155 | Never hint at the bug; report post-cutoff PRs (#1371, #1429) and Codeflash PRs separately | open |
 | 5 | Timing noise fakes or hides speedups | Low (Ir is deterministic) | High | Wall and Ir disagree in direction | A/A floor, interleaving, frozen GC, INCONCLUSIVE verdict | watching |

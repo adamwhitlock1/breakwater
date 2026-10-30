@@ -1,0 +1,169 @@
+name: Breakwater
+description: >-
+  A red team for performance pull requests. Nemotron on Nebius Token Factory hunts for inputs where a
+  "faster" change behaves differently or runs slower, running its code in Token Factory Sandboxes;
+  probes and cachegrind decide. Posts one PR comment with the verdict, counterexamples, measurements
+  and ready-to-commit regression tests.
+author: Breakwater
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  target:
+    description: 'The callable under test, "package.module:Name" (also "Class#method" and "Class()#method").'
+    required: true
+  observe:
+    description: 'What to compare on results: a comma list of str, repr, value, len, attr:<name>.'
+    default: str,repr
+  mode:
+    description: semantic, perf or both.
+    default: both
+  fail-on:
+    description: Fail the check when the verdict is at least this (block, review or never).
+    default: block
+  comment:
+    description: Post (or update) the pull-request comment.
+    default: "true"
+  nebius-api-key:
+    description: >-
+      Nebius Token Factory API key (pass a secret). Without it the action skips with a notice, which is
+      what happens on pull requests from forks, since they don't receive secrets.
+    required: false
+  nebius-project-id:
+    description: >-
+      Nebius project ID (pass a secret or variable). With it, untrusted code runs in Token Factory
+      Sandboxes microVMs; without it, in a local Docker container on the runner.
+    required: false
+  source-repo:
+    description: >-
+      Public "owner/name" to clone and install base and head from, instead of this repository (for a
+      private mirror of a public project; both commits must exist there). Default: this repository.
+    required: false
+  github-token:
+    description: Token for the PR comment and the merge-base lookup (needs pull-requests write).
+    default: ${{ github.token }}
+
+outputs:
+  verdict:
+    description: BLOCK, REVIEW, PASS, or SKIPPED.
+  backend:
+    description: Where untrusted code ran, contree (Token Factory Sandboxes) or docker.
+    value: ${{ steps.check.outputs.backend }}
+    value: ${{ steps.result.outputs.verdict || 'SKIPPED' }}
+  report-dir:
+    description: Directory with report.json, report.html, report.md and test_regressions.py.
+    value: ${{ steps.audit.outputs.dir }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        KEY: ${{ inputs.nebius-api-key }}
+        PROJECT: ${{ inputs.nebius-project-id }}
+        EVENT: ${{ github.event_name }}
+      run: |
+        if [ -n "$PROJECT" ]; then echo "backend=contree" >> "$GITHUB_OUTPUT"; else echo "backend=docker" >> "$GITHUB_OUTPUT"; fi
+        if [ -z "$KEY" ]; then
+          echo "::notice title=Breakwater skipped::No Nebius Token Factory key (pull requests from forks don't receive secrets)."
+          echo "run=false" >> "$GITHUB_OUTPUT"
+        elif [ "$EVENT" != "pull_request" ]; then
+          # Not pull_request_target: there secrets are present while the head commit's packaging code
+          # runs during the image build, which is how forks steal secrets.
+          echo "::notice title=Breakwater skipped::Runs on pull_request events only (got $EVENT)."
+          echo "run=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "run=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - if: steps.check.outputs.run == 'true'
+      uses: astral-sh/setup-uv@v6
+
+    - if: steps.check.outputs.run == 'true'
+      id: setup
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        BASE: ${{ github.event.pull_request.base.sha }}
+        HEAD: ${{ github.event.pull_request.head.sha }}
+        BACKEND: ${{ steps.check.outputs.backend }}
+      run: |
+        if [ "$BACKEND" = "contree" ]; then
+          # The harness and pair images are built in Sandboxes (found again by tag), not on the runner.
+          uv sync --quiet --project "$GITHUB_ACTION_PATH" --extra sandboxes
+        else
+          uv sync --quiet --project "$GITHUB_ACTION_PATH"
+          docker build --quiet -f "$GITHUB_ACTION_PATH/docker/harness.Dockerfile" -t breakwater-harness "$GITHUB_ACTION_PATH"
+        fi
+        # Audit the PR against its merge base, not the base branch tip: later changes on the base
+        # branch are not this PR's.
+        merge_base=$(gh api "repos/$REPO/compare/$BASE...$HEAD" --jq .merge_base_commit.sha)
+        echo "merge_base=$merge_base" >> "$GITHUB_OUTPUT"
+
+    - if: steps.check.outputs.run == 'true'
+      id: audit
+      shell: bash
+      env:
+        NEBIUS_API_KEY: ${{ inputs.nebius-api-key }}
+        NEBIUS_PROJECT_ID: ${{ inputs.nebius-project-id }}
+        BACKEND: ${{ steps.check.outputs.backend }}
+        BREAKWATER_PROVIDER: tokenfactory
+        REPO: ${{ inputs.source-repo || github.repository }}
+        TITLE: ${{ github.event.pull_request.title }}
+        HEAD: ${{ github.event.pull_request.head.sha }}
+        BASE: ${{ steps.setup.outputs.merge_base }}
+        TARGET: ${{ inputs.target }}
+        OBSERVE: ${{ inputs.observe }}
+        MODE: ${{ inputs.mode }}
+      run: |
+        work="$RUNNER_TEMP/breakwater"
+        mkdir -p "$work" && cd "$work"
+        uv run --quiet --project "$GITHUB_ACTION_PATH" breakwater audit \
+          --repo "https://github.com/$REPO" --base "$BASE" --head "$HEAD" \
+          --target "$TARGET" --observe "$OBSERVE" --mode "$MODE" --title "$TITLE" --backend "$BACKEND" \
+          --out "$work/run" --fail-on never
+        echo "dir=$work/run" >> "$GITHUB_OUTPUT"
+
+    - if: steps.check.outputs.run == 'true'
+      id: upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: breakwater-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+        path: ${{ steps.audit.outputs.dir }}
+
+    - if: steps.check.outputs.run == 'true'
+      id: result
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        RUN: ${{ steps.audit.outputs.dir }}
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.pull_request.number }}
+        ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        POST: ${{ inputs.comment }}
+      run: |
+        bw() { uv run --quiet --project "$GITHUB_ACTION_PATH" breakwater "$@"; }
+        bw comment "$RUN" --out "$RUN/comment.md" --artifact-url "$ARTIFACT_URL" --run-url "$RUN_URL"
+        cat "$RUN/comment.md" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$POST" = "true" ]; then
+          bw comment "$RUN" --post --repo "$REPO" --pr "$PR" --artifact-url "$ARTIFACT_URL" --run-url "$RUN_URL"
+        fi
+        verdict=$(bw verdict "$RUN")
+        echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+
+    - if: steps.check.outputs.run == 'true'
+      shell: bash
+      env:
+        VERDICT: ${{ steps.result.outputs.verdict }}
+        FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        rank() { case "$1" in BLOCK|block) echo 2;; REVIEW|review) echo 1;; *) echo 0;; esac; }
+        if [ "$FAIL_ON" != "never" ] && [ "$(rank "$VERDICT")" -ge "$(rank "$FAIL_ON")" ]; then
+          echo "::error title=Breakwater: $VERDICT::See the pull-request comment and the breakwater artifact."
+          exit 1
+        fi
+        echo "Breakwater verdict: $VERDICT"
